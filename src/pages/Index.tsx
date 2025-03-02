@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Book as BookIcon, Library } from 'lucide-react';
-import EbookUploader, { Book } from '@/components/EbookUploader';
+import EbookUploader, { Book } from '@/components/ebook-uploader/EbookUploader';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
@@ -32,7 +31,6 @@ const Index = () => {
   const [uploaderOpen, setUploaderOpen] = useState(false);
   
   useEffect(() => {
-    // Load saved books on mount
     const savedBooks = getSavedBooks();
     setBooks(savedBooks);
   }, []);
@@ -52,7 +50,6 @@ const Index = () => {
   
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="bg-card shadow-sm py-6">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center">
@@ -75,7 +72,6 @@ const Index = () => {
         </div>
       </header>
       
-      {/* Main content */}
       <main className="container mx-auto px-4 py-8">
         {books.length > 0 ? (
           <div>
