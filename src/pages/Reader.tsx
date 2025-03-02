@@ -1,11 +1,12 @@
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, X } from 'lucide-react';
 import ReaderToolbar from '@/components/ReaderToolbar';
 import TableOfContents, { TocItem } from '@/components/TableOfContents';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { Book } from '@/components/EbookUploader';
 
 // Sample e-book content with legal transcript content
 const sampleBook = {
@@ -132,22 +133,74 @@ const generateToc = (chapters: any[]): TocItem[] => {
   }));
 };
 
+const STORAGE_KEY = 'court-reporter-ebooks';
+
+const getSavedBooks = (): Book[] => {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch (e) {
+      console.error('Error parsing saved books:', e);
+      return [];
+    }
+  }
+  return [];
+};
+
 const Reader = () => {
   const { bookId, chapterId } = useParams<{ bookId: string; chapterId: string }>();
+  const navigate = useNavigate();
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [tocVisible, setTocVisible] = useState(false);
   const [activeChapter, setActiveChapter] = useState<string | undefined>(chapterId);
-  const [book] = useState(sampleBook);
-  const [toc] = useState(generateToc(sampleBook.chapters));
+  const [book, setBook] = useState<Book | null>(null);
+  const [toc, setToc] = useState<TocItem[]>([]);
+
+  // Load the book from localStorage
+  useEffect(() => {
+    if (bookId === 'court-scribe-companion') {
+      // Load the sample book if requested by ID
+      setBook(sampleBook);
+      setToc(generateToc(sampleBook.chapters));
+    } else if (bookId) {
+      // Try to load from localStorage
+      const savedBooks = getSavedBooks();
+      const foundBook = savedBooks.find(b => b.id === bookId);
+      
+      if (foundBook) {
+        setBook(foundBook);
+        setToc(generateToc(foundBook.chapters));
+      } else {
+        toast.error("Book not found", {
+          description: "The requested book could not be found in your library.",
+        });
+        navigate('/');
+      }
+    }
+  }, [bookId, navigate]);
 
   // Set the first chapter as active if no chapter is specified
   useEffect(() => {
-    if (!activeChapter && book.chapters.length > 0) {
-      setActiveChapter(book.chapters[0].id);
-    } else if (chapterId) {
-      setActiveChapter(chapterId);
+    if (book && book.chapters.length > 0) {
+      if (!activeChapter) {
+        setActiveChapter(book.chapters[0].id);
+      } else if (chapterId) {
+        setActiveChapter(chapterId);
+      }
     }
   }, [book, chapterId, activeChapter]);
+
+  if (!book) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-2xl font-medium mb-2">Loading...</h2>
+          <p className="text-muted-foreground">If the book doesn't load, it might not exist.</p>
+        </div>
+      </div>
+    );
+  }
 
   const currentChapterIndex = book.chapters.findIndex(ch => ch.id === activeChapter);
   const currentChapter = book.chapters[currentChapterIndex];
