@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Book, Library } from 'lucide-react';
+import { PlusCircle, Book as BookIcon, Library } from 'lucide-react';
 import EbookUploader, { Book } from '@/components/EbookUploader';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
@@ -93,7 +93,7 @@ const Index = () => {
                   <div className="p-6 flex flex-col h-full">
                     <div className="flex-1">
                       <div className="w-full aspect-[3/4] bg-muted rounded-lg mb-4 flex items-center justify-center">
-                        <Book size={40} className="text-muted-foreground" />
+                        <BookIcon size={40} className="text-muted-foreground" />
                       </div>
                       <h3 className="font-medium text-lg mb-1 line-clamp-2">{book.title}</h3>
                       <p className="text-sm text-muted-foreground mb-2">{book.author}</p>
