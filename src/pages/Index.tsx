@@ -1,127 +1,143 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { PlusCircle, Book as BookIcon, Library } from 'lucide-react';
-import EbookUploader, { Book } from '@/components/ebook-uploader/EbookUploader';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import { toast } from 'sonner';
 
-const STORAGE_KEY = 'court-reporter-ebooks';
-
-const getSavedBooks = (): Book[] => {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved) {
-    try {
-      return JSON.parse(saved);
-    } catch (e) {
-      console.error('Error parsing saved books:', e);
-      return [];
-    }
-  }
-  return [];
-};
-
-const saveBooks = (books: Book[]) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
-};
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Book, BookOpen, Download, Upload } from "lucide-react";
+import { PageTransition } from "@/components/PageTransition";
+import MainNavigation from "@/components/MainNavigation";
 
 const Index = () => {
-  const navigate = useNavigate();
-  const [books, setBooks] = useState<Book[]>([]);
-  const [uploaderOpen, setUploaderOpen] = useState(false);
-  
-  useEffect(() => {
-    const savedBooks = getSavedBooks();
-    setBooks(savedBooks);
-  }, []);
-  
-  const handleBookUploaded = (book: Book) => {
-    const newBooks = [...books.filter(b => b.id !== book.id), book];
-    setBooks(newBooks);
-    saveBooks(newBooks);
-    setUploaderOpen(false);
-    toast.success(`${book.title} added to your library`, {
-      action: {
-        label: "Open",
-        onClick: () => navigate(`/reader/${book.id}`),
-      },
-    });
+  const handleOpenPythonApp = () => {
+    // In a production environment, you would:
+    // 1. Either use Electron to open the Python app
+    // 2. Or redirect to a download page for the Python app
+    // 3. Or execute the Python app if it's on the same system
+    
+    alert("In a real deployment, this would launch the Python application. For now, please run book_processor.py directly.");
   };
-  
+
   return (
-    <div className="min-h-screen bg-background">
-      <header className="bg-card shadow-sm py-6">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold">Court Reporter's Library</h1>
-              <p className="text-muted-foreground mt-1">Your professional e-books collection</p>
+    <PageTransition>
+      <div className="min-h-screen bg-background flex flex-col">
+        <MainNavigation />
+        
+        <main className="flex-1 container mx-auto px-4 pt-20 pb-8">
+          <div className="max-w-4xl mx-auto mt-8">
+            <div className="text-center mb-8">
+              <h1 className="text-4xl font-bold tracking-tight">Book Processor Suite</h1>
+              <p className="text-xl text-muted-foreground mt-2">Process, enhance, and read your books with AI assistance</p>
             </div>
-            <Dialog open={uploaderOpen} onOpenChange={setUploaderOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Add New E-book
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl">
-                <EbookUploader onBookUploaded={handleBookUploaded} />
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
-      </header>
-      
-      <main className="container mx-auto px-4 py-8">
-        {books.length > 0 ? (
-          <div>
-            <div className="flex items-center mb-8">
-              <Library className="h-6 w-6 mr-2" />
-              <h2 className="text-2xl font-semibold">Your Library</h2>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {books.map((book) => (
-                <div 
-                  key={book.id}
-                  className="border rounded-xl overflow-hidden bg-card hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => navigate(`/reader/${book.id}`)}
-                >
-                  <div className="p-6 flex flex-col h-full">
-                    <div className="flex-1">
-                      <div className="w-full aspect-[3/4] bg-muted rounded-lg mb-4 flex items-center justify-center">
-                        <BookIcon size={40} className="text-muted-foreground" />
+            
+            <Tabs defaultValue="python" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="python">Python Application</TabsTrigger>
+                <TabsTrigger value="web">Web Reader</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="python" className="mt-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <BookOpen className="mr-2 h-6 w-6" />
+                      Book Processor Application
+                    </CardTitle>
+                    <CardDescription>
+                      Our desktop Python application for processing large documents and generating AI-assisted content
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-muted/50 p-4 rounded-lg">
+                          <h3 className="font-medium mb-2">Features</h3>
+                          <ul className="space-y-1 list-disc list-inside text-sm">
+                            <li>Process documents with thousands of pages</li>
+                            <li>AI-assisted table of contents generation</li>
+                            <li>Content enhancement and formatting</li>
+                            <li>Chapter extraction and organization</li>
+                            <li>Comprehensive document analysis</li>
+                          </ul>
+                        </div>
+                        <div className="bg-muted/50 p-4 rounded-lg">
+                          <h3 className="font-medium mb-2">Requirements</h3>
+                          <ul className="space-y-1 list-disc list-inside text-sm">
+                            <li>Python 3.7 or higher</li>
+                            <li>Tkinter (included with most Python installations)</li>
+                            <li>Required libraries: docx, openai</li>
+                            <li>OpenAI API key for AI features</li>
+                          </ul>
+                        </div>
                       </div>
-                      <h3 className="font-medium text-lg mb-1 line-clamp-2">{book.title}</h3>
-                      <p className="text-sm text-muted-foreground mb-2">{book.author}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {book.chapters.length} chapter{book.chapters.length !== 1 ? 's' : ''}
-                      </p>
                     </div>
-                    <Button className="w-full mt-4" variant="outline" onClick={() => navigate(`/reader/${book.id}`)}>
-                      Open Book
+                  </CardContent>
+                  <CardFooter className="flex flex-col space-y-2 sm:flex-row sm:space-x-2 sm:space-y-0">
+                    <Button 
+                      className="w-full sm:w-auto" 
+                      onClick={handleOpenPythonApp}
+                    >
+                      <BookOpen className="mr-2 h-4 w-4" />
+                      Launch Application
                     </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                    <Button variant="outline" className="w-full sm:w-auto">
+                      <Download className="mr-2 h-4 w-4" />
+                      Download Source Code
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="web" className="mt-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Book className="mr-2 h-6 w-6" />
+                      Web Reader
+                    </CardTitle>
+                    <CardDescription>
+                      Read and navigate your processed books in our responsive web reader
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <p>
+                        After processing your documents with the Python application, use our web reader to 
+                        access your content from any device with a modern web browser.
+                      </p>
+                      <div className="bg-muted/50 p-4 rounded-lg">
+                        <h3 className="font-medium mb-2">Features</h3>
+                        <ul className="space-y-1 list-disc list-inside text-sm">
+                          <li>Responsive design for all devices</li>
+                          <li>Dark/light mode support</li>
+                          <li>Interactive table of contents</li>
+                          <li>Chapter navigation</li>
+                          <li>Reading preferences customization</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button asChild className="w-full sm:w-auto">
+                      <a href="/reader/sample">
+                        <Book className="mr-2 h-4 w-4" />
+                        Open Web Reader
+                      </a>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
-        ) : (
-          <div className="text-center py-12">
-            <div className="inline-flex items-center justify-center p-4 bg-muted rounded-full mb-4">
-              <Library className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h2 className="text-2xl font-semibold mb-2">Your library is empty</h2>
-            <p className="text-muted-foreground max-w-md mx-auto mb-6">
-              Add your first e-book by uploading a file or pasting text content directly.
+        </main>
+        
+        <footer className="py-6 border-t">
+          <div className="container mx-auto px-4">
+            <p className="text-center text-sm text-muted-foreground">
+              Book Processor Suite &copy; {new Date().getFullYear()} - All rights reserved
             </p>
-            <Button onClick={() => setUploaderOpen(true)}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add New E-book
-            </Button>
           </div>
-        )}
-      </main>
-    </div>
+        </footer>
+      </div>
+    </PageTransition>
   );
 };
 
