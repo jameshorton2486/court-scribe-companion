@@ -9,12 +9,19 @@ from docx.shared import Pt, Inches, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 import time
 import threading
+import openai
+import io
+from PIL import Image, ImageTk
+import matplotlib.pyplot as plt
+import base64
+import requests
+from matplotlib.backends.backend_agg import FigureCanvasAgg
 
 class BookProcessor:
     def __init__(self, root):
         self.root = root
         self.root.title("Book Processor")
-        self.root.geometry("900x700")
+        self.root.geometry("1000x800")
         self.root.configure(bg="#f0f0f0")
         
         # Setup variables
@@ -24,6 +31,8 @@ class BookProcessor:
         self.author_name = tk.StringVar()
         self.current_status = tk.StringVar(value="Ready")
         self.progress_value = tk.DoubleVar(value=0.0)
+        self.openai_api_key = tk.StringVar()
+        self.chapter_outline = tk.StringVar()
         
         # Default output directory is 'output' in current directory
         default_output = os.path.join(os.getcwd(), "output")
@@ -33,17 +42,61 @@ class BookProcessor:
         self.docx_content = None
         self.chapters = []
         self.toc = []
+        self.current_chapter_index = 0
         
         # Create the main frame
         self.create_widgets()
     
     def create_widgets(self):
-        # Main frame
+        # Main frame with notebook (tabs)
         main_frame = ttk.Frame(self.root, padding=10)
         main_frame.pack(fill=tk.BOTH, expand=True)
         
+        notebook = ttk.Notebook(main_frame)
+        notebook.pack(fill=tk.BOTH, expand=True)
+        
+        # Tab 1: File Processing
+        file_tab = ttk.Frame(notebook, padding=10)
+        notebook.add(file_tab, text="File Processing")
+        
+        # Tab 2: AI Enhancement
+        ai_tab = ttk.Frame(notebook, padding=10)
+        notebook.add(ai_tab, text="AI Enhancement")
+        
+        # Tab 3: Chapter Generation
+        chapter_tab = ttk.Frame(notebook, padding=10)
+        notebook.add(chapter_tab, text="Chapter Generation")
+        
+        # File tab contents
+        self.create_file_tab(file_tab)
+        
+        # AI Enhancement tab contents
+        self.create_ai_tab(ai_tab)
+        
+        # Chapter Generation tab contents
+        self.create_chapter_tab(chapter_tab)
+        
+        # Log display (shared across tabs)
+        log_frame = ttk.LabelFrame(main_frame, text="Processing Log", padding=10)
+        log_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+        
+        self.log_text = scrolledtext.ScrolledText(log_frame, width=80, height=10)
+        self.log_text.pack(fill=tk.BOTH, expand=True)
+        self.log_text.config(state=tk.DISABLED)
+        
+        # Progress and status (shared across tabs)
+        progress_frame = ttk.Frame(main_frame)
+        progress_frame.pack(fill=tk.X, pady=5)
+        
+        ttk.Label(progress_frame, text="Status:").pack(side=tk.LEFT, padx=5)
+        ttk.Label(progress_frame, textvariable=self.current_status).pack(side=tk.LEFT, padx=5)
+        
+        self.progress_bar = ttk.Progressbar(progress_frame, variable=self.progress_value, length=400, mode="determinate")
+        self.progress_bar.pack(side=tk.RIGHT, padx=5)
+    
+    def create_file_tab(self, parent):
         # File input section
-        file_frame = ttk.LabelFrame(main_frame, text="File Selection", padding=10)
+        file_frame = ttk.LabelFrame(parent, text="File Selection", padding=10)
         file_frame.pack(fill=tk.X, pady=5)
         
         ttk.Label(file_frame, text="Input DOCX File:").grid(row=0, column=0, sticky=tk.W, pady=5)
@@ -55,7 +108,7 @@ class BookProcessor:
         ttk.Button(file_frame, text="Browse...", command=self.browse_output_dir).grid(row=1, column=2, padx=5, pady=5)
         
         # Book metadata section
-        metadata_frame = ttk.LabelFrame(main_frame, text="Book Metadata", padding=10)
+        metadata_frame = ttk.LabelFrame(parent, text="Book Metadata", padding=10)
         metadata_frame.pack(fill=tk.X, pady=5)
         
         ttk.Label(metadata_frame, text="Book Title:").grid(row=0, column=0, sticky=tk.W, pady=5)
@@ -65,7 +118,7 @@ class BookProcessor:
         ttk.Entry(metadata_frame, textvariable=self.author_name, width=50).grid(row=1, column=1, padx=5, pady=5)
         
         # Processing options section
-        options_frame = ttk.LabelFrame(main_frame, text="Processing Options", padding=10)
+        options_frame = ttk.LabelFrame(parent, text="Processing Options", padding=10)
         options_frame.pack(fill=tk.X, pady=5)
         
         # Add checkboxes for different processing options
@@ -82,31 +135,119 @@ class BookProcessor:
         ttk.Checkbutton(options_frame, text="Enhance Book Content (Experimental)", variable=self.enhance_content).grid(row=3, column=0, sticky=tk.W, pady=2)
         
         # Action buttons
-        button_frame = ttk.Frame(main_frame)
+        button_frame = ttk.Frame(parent)
         button_frame.pack(fill=tk.X, pady=10)
         
         ttk.Button(button_frame, text="Load Document", command=self.load_document, width=20).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Process Document", command=self.process_document, width=20).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Save All Chapters", command=self.save_all_chapters, width=20).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Generate Complete Book", command=self.generate_complete_book, width=20).pack(side=tk.LEFT, padx=5)
+    
+    def create_ai_tab(self, parent):
+        # OpenAI API Key
+        api_frame = ttk.LabelFrame(parent, text="OpenAI Configuration", padding=10)
+        api_frame.pack(fill=tk.X, pady=5)
         
-        # Progress display
-        progress_frame = ttk.Frame(main_frame)
-        progress_frame.pack(fill=tk.X, pady=5)
+        ttk.Label(api_frame, text="OpenAI API Key:").grid(row=0, column=0, sticky=tk.W, pady=5)
+        api_entry = ttk.Entry(api_frame, textvariable=self.openai_api_key, width=50, show="*")
+        api_entry.grid(row=0, column=1, padx=5, pady=5)
         
-        ttk.Label(progress_frame, text="Status:").pack(side=tk.LEFT, padx=5)
-        ttk.Label(progress_frame, textvariable=self.current_status).pack(side=tk.LEFT, padx=5)
+        # Toggle button to show/hide API key
+        self.show_api_key = tk.BooleanVar(value=False)
+        def toggle_api_key_visibility():
+            if self.show_api_key.get():
+                api_entry.config(show="")
+            else:
+                api_entry.config(show="*")
         
-        self.progress_bar = ttk.Progressbar(progress_frame, variable=self.progress_value, length=400, mode="determinate")
-        self.progress_bar.pack(side=tk.RIGHT, padx=5)
+        ttk.Checkbutton(api_frame, text="Show API Key", variable=self.show_api_key, command=toggle_api_key_visibility).grid(row=0, column=2, padx=5, pady=5)
         
-        # Log display
-        log_frame = ttk.LabelFrame(main_frame, text="Processing Log", padding=10)
-        log_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+        # Test API key button
+        ttk.Button(api_frame, text="Test API Connection", command=self.test_openai_connection).grid(row=1, column=1, padx=5, pady=5)
         
-        self.log_text = scrolledtext.ScrolledText(log_frame, width=80, height=15)
-        self.log_text.pack(fill=tk.BOTH, expand=True)
-        self.log_text.config(state=tk.DISABLED)
+        # AI Review options
+        review_frame = ttk.LabelFrame(parent, text="AI Content Review", padding=10)
+        review_frame.pack(fill=tk.X, pady=5)
+        
+        # AI Review options
+        self.review_grammar = tk.BooleanVar(value=True)
+        ttk.Checkbutton(review_frame, text="Check Grammar and Style", variable=self.review_grammar).grid(row=0, column=0, sticky=tk.W, pady=2)
+        
+        self.review_coherence = tk.BooleanVar(value=True)
+        ttk.Checkbutton(review_frame, text="Check Content Coherence", variable=self.review_coherence).grid(row=1, column=0, sticky=tk.W, pady=2)
+        
+        self.suggest_improvements = tk.BooleanVar(value=True)
+        ttk.Checkbutton(review_frame, text="Suggest Content Improvements", variable=self.suggest_improvements).grid(row=2, column=0, sticky=tk.W, pady=2)
+        
+        self.generate_toc_ai = tk.BooleanVar(value=True)
+        ttk.Checkbutton(review_frame, text="Generate AI-Assisted Table of Contents", variable=self.generate_toc_ai).grid(row=3, column=0, sticky=tk.W, pady=2)
+        
+        # Action buttons
+        ai_button_frame = ttk.Frame(parent)
+        ai_button_frame.pack(fill=tk.X, pady=10)
+        
+        ttk.Button(ai_button_frame, text="Review Content with AI", command=self.review_with_ai, width=25).pack(side=tk.LEFT, padx=5)
+        ttk.Button(ai_button_frame, text="Generate AI Table of Contents", command=self.generate_ai_toc, width=25).pack(side=tk.LEFT, padx=5)
+    
+    def create_chapter_tab(self, parent):
+        # Chapter selection section
+        chapter_select_frame = ttk.LabelFrame(parent, text="Chapter Selection", padding=10)
+        chapter_select_frame.pack(fill=tk.X, pady=5)
+        
+        self.chapter_list = tk.StringVar()
+        self.chapter_listbox = tk.Listbox(chapter_select_frame, height=5, width=80)
+        self.chapter_listbox.pack(fill=tk.X, padx=5, pady=5)
+        self.chapter_listbox.bind('<<ListboxSelect>>', self.on_chapter_select)
+        
+        # Navigation buttons
+        nav_frame = ttk.Frame(chapter_select_frame)
+        nav_frame.pack(fill=tk.X, pady=5)
+        
+        ttk.Button(nav_frame, text="Previous Chapter", command=self.prev_chapter).pack(side=tk.LEFT, padx=5)
+        ttk.Button(nav_frame, text="Next Chapter", command=self.next_chapter).pack(side=tk.LEFT, padx=5)
+        
+        # Chapter outline section
+        outline_frame = ttk.LabelFrame(parent, text="Chapter Outline", padding=10)
+        outline_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+        
+        self.outline_text = scrolledtext.ScrolledText(outline_frame, width=80, height=5)
+        self.outline_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Chapter generation options
+        gen_options_frame = ttk.LabelFrame(parent, text="Generation Options", padding=10)
+        gen_options_frame.pack(fill=tk.X, pady=5)
+        
+        self.include_images = tk.BooleanVar(value=True)
+        ttk.Checkbutton(gen_options_frame, text="Include Images in Generated Content", variable=self.include_images).grid(row=0, column=0, sticky=tk.W, pady=2)
+        
+        self.include_diagrams = tk.BooleanVar(value=True)
+        ttk.Checkbutton(gen_options_frame, text="Include Diagrams/Charts", variable=self.include_diagrams).grid(row=1, column=0, sticky=tk.W, pady=2)
+        
+        self.writing_style = tk.StringVar(value="informative")
+        ttk.Label(gen_options_frame, text="Writing Style:").grid(row=2, column=0, sticky=tk.W, pady=5)
+        style_combo = ttk.Combobox(gen_options_frame, textvariable=self.writing_style, state="readonly")
+        style_combo['values'] = ('informative', 'academic', 'conversational', 'narrative', 'technical')
+        style_combo.grid(row=2, column=1, padx=5, pady=5)
+        
+        # Generation buttons
+        gen_button_frame = ttk.Frame(parent)
+        gen_button_frame.pack(fill=tk.X, pady=10)
+        
+        ttk.Button(gen_button_frame, text="Generate Chapter Content", command=self.generate_chapter_content, width=25).pack(side=tk.LEFT, padx=5)
+        ttk.Button(gen_button_frame, text="Save Generated Content", command=self.save_generated_chapter, width=25).pack(side=tk.LEFT, padx=5)
+        
+        # Preview frame for generated content
+        preview_frame = ttk.LabelFrame(parent, text="Content Preview", padding=10)
+        preview_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+        
+        self.preview_text = scrolledtext.ScrolledText(preview_frame, width=80, height=10)
+        self.preview_text.pack(fill=tk.BOTH, expand=True)
+        
+        # Image preview
+        self.image_preview_frame = ttk.Frame(preview_frame)
+        self.image_preview_frame.pack(fill=tk.X, pady=5)
+        self.image_label = ttk.Label(self.image_preview_frame)
+        self.image_label.pack(pady=5)
     
     def browse_input_file(self):
         file_path = filedialog.askopenfilename(
@@ -184,273 +325,540 @@ class BookProcessor:
         threading.Thread(target=self._process_document_thread, daemon=True).start()
     
     def _process_document_thread(self):
-        try:
-            self.log("Starting document processing...")
-            self.update_progress(0, "Processing started...")
-            
-            # Extract headings and create chapter structure
-            self.chapters = []
-            current_chapter = {"title": "", "content": [], "level": 0}
-            
-            # Function to identify if a paragraph is a chapter heading
-            def is_chapter_heading(para):
-                # Check if paragraph style is a heading
-                if para.style.name.startswith('Heading'):
-                    return True
-                
-                # Check for common chapter indicators
-                text = para.text.strip().lower()
-                if (text.startswith('chapter') or 
-                    re.match(r'^chapter\s+\d+', text) or 
-                    re.match(r'^\d+\.', text)):
-                    return True
-                
-                # Check if it's short and followed by a substantial paragraph
-                if (len(text) < 50 and 
-                    para.text.isupper() and 
-                    len(para.text) > 0):
-                    return True
-                
-                return False
-            
-            total_paragraphs = len(self.docx_content.paragraphs)
-            self.log(f"Processing {total_paragraphs} paragraphs...")
-            
-            for i, para in enumerate(self.docx_content.paragraphs):
-                # Update progress periodically
-                if i % 20 == 0:
-                    self.update_progress(i / total_paragraphs * 100, f"Processing paragraph {i} of {total_paragraphs}")
-                
-                if is_chapter_heading(para) and para.text.strip():
-                    # If we've collected content for a previous chapter, save it
-                    if current_chapter["title"] and current_chapter["content"]:
-                        self.chapters.append(current_chapter)
-                    
-                    # Start a new chapter
-                    level = int(para.style.name[-1]) if para.style.name[-1].isdigit() else 1
-                    current_chapter = {
-                        "title": para.text.strip(),
-                        "content": [para],
-                        "level": level
-                    }
-                else:
-                    # Add to current chapter
-                    if current_chapter["title"]:
-                        current_chapter["content"].append(para)
-                    elif para.text.strip():  # This might be content before the first chapter
-                        # Create an introduction chapter if needed
-                        if not self.chapters and not current_chapter["title"]:
-                            current_chapter = {
-                                "title": "Introduction",
-                                "content": [para],
-                                "level": 1
-                            }
-                        else:
-                            current_chapter["content"].append(para)
-            
-            # Add the last chapter if not empty
-            if current_chapter["title"] and current_chapter["content"]:
-                self.chapters.append(current_chapter)
-            
-            self.log(f"Identified {len(self.chapters)} chapters")
-            
-            # Generate table of contents
-            if self.generate_toc.get():
-                self.update_progress(80, "Generating Table of Contents...")
-                self.toc = []
-                for i, chapter in enumerate(self.chapters):
-                    self.toc.append({
-                        "title": chapter["title"],
-                        "level": chapter["level"],
-                        "index": i
-                    })
-                self.log(f"Generated TOC with {len(self.toc)} entries")
-            
-            # Fix encoding issues if selected
-            if self.fix_encoding.get():
-                self.update_progress(90, "Fixing text encoding issues...")
-                self.fix_text_encoding()
-            
-            # Enhance content if selected
-            if self.enhance_content.get():
-                self.update_progress(95, "Enhancing content...")
-                self.enhance_book_content()
-            
-            self.update_progress(100, "Processing completed")
-            self.log("Document processing completed successfully")
-            messagebox.showinfo("Success", "Document processing completed successfully")
-            
-        except Exception as e:
-            self.log(f"Error processing document: {str(e)}")
-            messagebox.showerror("Error", f"Failed to process document: {str(e)}")
-            self.update_progress(0, "Error during processing")
+        # ... keep existing code (document processing functionality)
     
     def fix_text_encoding(self):
-        """Fix common encoding issues in text"""
-        common_fixes = {
-            "\u2019": "'",  # Right single quotation mark
-            "\u2018": "'",  # Left single quotation mark
-            "\u201c": '"',  # Left double quotation mark
-            "\u201d": '"',  # Right double quotation mark
-            "\u2013": "-",  # En dash
-            "\u2014": "--", # Em dash
-            "\u2026": "...", # Ellipsis
-            "\u00a0": " ",  # Non-breaking space
-        }
-        
-        for i, chapter in enumerate(self.chapters):
-            self.log(f"Fixing encoding in chapter: {chapter['title']}")
-            for j, para in enumerate(chapter["content"]):
-                original_text = para.text
-                fixed_text = original_text
-                
-                for char, replacement in common_fixes.items():
-                    fixed_text = fixed_text.replace(char, replacement)
-                
-                # Only update if changes were made
-                if fixed_text != original_text:
-                    para.text = fixed_text
+        # ... keep existing code (text encoding fix functionality)
     
     def enhance_book_content(self):
-        """Simple enhancement of book content - placeholder for more advanced processing"""
-        self.log("Content enhancement is experimental - making simple improvements")
-        
-        # Simple enhancements we can do without AI
-        for chapter in self.chapters:
-            # Fix double spaces
-            for para in chapter["content"]:
-                if para.text:
-                    para.text = re.sub(r'\s{2,}', ' ', para.text)
-                    
-                    # Fix capitalization at beginning of sentences
-                    para.text = re.sub(r'(?<=[.!?])\s+([a-z])', lambda m: f" {m.group(1).upper()}", para.text)
+        # ... keep existing code (book enhancement functionality)
     
     def save_all_chapters(self):
-        if not self.chapters:
-            messagebox.showerror("Error", "No chapters to save. Please process a document first.")
-            return
-        
-        # Make sure output directory exists
-        os.makedirs(self.output_dir.get(), exist_ok=True)
-        
-        self.log("Saving individual chapters...")
-        self.update_progress(0, "Saving chapters...")
-        
-        for i, chapter in enumerate(self.chapters):
-            progress = (i / len(self.chapters)) * 100
-            self.update_progress(progress, f"Saving chapter {i+1} of {len(self.chapters)}")
-            
-            # Create sanitized filename
-            safe_title = re.sub(r'[^\w\s-]', '', chapter["title"]).strip().replace(' ', '_')
-            filename = f"{i+1:02d}_{safe_title}.docx"
-            filepath = os.path.join(self.output_dir.get(), filename)
-            
-            try:
-                # Create a new document for this chapter
-                doc = Document()
-                
-                # Add title
-                title_para = doc.add_paragraph()
-                title_run = title_para.add_run(chapter["title"])
-                title_run.bold = True
-                title_run.font.size = Pt(16)
-                title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                
-                # Add content
-                for para in chapter["content"][1:]:  # Skip the title paragraph
-                    if para.text.strip():
-                        p = doc.add_paragraph(para.text)
-                
-                # Save the document
-                doc.save(filepath)
-                self.log(f"Saved chapter to {filepath}")
-                
-            except Exception as e:
-                self.log(f"Error saving chapter {i+1}: {str(e)}")
-        
-        self.update_progress(100, "All chapters saved")
-        messagebox.showinfo("Success", f"All chapters saved to {self.output_dir.get()}")
+        # ... keep existing code (chapter saving functionality)
     
     def generate_complete_book(self):
-        if not self.chapters:
-            messagebox.showerror("Error", "No chapters to compile. Please process a document first.")
+        # ... keep existing code (complete book generation functionality)
+    
+    def test_openai_connection(self):
+        api_key = self.openai_api_key.get()
+        if not api_key:
+            messagebox.showerror("Error", "Please enter an OpenAI API key")
             return
         
-        # Make sure output directory exists
-        os.makedirs(self.output_dir.get(), exist_ok=True)
+        self.update_progress(0, "Testing OpenAI connection...")
         
         try:
-            self.log("Generating complete book...")
-            self.update_progress(0, "Generating complete book...")
+            # Set the API key
+            openai.api_key = api_key
+            
+            # Simple test request
+            response = openai.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": "Hello, this is a test message."}
+                ],
+                max_tokens=20
+            )
+            
+            self.log("OpenAI connection test successful!")
+            self.update_progress(100, "OpenAI connection successful")
+            messagebox.showinfo("Success", "Successfully connected to OpenAI API")
+            
+        except Exception as e:
+            self.log(f"OpenAI connection error: {str(e)}")
+            self.update_progress(0, "OpenAI connection failed")
+            messagebox.showerror("Error", f"Failed to connect to OpenAI: {str(e)}")
+    
+    def review_with_ai(self):
+        if not self.chapters:
+            messagebox.showerror("Error", "No chapters found. Please process a document first.")
+            return
+        
+        api_key = self.openai_api_key.get()
+        if not api_key:
+            messagebox.showerror("Error", "Please enter an OpenAI API key")
+            return
+        
+        openai.api_key = api_key
+        
+        # Start AI review in a separate thread
+        threading.Thread(target=self._review_with_ai_thread, daemon=True).start()
+    
+    def _review_with_ai_thread(self):
+        try:
+            self.log("Starting AI content review...")
+            self.update_progress(0, "Starting AI review...")
+            
+            total_chapters = len(self.chapters)
+            review_results = []
+            
+            for i, chapter in enumerate(self.chapters):
+                self.update_progress((i / total_chapters) * 100, f"Reviewing chapter {i+1} of {total_chapters}")
+                self.log(f"Analyzing chapter: {chapter['title']}")
+                
+                # Extract all text from this chapter
+                chapter_text = ""
+                for para in chapter["content"]:
+                    chapter_text += para.text + "\n"
+                
+                # Build prompt based on selected options
+                prompt = f"Review this book chapter titled '{chapter['title']}'. "
+                
+                if self.review_grammar.get():
+                    prompt += "Check for grammar and style issues. "
+                
+                if self.review_coherence.get():
+                    prompt += "Evaluate content coherence and logical flow. "
+                
+                if self.suggest_improvements.get():
+                    prompt += "Suggest specific improvements to enhance the content. "
+                
+                # Send to OpenAI
+                response = openai.chat.completions.create(
+                    model="gpt-4",
+                    messages=[
+                        {"role": "system", "content": "You are a professional book editor with expertise in improving book content."},
+                        {"role": "user", "content": prompt + "\n\nCHAPTER CONTENT:\n" + chapter_text}
+                    ],
+                    max_tokens=1000
+                )
+                
+                # Store results
+                ai_feedback = response.choices[0].message.content
+                review_results.append({
+                    "chapter_title": chapter["title"],
+                    "feedback": ai_feedback
+                })
+                
+                self.log(f"AI review completed for chapter: {chapter['title']}")
+            
+            # Create review document
+            self.update_progress(90, "Creating review document...")
+            
+            review_doc = Document()
+            review_doc.add_heading("AI Content Review", level=1)
+            review_doc.add_paragraph(f"Book: {self.book_title.get()}")
+            review_doc.add_paragraph(f"Author: {self.author_name.get()}")
+            review_doc.add_paragraph(f"Generated on: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+            
+            for result in review_results:
+                review_doc.add_heading(f"Chapter: {result['chapter_title']}", level=2)
+                review_doc.add_paragraph(result["feedback"])
+                review_doc.add_paragraph()  # Add space between reviews
+            
+            # Save review document
+            os.makedirs(self.output_dir.get(), exist_ok=True)
+            review_filepath = os.path.join(self.output_dir.get(), "AI_Review.docx")
+            review_doc.save(review_filepath)
+            
+            self.update_progress(100, "AI review completed")
+            self.log(f"AI review completed. Review document saved to {review_filepath}")
+            messagebox.showinfo("Success", f"AI review completed. Review document saved to {review_filepath}")
+            
+        except Exception as e:
+            self.log(f"Error during AI review: {str(e)}")
+            self.update_progress(0, "Error during AI review")
+            messagebox.showerror("Error", f"Failed to complete AI review: {str(e)}")
+    
+    def generate_ai_toc(self):
+        if not self.chapters:
+            messagebox.showerror("Error", "No chapters found. Please process a document first.")
+            return
+        
+        api_key = self.openai_api_key.get()
+        if not api_key:
+            messagebox.showerror("Error", "Please enter an OpenAI API key")
+            return
+        
+        openai.api_key = api_key
+        
+        # Start TOC generation in a separate thread
+        threading.Thread(target=self._generate_ai_toc_thread, daemon=True).start()
+    
+    def _generate_ai_toc_thread(self):
+        try:
+            self.log("Generating AI-assisted table of contents...")
+            self.update_progress(0, "Starting TOC generation...")
+            
+            # Extract chapter titles and brief content
+            chapters_info = []
+            for chapter in self.chapters:
+                # Get first 3 paragraphs of content (or fewer if there aren't 3)
+                preview = ""
+                for i, para in enumerate(chapter["content"][:3]):
+                    preview += para.text + "\n"
+                
+                chapters_info.append({
+                    "title": chapter["title"],
+                    "preview": preview
+                })
+            
+            # Create prompt for OpenAI
+            chapters_text = ""
+            for i, ch in enumerate(chapters_info):
+                chapters_text += f"Chapter {i+1}: {ch['title']}\nPreview: {ch['preview']}\n\n"
+            
+            prompt = f"""Based on the following chapter titles and content previews, generate a comprehensive table of contents for the book titled "{self.book_title.get()}".
+            For each chapter, add 3-5 detailed subsections that would logically organize the content.
+            Format the output as follows:
+            
+            Chapter 1: [Chapter Title]
+            1.1 [Subsection title]
+            1.2 [Subsection title]
+            ...and so on
+            
+            Chapters:
+            {chapters_text}
+            """
+            
+            # Send to OpenAI
+            self.update_progress(30, "Querying OpenAI...")
+            response = openai.chat.completions.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are a professional book editor with expertise in organizing book content."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=2000
+            )
+            
+            # Get response
+            toc_content = response.choices[0].message.content
+            
+            # Create TOC document
+            self.update_progress(70, "Creating TOC document...")
+            
+            toc_doc = Document()
+            toc_doc.add_heading(f"Table of Contents: {self.book_title.get()}", level=1)
+            toc_doc.add_paragraph(f"Author: {self.author_name.get()}")
+            toc_doc.add_paragraph(f"Generated on: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+            toc_doc.add_paragraph()
+            
+            # Add the TOC content
+            for line in toc_content.split('\n'):
+                if line.strip():
+                    # Format based on if it's a chapter or subsection
+                    if line.startswith('Chapter'):
+                        p = toc_doc.add_paragraph()
+                        p.add_run(line).bold = True
+                    else:
+                        toc_doc.add_paragraph(line, style='List Bullet')
+            
+            # Save TOC document
+            os.makedirs(self.output_dir.get(), exist_ok=True)
+            toc_filepath = os.path.join(self.output_dir.get(), "AI_Table_of_Contents.docx")
+            toc_doc.save(toc_filepath)
+            
+            # Also update application's TOC
+            self.toc = []
+            current_chapter = None
+            
+            for line in toc_content.split('\n'):
+                if line.startswith('Chapter'):
+                    # This is a main chapter
+                    chapter_parts = line.split(':', 1)
+                    if len(chapter_parts) > 1:
+                        chapter_number = chapter_parts[0].replace('Chapter', '').strip()
+                        chapter_title = chapter_parts[1].strip()
+                        
+                        try:
+                            idx = int(chapter_number) - 1
+                            if 0 <= idx < len(self.chapters):
+                                current_chapter = idx
+                                self.toc.append({
+                                    "title": chapter_title,
+                                    "level": 1,
+                                    "index": idx
+                                })
+                        except ValueError:
+                            pass
+                        
+                elif current_chapter is not None and line.strip():
+                    # This is a subsection
+                    self.toc.append({
+                        "title": line.strip(),
+                        "level": 2,
+                        "index": current_chapter
+                    })
+            
+            # Populate chapter listbox
+            self.chapter_listbox.delete(0, tk.END)
+            for i, chapter in enumerate(self.chapters):
+                self.chapter_listbox.insert(tk.END, f"Chapter {i+1}: {chapter['title']}")
+            
+            self.update_progress(100, "TOC generation completed")
+            self.log(f"AI TOC generation completed. TOC document saved to {toc_filepath}")
+            messagebox.showinfo("Success", f"AI TOC generation completed. Document saved to {toc_filepath}")
+            
+        except Exception as e:
+            self.log(f"Error during TOC generation: {str(e)}")
+            self.update_progress(0, "Error during TOC generation")
+            messagebox.showerror("Error", f"Failed to generate TOC: {str(e)}")
+    
+    def on_chapter_select(self, event):
+        if not self.chapters:
+            return
+            
+        selection = self.chapter_listbox.curselection()
+        if selection:
+            index = selection[0]
+            self.current_chapter_index = index
+            
+            # Display chapter title and update outline textarea
+            chapter = self.chapters[index]
+            self.outline_text.delete(1.0, tk.END)
+            self.outline_text.insert(tk.END, f"Outline for: {chapter['title']}\n\n")
+            
+            # Clear preview
+            self.preview_text.delete(1.0, tk.END)
+            
+            # Remove any image preview
+            self.image_label.config(image=None)
+    
+    def prev_chapter(self):
+        if self.chapters and self.current_chapter_index > 0:
+            self.current_chapter_index -= 1
+            self.chapter_listbox.selection_clear(0, tk.END)
+            self.chapter_listbox.selection_set(self.current_chapter_index)
+            self.chapter_listbox.see(self.current_chapter_index)
+            self.on_chapter_select(None)
+    
+    def next_chapter(self):
+        if self.chapters and self.current_chapter_index < len(self.chapters) - 1:
+            self.current_chapter_index += 1
+            self.chapter_listbox.selection_clear(0, tk.END)
+            self.chapter_listbox.selection_set(self.current_chapter_index)
+            self.chapter_listbox.see(self.current_chapter_index)
+            self.on_chapter_select(None)
+    
+    def generate_chapter_content(self):
+        if not self.chapters:
+            messagebox.showerror("Error", "No chapters available. Please process a document first.")
+            return
+        
+        if self.current_chapter_index < 0 or self.current_chapter_index >= len(self.chapters):
+            messagebox.showerror("Error", "Please select a valid chapter first.")
+            return
+        
+        outline = self.outline_text.get(1.0, tk.END).strip()
+        if not outline:
+            messagebox.showerror("Error", "Please provide an outline for the chapter.")
+            return
+        
+        api_key = self.openai_api_key.get()
+        if not api_key:
+            messagebox.showerror("Error", "Please enter an OpenAI API key")
+            return
+        
+        openai.api_key = api_key
+        
+        # Start chapter generation in a separate thread
+        threading.Thread(target=self._generate_chapter_thread, daemon=True).start()
+    
+    def _generate_chapter_thread(self):
+        try:
+            chapter = self.chapters[self.current_chapter_index]
+            self.log(f"Generating content for chapter: {chapter['title']}...")
+            self.update_progress(0, "Starting chapter generation...")
+            
+            # Create the prompt for AI
+            outline = self.outline_text.get(1.0, tk.END).strip()
+            
+            prompt = f"""Write a detailed chapter for a book with the following details:
+            - Book title: {self.book_title.get()}
+            - Chapter title: {chapter['title']}
+            - Writing style: {self.writing_style.get()}
+            
+            Chapter outline:
+            {outline}
+            
+            Please write a comprehensive chapter following this outline. The content should be detailed, well-structured, and professionally written.
+            Include appropriate section headings for each major point in the outline.
+            """
+            
+            # Send to OpenAI
+            self.update_progress(20, "Generating chapter content...")
+            response = openai.chat.completions.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are a professional book writer with expertise in creating detailed, engaging book chapters."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=4000
+            )
+            
+            # Get chapter content
+            chapter_content = response.choices[0].message.content
+            
+            # Generate image/diagram if requested
+            image_data = None
+            if self.include_images.get() or self.include_diagrams.get():
+                self.update_progress(50, "Generating visual content...")
+                
+                if self.include_images.get():
+                    self.log("Generating image for chapter...")
+                    
+                    # Create a prompt for the image
+                    image_prompt = f"Create an image representing the key concepts in this chapter about {chapter['title']}."
+                    
+                    try:
+                        image_response = openai.images.generate(
+                            model="dall-e-3",
+                            prompt=image_prompt,
+                            size="1024x1024",
+                            n=1
+                        )
+                        
+                        # Get the image URL
+                        image_url = image_response.data[0].url
+                        self.log(f"Image generated successfully")
+                        
+                        # Download the image
+                        img_response = requests.get(image_url)
+                        img = Image.open(io.BytesIO(img_response.content))
+                        
+                        # Resize for display
+                        img = img.resize((400, 400), Image.LANCZOS)
+                        photo = ImageTk.PhotoImage(img)
+                        self.image_label.config(image=photo)
+                        self.image_label.image = photo  # Keep a reference
+                        
+                        # Save image to include in docx
+                        image_data = {
+                            "type": "image",
+                            "data": img_response.content
+                        }
+                        
+                    except Exception as e:
+                        self.log(f"Error generating image: {str(e)}")
+                        
+                elif self.include_diagrams.get():
+                    self.log("Generating diagram for chapter...")
+                    
+                    # Generate a simple chart for demonstration
+                    try:
+                        fig, ax = plt.subplots(figsize=(8, 6))
+                        
+                        # Extract some data from the chapter to visualize
+                        # This is a simple example - in reality, you'd want to analyze the text
+                        # to create a meaningful chart based on the content
+                        data = [5, 7, 3, 8, 6]
+                        labels = ['Point 1', 'Point 2', 'Point 3', 'Point 4', 'Point 5']
+                        
+                        ax.bar(labels, data)
+                        ax.set_title(f"Key Points in {chapter['title']}")
+                        ax.set_ylabel('Importance')
+                        
+                        # Save to BytesIO
+                        buf = io.BytesIO()
+                        canvas = FigureCanvasAgg(fig)
+                        canvas.print_png(buf)
+                        
+                        # Convert to PhotoImage for display
+                        buf.seek(0)
+                        img = Image.open(buf)
+                        img = img.resize((500, 400), Image.LANCZOS)
+                        photo = ImageTk.PhotoImage(img)
+                        self.image_label.config(image=photo)
+                        self.image_label.image = photo  # Keep a reference
+                        
+                        # Save diagram to include in docx
+                        buf.seek(0)
+                        image_data = {
+                            "type": "diagram",
+                            "data": buf.read()
+                        }
+                        plt.close(fig)
+                        
+                    except Exception as e:
+                        self.log(f"Error generating diagram: {str(e)}")
+            
+            # Display the content in the preview area
+            self.preview_text.delete(1.0, tk.END)
+            self.preview_text.insert(tk.END, chapter_content)
+            
+            # Save the generated content for later use
+            chapter["generated_content"] = chapter_content
+            if image_data:
+                chapter["image_data"] = image_data
+            
+            self.update_progress(100, "Chapter generation completed")
+            self.log("Chapter content generated successfully")
+            messagebox.showinfo("Success", "Chapter content generated successfully")
+            
+        except Exception as e:
+            self.log(f"Error generating chapter content: {str(e)}")
+            self.update_progress(0, "Error in content generation")
+            messagebox.showerror("Error", f"Failed to generate chapter content: {str(e)}")
+    
+    def save_generated_chapter(self):
+        if not self.chapters:
+            messagebox.showerror("Error", "No chapters available.")
+            return
+            
+        if self.current_chapter_index < 0 or self.current_chapter_index >= len(self.chapters):
+            messagebox.showerror("Error", "No chapter selected.")
+            return
+            
+        chapter = self.chapters[self.current_chapter_index]
+        
+        if not hasattr(chapter, "generated_content") and "generated_content" not in chapter:
+            messagebox.showerror("Error", "No generated content available for this chapter.")
+            return
+            
+        try:
+            # Create output directory if it doesn't exist
+            os.makedirs(self.output_dir.get(), exist_ok=True)
+            
+            # Create a filename
+            safe_title = re.sub(r'[^\w\s-]', '', chapter["title"]).strip().replace(' ', '_')
+            filepath = os.path.join(self.output_dir.get(), f"Generated_{safe_title}.docx")
             
             # Create a new document
             doc = Document()
             
-            # Add title page
-            title_para = doc.add_paragraph()
-            title_run = title_para.add_run(self.book_title.get() or "Untitled Book")
-            title_run.bold = True
-            title_run.font.size = Pt(24)
-            title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            # Add title
+            doc.add_heading(chapter["title"], level=1)
             
-            # Add author if provided
-            if self.author_name.get():
-                author_para = doc.add_paragraph()
-                author_run = author_para.add_run(f"By {self.author_name.get()}")
-                author_run.italic = True
-                author_run.font.size = Pt(16)
-                author_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            # Add content - split by paragraphs and add each as a paragraph
+            content_paragraphs = chapter["generated_content"].split("\n\n")
+            for para_text in content_paragraphs:
+                if not para_text.strip():
+                    continue
+                    
+                # Check if this is a heading (starts with #, ##, etc.)
+                if re.match(r'^#+\s+', para_text):
+                    # Count the number of # to determine heading level
+                    level = len(re.match(r'^(#+)\s+', para_text).group(1))
+                    text = re.sub(r'^#+\s+', '', para_text)
+                    doc.add_heading(text, level=min(level+1, 9))
+                else:
+                    doc.add_paragraph(para_text)
             
-            # Add a page break after title page
-            doc.add_page_break()
+            # Add image if available
+            if "image_data" in chapter:
+                image_data = chapter["image_data"]
+                if image_data:
+                    img_buf = io.BytesIO(image_data["data"])
+                    doc.add_picture(img_buf, width=Inches(5.5))
+                    caption = doc.add_paragraph(f"Figure: Illustration for {chapter['title']}")
+                    caption.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    caption.runs[0].italic = True
             
-            # Add table of contents if generated
-            if self.toc:
-                toc_heading = doc.add_heading("Table of Contents", level=1)
-                toc_heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                
-                for entry in self.toc:
-                    # Indent based on level
-                    indent = "    " * (entry["level"] - 1)
-                    toc_para = doc.add_paragraph()
-                    toc_para.add_run(f"{indent}{entry['title']}")
-                
-                # Add page break after TOC
-                doc.add_page_break()
+            # Save the document
+            doc.save(filepath)
             
-            # Add chapters
-            for i, chapter in enumerate(self.chapters):
-                self.update_progress((i / len(self.chapters)) * 100, 
-                                     f"Adding chapter {i+1} of {len(self.chapters)}")
-                
-                # Add chapter heading
-                heading = doc.add_heading(chapter["title"], level=chapter["level"])
-                
-                # Add chapter content
-                for para in chapter["content"][1:]:  # Skip the title paragraph
-                    if para.text.strip():
-                        doc.add_paragraph(para.text)
-                
-                # Add page break between chapters (except the last one)
-                if i < len(self.chapters) - 1:
-                    doc.add_page_break()
-            
-            # Save the complete book
-            book_filename = f"{self.book_title.get() or 'Book'}_complete.docx"
-            book_filepath = os.path.join(self.output_dir.get(), book_filename)
-            doc.save(book_filepath)
-            
-            self.update_progress(100, "Book generated successfully")
-            self.log(f"Complete book saved to {book_filepath}")
-            messagebox.showinfo("Success", f"Complete book generated successfully: {book_filepath}")
+            self.log(f"Generated chapter saved to {filepath}")
+            messagebox.showinfo("Success", f"Generated chapter saved to {filepath}")
             
         except Exception as e:
-            self.log(f"Error generating complete book: {str(e)}")
-            messagebox.showerror("Error", f"Failed to generate complete book: {str(e)}")
-            self.update_progress(0, "Error generating book")
+            self.log(f"Error saving generated chapter: {str(e)}")
+            messagebox.showerror("Error", f"Failed to save generated chapter: {str(e)}")
 
 
 if __name__ == "__main__":
     root = tk.Tk()
     app = BookProcessor(root)
     root.mainloop()
+

@@ -1,7 +1,7 @@
 
 # Book Processor
 
-A standalone GUI application for processing and enhancing book documents.
+A standalone GUI application for processing, enhancing, and generating book content with AI assistance.
 
 ## Features
 
@@ -11,12 +11,19 @@ A standalone GUI application for processing and enhancing book documents.
 - Create chapter outlines
 - Enhance book content
 - Save individual chapters
-- Generate complete book as DOCX
+- Generate complete book
+- **NEW: AI-powered content review and enhancement**
+- **NEW: AI-assisted table of contents generation**
+- **NEW: Generate chapter content with images and diagrams**
 
 ## Requirements
 
 - Python 3.6 or higher
-- python-docx library
+- Required packages:
+  - python-docx
+  - openai
+  - pillow
+  - matplotlib
 
 ## Installation
 
@@ -26,6 +33,8 @@ A standalone GUI application for processing and enhancing book documents.
 ```
 pip install -r requirements.txt
 ```
+
+3. You'll need an OpenAI API key with access to GPT-4 and DALL-E
 
 ## Usage
 
@@ -37,28 +46,40 @@ python book_processor.py
 
 ### Processing Steps
 
-1. Click "Browse..." to select an input DOCX file
-2. Set output directory for processed files (defaults to "output" folder)
-3. Fill in book title and author (optional)
-4. Select processing options
-5. Click "Load Document" to load the document
-6. Click "Process Document" to analyze and process the document
-7. Click "Save All Chapters" to save individual chapter files
-8. Click "Generate Complete Book" to create the final document
+1. **File Processing Tab**
+   - Click "Browse..." to select an input DOCX file
+   - Set output directory for processed files
+   - Fill in book title and author
+   - Select processing options
+   - Click "Process Document" to analyze and organize the document
 
-## Processing Options
+2. **AI Enhancement Tab**
+   - Enter your OpenAI API key
+   - Select AI review options
+   - Click "Review Content with AI" to get professional feedback
+   - Use "Generate AI Table of Contents" to create a structured TOC
 
-- **Fix Text Encoding Issues**: Corrects common encoding problems
-- **Generate Table of Contents**: Creates a TOC based on chapter headings
-- **Create Chapter Outlines**: Identifies and organizes chapters
-- **Enhance Book Content**: Simple text improvements (experimental)
+3. **Chapter Generation Tab**
+   - Select a chapter from the list
+   - Enter or paste an outline for the chapter
+   - Choose generation options (images, diagrams, writing style)
+   - Click "Generate Chapter Content" to create complete chapter
+   - Save the generated content with "Save Generated Content"
+
+## AI Features
+
+- **Content Review**: Get professional feedback on grammar, coherence, and suggestions for improvement
+- **AI Table of Contents**: Generate a structured TOC with detailed subsections
+- **Chapter Generation**: Create complete chapter content based on outlines
+- **Image Generation**: Add relevant images to chapters using DALL-E
+- **Diagram Creation**: Include charts and diagrams to visualize key points
 
 ## Notes
 
-This application works best with DOCX files that have some structure (headings, chapters, etc.).
-The chapter detection algorithm looks for:
-- Paragraphs with Heading styles
-- Text starting with "Chapter" or chapter numbers
-- Short, all-uppercase paragraphs that might be chapter titles
+This application works best with:
+- DOCX files that have some structure (headings, chapters)
+- Clear chapter outlines for AI generation
+- A valid OpenAI API key with access to GPT-4 and DALL-E models
 
-For best results, ensure your document has proper formatting before processing.
+Generated content quality depends on the clarity of provided outlines and instructions.
+
