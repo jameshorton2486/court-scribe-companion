@@ -119,7 +119,12 @@ const Reader = () => {
               Back to Reader
             </Button>
           </div>
-          <BookEnhancer book={book} onEnhancementComplete={handleEnhancementComplete} />
+          <BookEnhancer 
+            book={book} 
+            isOpen={true}
+            onClose={() => setShowEnhancer(false)}
+            onBookEnhanced={handleEnhancementComplete} 
+          />
         </div>
       </div>
     );
