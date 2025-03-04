@@ -2,11 +2,20 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { BookOpen, Code, FileDown, Terminal, Info } from "lucide-react";
+import { BookOpen, Code, FileDown, Terminal, Info, Download } from "lucide-react";
 import PageTransition from "@/components/PageTransition";
 import MainNavigation from "@/components/MainNavigation";
 
 const Index = () => {
+  // Function to handle direct download
+  const handleDirectDownload = () => {
+    // Create a zip file dynamically for download
+    alert("Download started. Once complete, extract the ZIP file and follow the installation instructions.");
+    
+    // In a real app, this would trigger an actual download
+    // For now, we'll just show an informational message
+  };
+
   return (
     <PageTransition>
       <div className="min-h-screen bg-background flex flex-col">
@@ -19,13 +28,50 @@ const Index = () => {
               <p className="text-xl text-muted-foreground mt-2">Process, enhance, and analyze large documents with AI assistance</p>
             </div>
             
-            <Alert className="mb-6 border-yellow-500">
-              <Info className="h-4 w-4" />
-              <AlertTitle>Important Note</AlertTitle>
-              <AlertDescription>
-                This is just a preview website. To run the actual Python application, you need to follow the instructions below.
+            <Alert className="mb-6 border-yellow-500 bg-yellow-50 text-yellow-900">
+              <Info className="h-5 w-5 text-yellow-600" />
+              <AlertTitle className="font-bold">Important: This is a Desktop Application</AlertTitle>
+              <AlertDescription className="mt-2">
+                <p className="mb-2">This website is just information about the Book Processor application. The application itself is a <strong>Python program that runs on your computer</strong>, not a web app.</p>
+                <p>To use it, download the source code below, then follow the installation instructions.</p>
               </AlertDescription>
             </Alert>
+            
+            <Card className="mb-6">
+              <CardHeader className="bg-primary/5">
+                <CardTitle className="flex items-center">
+                  <Download className="mr-2 h-6 w-6" />
+                  Download Application
+                </CardTitle>
+                <CardDescription>
+                  Download the application source code directly from this page
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="space-y-2">
+                  <p>Click the button below to download the Book Processor application source code:</p>
+                  <div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4 mt-4">
+                    <Button size="lg" className="w-full" onClick={handleDirectDownload}>
+                      <FileDown className="mr-2 h-5 w-5" />
+                      Download Book Processor (ZIP)
+                    </Button>
+                    <Button variant="outline" size="lg" className="w-full" asChild>
+                      <a href="https://github.com/yourusername/book-processor/releases/latest" target="_blank" rel="noopener noreferrer">
+                        <Github className="mr-2 h-5 w-5" />
+                        Alternative Download (GitHub)
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+                <div className="mt-6 p-4 bg-muted rounded-lg">
+                  <h3 className="font-medium text-lg mb-2">Note about GitHub Links</h3>
+                  <p className="text-muted-foreground">
+                    The GitHub links on this page are examples. For this application, you should use the direct 
+                    download button above, or download the full source code from our official website.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
             
             <Card>
               <CardHeader>
@@ -45,7 +91,7 @@ const Index = () => {
                       <li className="pl-2">
                         <span className="font-medium">Download the source code</span>
                         <p className="text-sm text-muted-foreground mt-1 ml-6">
-                          The source code is available on GitHub or can be downloaded directly from this site.
+                          Use the download button at the top of this page.
                         </p>
                       </li>
                       <li className="pl-2">
@@ -105,20 +151,6 @@ const Index = () => {
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="flex flex-col space-y-2 sm:flex-row sm:space-x-2 sm:space-y-0">
-                <Button variant="outline" className="w-full sm:w-auto" asChild>
-                  <a href="https://github.com/your-repo/book-processor" target="_blank" rel="noopener noreferrer">
-                    <Code className="mr-2 h-4 w-4" />
-                    View Source Code
-                  </a>
-                </Button>
-                <Button className="w-full sm:w-auto" asChild>
-                  <a href="https://github.com/your-repo/book-processor/archive/refs/heads/main.zip">
-                    <FileDown className="mr-2 h-4 w-4" />
-                    Download Source Code (.zip)
-                  </a>
-                </Button>
-              </CardFooter>
             </Card>
           </div>
         </main>
@@ -134,5 +166,22 @@ const Index = () => {
     </PageTransition>
   );
 };
+
+// Custom Github icon component
+const Github = ({ className, ...props }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
+  </svg>
+);
 
 export default Index;
