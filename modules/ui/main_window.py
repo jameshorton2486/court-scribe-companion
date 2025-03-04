@@ -1,4 +1,3 @@
-
 import tkinter as tk
 from tkinter import ttk, messagebox
 from modules.ui.file_tab import create_file_tab
@@ -21,6 +20,7 @@ class BookProcessor:
         
         # Setup variables
         self.input_file = tk.StringVar()
+        self.input_files = []
         self.output_dir = tk.StringVar()
         self.book_title = tk.StringVar()
         self.author_name = tk.StringVar()
@@ -104,8 +104,22 @@ class BookProcessor:
             self.current_status.set(status)
         self.root.update()
     
-    # Connect UI actions to their respective modules
     def load_document(self):
+        # Check if we have files in the list
+        if not self.input_files:
+            messagebox.showerror("Error", "Please add at least one input file")
+            return
+            
+        # Get the selected file from the listbox or use the first one if none selected
+        selected = self.file_listbox.curselection()
+        if selected:
+            file_index = selected[0]
+            self.input_file.set(self.input_files[file_index])
+        else:
+            self.input_file.set(self.input_files[0])
+            
+        # Now call the original load_document function
+        from modules.document.document_processor import load_document
         load_document(self)
     
     def process_document(self):
@@ -126,7 +140,6 @@ class BookProcessor:
     def generate_ai_toc(self):
         generate_ai_toc(self)
 
-    # Use the navigation utility functions with self as argument
     def on_chapter_select(self, event):
         on_chapter_select(self, event)
     
