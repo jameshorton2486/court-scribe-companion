@@ -4,6 +4,7 @@ from tkinter import ttk, messagebox
 from modules.ui.file_tab import create_file_tab
 from modules.ui.ai_tab import create_ai_tab
 from modules.ui.chapter_tab import create_chapter_tab
+from modules.ui.navigation_utils import on_chapter_select, prev_chapter, next_chapter
 from modules.document.document_processor import load_document, process_document
 from modules.document.chapter_processor import save_all_chapters, generate_complete_book
 from modules.ai.openai_integration import test_openai_connection
@@ -124,42 +125,16 @@ class BookProcessor:
     
     def generate_ai_toc(self):
         generate_ai_toc(self)
-    
+
+    # Use the navigation utility functions with self as argument
     def on_chapter_select(self, event):
-        if not self.chapters:
-            return
-            
-        selection = self.chapter_listbox.curselection()
-        if selection:
-            index = selection[0]
-            self.current_chapter_index = index
-            
-            # Display chapter title and update outline textarea
-            chapter = self.chapters[index]
-            self.outline_text.delete(1.0, tk.END)
-            self.outline_text.insert(tk.END, f"Outline for: {chapter['title']}\n\n")
-            
-            # Clear preview
-            self.preview_text.delete(1.0, tk.END)
-            
-            # Remove any image preview
-            self.image_label.config(image=None)
+        on_chapter_select(self, event)
     
     def prev_chapter(self):
-        if self.chapters and self.current_chapter_index > 0:
-            self.current_chapter_index -= 1
-            self.chapter_listbox.selection_clear(0, tk.END)
-            self.chapter_listbox.selection_set(self.current_chapter_index)
-            self.chapter_listbox.see(self.current_chapter_index)
-            self.on_chapter_select(None)
+        prev_chapter(self)
     
     def next_chapter(self):
-        if self.chapters and self.current_chapter_index < len(self.chapters) - 1:
-            self.current_chapter_index += 1
-            self.chapter_listbox.selection_clear(0, tk.END)
-            self.chapter_listbox.selection_set(self.current_chapter_index)
-            self.chapter_listbox.see(self.current_chapter_index)
-            self.on_chapter_select(None)
+        next_chapter(self)
     
     def generate_chapter_content(self):
         generate_chapter_content(self)
