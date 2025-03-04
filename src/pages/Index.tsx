@@ -1,20 +1,12 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Download, FileDown, Github } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { BookOpen, Code, FileDown, Terminal, Info } from "lucide-react";
 import PageTransition from "@/components/PageTransition";
 import MainNavigation from "@/components/MainNavigation";
 
 const Index = () => {
-  const handleOpenPythonApp = () => {
-    alert("In a real deployment, this would launch the Python application. For now, please run book_processor.py directly.");
-  };
-
-  const handleDownloadSource = () => {
-    // This would download the source code zip file in a real application
-    alert("This would download the Python source code in a real deployment.");
-  };
-
   return (
     <PageTransition>
       <div className="min-h-screen bg-background flex flex-col">
@@ -27,68 +19,103 @@ const Index = () => {
               <p className="text-xl text-muted-foreground mt-2">Process, enhance, and analyze large documents with AI assistance</p>
             </div>
             
+            <Alert className="mb-6 border-yellow-500">
+              <Info className="h-4 w-4" />
+              <AlertTitle>Important Note</AlertTitle>
+              <AlertDescription>
+                This is just a preview website. To run the actual Python application, you need to follow the instructions below.
+              </AlertDescription>
+            </Alert>
+            
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <BookOpen className="mr-2 h-6 w-6" />
-                  Book Processor Application
+                  <Terminal className="mr-2 h-6 w-6" />
+                  How to Run the Book Processor Application
                 </CardTitle>
                 <CardDescription>
-                  Our desktop Python application for processing large documents and generating AI-assisted content
+                  The Book Processor is a desktop Python application that runs locally on your computer
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-muted/50 p-4 rounded-lg">
-                      <h3 className="font-medium mb-2">Features</h3>
-                      <ul className="space-y-1 list-disc list-inside text-sm">
-                        <li>Process documents with thousands of pages</li>
-                        <li>AI-assisted table of contents generation</li>
-                        <li>Content enhancement and formatting</li>
-                        <li>Chapter extraction and organization</li>
-                        <li>Comprehensive document analysis</li>
-                      </ul>
-                    </div>
-                    <div className="bg-muted/50 p-4 rounded-lg">
-                      <h3 className="font-medium mb-2">Requirements</h3>
-                      <ul className="space-y-1 list-disc list-inside text-sm">
-                        <li>Python 3.7 or higher</li>
-                        <li>Tkinter (included with most Python installations)</li>
-                        <li>Required libraries: docx, openai</li>
-                        <li>OpenAI API key for AI features</li>
-                      </ul>
-                    </div>
+                <div className="space-y-6">
+                  <div className="bg-muted p-4 rounded-lg">
+                    <h3 className="font-medium mb-2 text-lg">Installation Steps:</h3>
+                    <ol className="space-y-3 list-decimal list-inside">
+                      <li className="pl-2">
+                        <span className="font-medium">Download the source code</span>
+                        <p className="text-sm text-muted-foreground mt-1 ml-6">
+                          The source code is available on GitHub or can be downloaded directly from this site.
+                        </p>
+                      </li>
+                      <li className="pl-2">
+                        <span className="font-medium">Install Python 3.7+</span>
+                        <p className="text-sm text-muted-foreground mt-1 ml-6">
+                          If you don't have Python installed, download it from <a href="https://www.python.org/downloads/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">python.org</a>
+                        </p>
+                      </li>
+                      <li className="pl-2">
+                        <span className="font-medium">Install dependencies</span>
+                        <p className="text-sm text-muted-foreground mt-1 ml-6">
+                          Open a terminal/command prompt in the downloaded folder and run:
+                        </p>
+                        <pre className="bg-black text-white p-2 rounded text-sm mt-1 ml-6 overflow-x-auto">
+                          pip install -r requirements.txt
+                        </pre>
+                      </li>
+                      <li className="pl-2">
+                        <span className="font-medium">Run the application</span>
+                        <p className="text-sm text-muted-foreground mt-1 ml-6">
+                          In the same terminal/command prompt, run:
+                        </p>
+                        <pre className="bg-black text-white p-2 rounded text-sm mt-1 ml-6 overflow-x-auto">
+                          python book_processor.py
+                        </pre>
+                      </li>
+                    </ol>
                   </div>
                   
-                  <div className="bg-muted/50 p-4 rounded-lg">
-                    <h3 className="font-medium mb-2">Getting Started</h3>
-                    <ol className="space-y-1 list-decimal list-inside text-sm">
-                      <li>Install Python 3.7 or higher if not already installed</li>
-                      <li>Install required dependencies with <code>pip install -r requirements.txt</code></li>
-                      <li>Run the application with <code>python book_processor.py</code></li>
-                      <li>Load your document using the File Processing tab</li>
-                      <li>Process your document and generate AI-assisted table of contents</li>
+                  <div className="bg-muted p-4 rounded-lg">
+                    <h3 className="font-medium mb-2 text-lg">Using Multiple Files:</h3>
+                    <p className="mb-2">The Book Processor supports multiple input files:</p>
+                    <ol className="space-y-2 list-decimal list-inside">
+                      <li className="pl-2">
+                        <span>Launch the application using the steps above</span>
+                      </li>
+                      <li className="pl-2">
+                        <span>In the "File Processing" tab, click "Add Files" to select multiple DOCX or text files</span>
+                      </li>
+                      <li className="pl-2">
+                        <span>Use the file list to manage your input files (add/remove)</span>
+                      </li>
+                      <li className="pl-2">
+                        <span>Select a file from the list and click "Load Selected Document" to process it</span>
+                      </li>
+                      <li className="pl-2">
+                        <span>Alternatively, use "Batch Process All Files" to process all files at once</span>
+                      </li>
                     </ol>
+                    <div className="mt-4">
+                      <img 
+                        src="/lovable-uploads/3431316b-947c-4e9d-b6ac-6edf0b9f9f19.png" 
+                        alt="Book Processor UI" 
+                        className="rounded-md border border-border w-full object-cover max-h-64 object-top"
+                      />
+                    </div>
                   </div>
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col space-y-2 sm:flex-row sm:space-x-2 sm:space-y-0">
-                <Button 
-                  className="w-full sm:w-auto" 
-                  onClick={handleOpenPythonApp}
-                >
-                  <BookOpen className="mr-2 h-4 w-4" />
-                  Launch Application
-                </Button>
-                <Button variant="outline" className="w-full sm:w-auto" onClick={handleDownloadSource}>
-                  <Download className="mr-2 h-4 w-4" />
-                  Download Source Code
-                </Button>
-                <Button variant="secondary" className="w-full sm:w-auto" asChild>
+                <Button variant="outline" className="w-full sm:w-auto" asChild>
                   <a href="https://github.com/your-repo/book-processor" target="_blank" rel="noopener noreferrer">
-                    <Github className="mr-2 h-4 w-4" />
-                    View on GitHub
+                    <Code className="mr-2 h-4 w-4" />
+                    View Source Code
+                  </a>
+                </Button>
+                <Button className="w-full sm:w-auto" asChild>
+                  <a href="https://github.com/your-repo/book-processor/archive/refs/heads/main.zip">
+                    <FileDown className="mr-2 h-4 w-4" />
+                    Download Source Code (.zip)
                   </a>
                 </Button>
               </CardFooter>

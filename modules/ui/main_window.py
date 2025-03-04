@@ -1,5 +1,6 @@
+
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 from modules.ui.file_tab import create_file_tab
 from modules.ui.ai_tab import create_ai_tab
 from modules.ui.chapter_tab import create_chapter_tab
@@ -119,8 +120,89 @@ class BookProcessor:
             self.input_file.set(self.input_files[0])
             
         # Now call the original load_document function
-        from modules.document.document_processor import load_document
         load_document(self)
+    
+    def add_files(self):
+        # Open file dialog to select multiple files
+        files = filedialog.askopenfilenames(
+            title="Select Input Files",
+            filetypes=[
+                ("Document Files", "*.docx *.txt *.md"),
+                ("Word Documents", "*.docx"),
+                ("Text Files", "*.txt"),
+                ("Markdown Files", "*.md"),
+                ("All Files", "*.*")
+            ]
+        )
+        
+        # Add selected files to the list
+        if files:
+            for file in files:
+                if file not in self.input_files:
+                    self.input_files.append(file)
+            
+            # Update the listbox
+            self.update_file_listbox()
+            self.log(f"Added {len(files)} files to the processing list")
+    
+    def remove_file(self):
+        # Get selected file from listbox
+        selected = self.file_listbox.curselection()
+        if not selected:
+            messagebox.showerror("Error", "Please select a file to remove")
+            return
+        
+        file_index = selected[0]
+        file_path = self.input_files[file_index]
+        
+        # Remove the file from the list
+        self.input_files.pop(file_index)
+        
+        # Update the listbox
+        self.update_file_listbox()
+        self.log(f"Removed file: {file_path}")
+    
+    def update_file_listbox(self):
+        # Clear the listbox
+        self.file_listbox.delete(0, tk.END)
+        
+        # Add all files to the listbox
+        for file in self.input_files:
+            # Get just the filename without the full path
+            import os
+            filename = os.path.basename(file)
+            self.file_listbox.insert(tk.END, filename)
+    
+    def batch_process_all(self):
+        if not self.input_files:
+            messagebox.showerror("Error", "Please add at least one input file")
+            return
+        
+        try:
+            total_files = len(self.input_files)
+            self.log(f"Starting batch processing of {total_files} files...")
+            
+            for i, file_path in enumerate(self.input_files):
+                file_name = os.path.basename(file_path)
+                self.log(f"Processing file {i+1}/{total_files}: {file_name}")
+                self.update_progress((i / total_files) * 100, f"Processing {file_name}...")
+                
+                # Set current file and process it
+                self.input_file.set(file_path)
+                load_document(self)
+                process_document(self)
+                
+                # Save chapters for this file
+                save_all_chapters(self)
+            
+            self.update_progress(100, "Batch processing completed")
+            self.log("All files processed successfully")
+            messagebox.showinfo("Success", f"Processed {total_files} files successfully")
+            
+        except Exception as e:
+            self.log(f"Error during batch processing: {str(e)}")
+            self.update_progress(0, "Error during batch processing")
+            messagebox.showerror("Error", f"Failed to process files: {str(e)}")
     
     def process_document(self):
         process_document(self)
