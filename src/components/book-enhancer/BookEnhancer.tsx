@@ -1,135 +1,147 @@
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Book } from '@/components/ebook-uploader/BookProcessor';
 import EnhancementOptions from './EnhancementOptions';
 import EnhancementPreview from './EnhancementPreview';
-import SelectChaptersTab from './SelectChaptersTab';
-import { toast } from 'sonner';
-import { enhanceBookContent } from './enhancementProcessor';
+import { enhanceBook } from './enhancementProcessor';
 
 interface BookEnhancerProps {
   book: Book;
-  onEnhancementComplete: (enhancedBook: Book) => void;
+  isOpen: boolean;
+  onClose: () => void;
+  onBookEnhanced: (enhancedBook: Book) => void;
 }
 
-const BookEnhancer: React.FC<BookEnhancerProps> = ({ book, onEnhancementComplete }) => {
-  const [enhancementType, setEnhancementType] = useState<'grammar' | 'content' | 'formatting'>('grammar');
+const BookEnhancer: React.FC<BookEnhancerProps> = ({
+  book,
+  isOpen,
+  onClose,
+  onBookEnhanced
+}) => {
   const [selectedChapters, setSelectedChapters] = useState<string[]>(book.chapters.map(ch => ch.id));
-  const [enhancedBook, setEnhancedBook] = useState<Book | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
-  const [previewChapterId, setPreviewChapterId] = useState<string | null>(null);
+  
+  // Grammar options
+  const [enableGrammarCheck, setEnableGrammarCheck] = useState(true);
+  const [grammarLevel, setGrammarLevel] = useState(2);
+  const [enableSpellingCheck, setEnableSpellingCheck] = useState(true);
+  
+  // Content options
+  const [enableContentExpansion, setEnableContentExpansion] = useState(false);
+  const [expansionLevel, setExpansionLevel] = useState(1);
+  const [writingStyle, setWritingStyle] = useState('professional');
+  const [improveClarity, setImproveClarity] = useState(true);
+  
+  // Formatting options
+  const [enableProfessionalFormatting, setEnableProfessionalFormatting] = useState(true);
+  const [fontFamily, setFontFamily] = useState('serif');
+  const [generateTOC, setGenerateTOC] = useState(true);
+  const [addChapterBreaks, setAddChapterBreaks] = useState(true);
 
-  const handleEnhance = async () => {
+  const handleEnhance = async (options: {
+    enableGrammarCheck: boolean;
+    grammarLevel: number;
+    enableSpellingCheck: boolean;
+    enableContentExpansion: boolean;
+    expansionLevel: number;
+    writingStyle: string;
+    improveClarity: boolean;
+    enableProfessionalFormatting: boolean;
+    fontFamily: string;
+    generateTOC: boolean;
+    addChapterBreaks: boolean;
+  }) => {
     if (selectedChapters.length === 0) {
-      toast.error("Please select at least one chapter to enhance");
+      toast.error('Please select at least one chapter to enhance');
       return;
     }
 
     setIsProcessing(true);
-    
+    setEnableGrammarCheck(options.enableGrammarCheck);
+    setGrammarLevel(options.grammarLevel);
+    setEnableSpellingCheck(options.enableSpellingCheck);
+    setEnableContentExpansion(options.enableContentExpansion);
+    setExpansionLevel(options.expansionLevel);
+    setWritingStyle(options.writingStyle);
+    setImproveClarity(options.improveClarity);
+    setEnableProfessionalFormatting(options.enableProfessionalFormatting);
+    setFontFamily(options.fontFamily);
+    setGenerateTOC(options.generateTOC);
+    setAddChapterBreaks(options.addChapterBreaks);
+
     try {
-      // In a real implementation, this would call an API or use a library
-      // For now, we'll use our simulated enhancement processor
-      const enhanced = await enhanceBookContent(book, selectedChapters, enhancementType);
-      
-      setEnhancedBook(enhanced);
-      setPreviewChapterId(enhanced.chapters[0].id);
-      setCurrentStep(2);
-      
-      toast.success("Enhancement complete", {
-        description: `Successfully enhanced ${selectedChapters.length} chapter(s).`
+      toast.info('Starting book enhancement', {
+        description: `Enhancing ${selectedChapters.length} chapters with selected options`
       });
+      
+      const enhancedBook = await enhanceBook(
+        book,
+        selectedChapters,
+        options
+      );
+      
+      toast.success('Book enhanced successfully', {
+        description: `${selectedChapters.length} chapters have been enhanced`
+      });
+      
+      onBookEnhanced(enhancedBook);
+      onClose();
     } catch (error) {
-      toast.error("Enhancement failed", {
-        description: error instanceof Error ? error.message : "Unknown error occurred"
+      console.error('Error enhancing book:', error);
+      toast.error('Failed to enhance book', {
+        description: 'There was a problem enhancing your book. Please try again.'
       });
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleApplyChanges = () => {
-    if (enhancedBook) {
-      onEnhancementComplete(enhancedBook);
-      toast.success("Changes applied successfully", {
-        description: "Your enhanced book is now ready."
-      });
-    }
-  };
-
   return (
-    <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle>Book Enhancement Wizard</CardTitle>
-        <CardDescription>
-          Improve your book content with AI assistance. Choose the type of enhancements
-          and which chapters to improve.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {currentStep === 1 ? (
-          <>
-            <Tabs defaultValue="options" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="options">Enhancement Options</TabsTrigger>
-                <TabsTrigger value="chapters">Select Chapters</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="options">
-                <EnhancementOptions 
-                  enhancementType={enhancementType}
-                  setEnhancementType={setEnhancementType}
-                />
-              </TabsContent>
-              
-              <TabsContent value="chapters">
-                <SelectChaptersTab
-                  chapters={book.chapters}
-                  selectedChapters={selectedChapters}
-                  setSelectedChapters={setSelectedChapters}
-                />
-              </TabsContent>
-            </Tabs>
-          </>
-        ) : (
-          <EnhancementPreview 
-            originalBook={book}
-            enhancedBook={enhancedBook!}
-            previewChapterId={previewChapterId}
-            setPreviewChapterId={setPreviewChapterId}
-          />
-        )}
-      </CardContent>
-      <CardFooter className="flex justify-between">
-        {currentStep === 1 ? (
-          <>
-            <Button variant="outline">
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleEnhance}
-              disabled={isProcessing || selectedChapters.length === 0}
-            >
-              {isProcessing ? "Processing..." : "Enhance Content"}
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button variant="outline" onClick={() => setCurrentStep(1)}>
-              Back
-            </Button>
-            <Button onClick={handleApplyChanges}>
-              Apply Changes
-            </Button>
-          </>
-        )}
-      </CardFooter>
-    </Card>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Enhance Book: {book.title}</DialogTitle>
+        </DialogHeader>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <EnhancementOptions
+              chapters={book.chapters}
+              selectedChapters={selectedChapters}
+              setSelectedChapters={setSelectedChapters}
+              onEnhance={handleEnhance}
+              isProcessing={isProcessing}
+            />
+          </div>
+          
+          <div>
+            <EnhancementPreview
+              chapters={book.chapters}
+              selectedChapters={selectedChapters}
+              grammarOptions={{
+                enableGrammarCheck,
+                grammarLevel,
+                enableSpellingCheck
+              }}
+              contentOptions={{
+                enableContentExpansion,
+                expansionLevel,
+                writingStyle,
+                improveClarity
+              }}
+              formattingOptions={{
+                enableProfessionalFormatting,
+                fontFamily,
+                generateTOC,
+                addChapterBreaks
+              }}
+            />
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

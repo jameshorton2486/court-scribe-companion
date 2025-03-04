@@ -1,96 +1,220 @@
 
 import React from 'react';
-import { Book, Chapter } from '@/components/ebook-uploader/BookProcessor';
+import { Card, CardContent } from '@/components/ui/card';
+import { Chapter } from '@/components/ebook-uploader/BookProcessor';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Check, BookOpen, X, Blocks } from 'lucide-react';
 
 interface EnhancementPreviewProps {
-  originalBook: Book;
-  enhancedBook: Book;
-  previewChapterId: string | null;
-  setPreviewChapterId: (id: string | null) => void;
+  chapters: Chapter[];
+  selectedChapters: string[];
+  grammarOptions: {
+    enableGrammarCheck: boolean;
+    grammarLevel: number;
+    enableSpellingCheck: boolean;
+  };
+  contentOptions: {
+    enableContentExpansion: boolean;
+    expansionLevel: number;
+    writingStyle: string;
+    improveClarity: boolean;
+  };
+  formattingOptions: {
+    enableProfessionalFormatting: boolean;
+    fontFamily: string;
+    generateTOC: boolean;
+    addChapterBreaks: boolean;
+  };
 }
 
 const EnhancementPreview: React.FC<EnhancementPreviewProps> = ({
-  originalBook,
-  enhancedBook,
-  previewChapterId,
-  setPreviewChapterId
+  chapters,
+  selectedChapters,
+  grammarOptions,
+  contentOptions,
+  formattingOptions
 }) => {
-  // Find the current chapter in both original and enhanced versions
-  const originalChapter = originalBook.chapters.find(ch => ch.id === previewChapterId);
-  const enhancedChapter = enhancedBook.chapters.find(ch => ch.id === previewChapterId);
+  const selectedChaptersDetails = chapters.filter(
+    chapter => selectedChapters.includes(chapter.id)
+  );
+
+  // Calculate enhancement summary
+  const totalEnhancements = [
+    grammarOptions.enableGrammarCheck,
+    grammarOptions.enableSpellingCheck,
+    contentOptions.enableContentExpansion, 
+    contentOptions.improveClarity,
+    formattingOptions.enableProfessionalFormatting
+  ].filter(Boolean).length;
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-4 items-start sm:items-center justify-between">
-        <Label htmlFor="chapter-select" className="text-sm font-medium">
-          Preview Chapter:
-        </Label>
-        <Select
-          value={previewChapterId || ''}
-          onValueChange={(value) => setPreviewChapterId(value)}
-        >
-          <SelectTrigger id="chapter-select" className="w-full sm:w-[250px]">
-            <SelectValue placeholder="Select a chapter to preview" />
-          </SelectTrigger>
-          <SelectContent>
-            {enhancedBook.chapters.map((chapter, index) => (
-              <SelectItem key={chapter.id} value={chapter.id}>
-                Chapter {index + 1}: {chapter.title}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {originalChapter && enhancedChapter && (
-        <Tabs defaultValue="comparison" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="original">Original</TabsTrigger>
-            <TabsTrigger value="enhanced">Enhanced</TabsTrigger>
-            <TabsTrigger value="comparison">Side by Side</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="original">
-            <ScrollArea className="h-[400px] border rounded-md p-4">
-              <div className="prose prose-sm max-w-none dark:prose-invert" 
-                dangerouslySetInnerHTML={{ __html: originalChapter.content }} 
-              />
-            </ScrollArea>
-          </TabsContent>
-          
-          <TabsContent value="enhanced">
-            <ScrollArea className="h-[400px] border rounded-md p-4">
-              <div className="prose prose-sm max-w-none dark:prose-invert" 
-                dangerouslySetInnerHTML={{ __html: enhancedChapter.content }} 
-              />
-            </ScrollArea>
-          </TabsContent>
-          
-          <TabsContent value="comparison">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <div className="text-sm font-medium mb-2">Original</div>
-                <ScrollArea className="h-[400px] border rounded-md p-4">
-                  <div className="prose prose-sm max-w-none dark:prose-invert" 
-                    dangerouslySetInnerHTML={{ __html: originalChapter.content }} 
-                  />
-                </ScrollArea>
-              </div>
-              <div>
-                <div className="text-sm font-medium mb-2">Enhanced</div>
-                <ScrollArea className="h-[400px] border rounded-md p-4">
-                  <div className="prose prose-sm max-w-none dark:prose-invert" 
-                    dangerouslySetInnerHTML={{ __html: enhancedChapter.content }} 
-                  />
-                </ScrollArea>
-              </div>
+      <h3 className="text-lg font-semibold">Enhancement Preview</h3>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="bg-background/60">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center space-x-2">
+              <BookOpen className="h-5 w-5 text-primary" />
+              <h4 className="font-medium">Selected Chapters</h4>
             </div>
-          </TabsContent>
-        </Tabs>
+            <div className="text-sm text-muted-foreground">
+              {selectedChapters.length === 0 ? (
+                <p>No chapters selected</p>
+              ) : (
+                <p>{selectedChapters.length} of {chapters.length} chapters</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-background/60">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center space-x-2">
+              <Blocks className="h-5 w-5 text-primary" />
+              <h4 className="font-medium">Enhancements</h4>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {totalEnhancements === 0 ? (
+                <p>No enhancements selected</p>
+              ) : (
+                <p>{totalEnhancements} enhancement types active</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-background/60">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center space-x-2">
+              <BookOpen className="h-5 w-5 text-primary" />
+              <h4 className="font-medium">Output Format</h4>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {formattingOptions.enableProfessionalFormatting ? (
+                <p>Professional e-book format</p>
+              ) : (
+                <p>Standard format</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      <Card>
+        <CardContent className="p-4">
+          <h4 className="font-medium mb-2">Selected Enhancement Options</h4>
+          <div className="space-y-3">
+            <div>
+              <h5 className="text-sm font-medium mb-1">Grammar & Spelling</h5>
+              <ul className="text-sm space-y-1">
+                <li className="flex items-center space-x-2">
+                  {grammarOptions.enableGrammarCheck ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <span>Grammar Correction {grammarOptions.enableGrammarCheck && `(Level ${grammarOptions.grammarLevel})`}</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  {grammarOptions.enableSpellingCheck ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <span>Spelling Correction</span>
+                </li>
+              </ul>
+            </div>
+            
+            <div>
+              <h5 className="text-sm font-medium mb-1">Content</h5>
+              <ul className="text-sm space-y-1">
+                <li className="flex items-center space-x-2">
+                  {contentOptions.enableContentExpansion ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <span>Content Expansion {contentOptions.enableContentExpansion && `(Level ${contentOptions.expansionLevel})`}</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  {contentOptions.improveClarity ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <span>Improve Clarity & Readability</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span>Writing Style: {contentOptions.writingStyle.charAt(0).toUpperCase() + contentOptions.writingStyle.slice(1)}</span>
+                </li>
+              </ul>
+            </div>
+            
+            <div>
+              <h5 className="text-sm font-medium mb-1">Formatting</h5>
+              <ul className="text-sm space-y-1">
+                <li className="flex items-center space-x-2">
+                  {formattingOptions.enableProfessionalFormatting ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <span>Professional Formatting</span>
+                </li>
+                {formattingOptions.enableProfessionalFormatting && (
+                  <>
+                    <li className="flex items-center space-x-2 pl-6">
+                      <Check className="h-4 w-4 text-green-500" />
+                      <span>Font: {formattingOptions.fontFamily.charAt(0).toUpperCase() + formattingOptions.fontFamily.slice(1)}</span>
+                    </li>
+                    <li className="flex items-center space-x-2 pl-6">
+                      {formattingOptions.generateTOC ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <X className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      <span>Table of Contents</span>
+                    </li>
+                    <li className="flex items-center space-x-2 pl-6">
+                      {formattingOptions.addChapterBreaks ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <X className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      <span>Chapter Breaks</span>
+                    </li>
+                  </>
+                )}
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {selectedChaptersDetails.length > 0 && (
+        <Card>
+          <CardContent className="p-4">
+            <h4 className="font-medium mb-3">Chapters to Enhance</h4>
+            <ScrollArea className="h-28">
+              <ul className="space-y-2">
+                {selectedChaptersDetails.map((chapter, index) => (
+                  <li key={chapter.id} className="text-sm flex items-start space-x-2">
+                    <Check className="h-4 w-4 text-green-500 mt-0.5" />
+                    <div>
+                      <span className="font-medium">Chapter {index + 1}: {chapter.title}</span>
+                      <p className="text-xs text-muted-foreground line-clamp-1">
+                        {chapter.content.replace(/<[^>]*>/g, '').substring(0, 60)}...
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </ScrollArea>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

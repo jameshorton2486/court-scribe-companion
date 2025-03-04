@@ -1,85 +1,142 @@
 
-import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { Check, Pencil, Type } from 'lucide-react';
+import React, { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import SelectChaptersTab from './SelectChaptersTab';
+import GrammarEnhancementTab from './GrammarEnhancementTab';
+import ContentEnhancementTab from './ContentEnhancementTab';
+import FormattingTab from './FormattingTab';
+import { Button } from '@/components/ui/button';
+import { Chapter } from '@/components/ebook-uploader/BookProcessor';
+import { Wand2 } from 'lucide-react';
 
 interface EnhancementOptionsProps {
-  enhancementType: 'grammar' | 'content' | 'formatting';
-  setEnhancementType: (type: 'grammar' | 'content' | 'formatting') => void;
+  chapters: Chapter[];
+  selectedChapters: string[];
+  setSelectedChapters: (chapterIds: string[]) => void;
+  onEnhance: (options: {
+    enableGrammarCheck: boolean;
+    grammarLevel: number;
+    enableSpellingCheck: boolean;
+    enableContentExpansion: boolean;
+    expansionLevel: number;
+    writingStyle: string;
+    improveClarity: boolean;
+    enableProfessionalFormatting: boolean;
+    fontFamily: string;
+    generateTOC: boolean;
+    addChapterBreaks: boolean;
+  }) => void;
+  isProcessing: boolean;
 }
 
-const EnhancementOptions: React.FC<EnhancementOptionsProps> = ({ 
-  enhancementType, 
-  setEnhancementType 
+const EnhancementOptions: React.FC<EnhancementOptionsProps> = ({
+  chapters,
+  selectedChapters,
+  setSelectedChapters,
+  onEnhance,
+  isProcessing
 }) => {
+  const [activeTab, setActiveTab] = useState('chapters');
+  
+  // Grammar options
+  const [enableGrammarCheck, setEnableGrammarCheck] = useState(true);
+  const [grammarLevel, setGrammarLevel] = useState(2);
+  const [enableSpellingCheck, setEnableSpellingCheck] = useState(true);
+  
+  // Content options
+  const [enableContentExpansion, setEnableContentExpansion] = useState(false);
+  const [expansionLevel, setExpansionLevel] = useState(1);
+  const [writingStyle, setWritingStyle] = useState('professional');
+  const [improveClarity, setImproveClarity] = useState(true);
+  
+  // Formatting options
+  const [enableProfessionalFormatting, setEnableProfessionalFormatting] = useState(true);
+  const [fontFamily, setFontFamily] = useState('serif');
+  const [generateTOC, setGenerateTOC] = useState(true);
+  const [addChapterBreaks, setAddChapterBreaks] = useState(true);
+
+  const handleEnhance = () => {
+    onEnhance({
+      enableGrammarCheck,
+      grammarLevel,
+      enableSpellingCheck,
+      enableContentExpansion,
+      expansionLevel,
+      writingStyle,
+      improveClarity,
+      enableProfessionalFormatting,
+      fontFamily,
+      generateTOC,
+      addChapterBreaks
+    });
+  };
+
   return (
     <div className="space-y-4">
-      <div className="text-sm mb-4">
-        Select the type of enhancement you'd like to apply to your book:
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-4 w-full">
+          <TabsTrigger value="chapters">Chapters</TabsTrigger>
+          <TabsTrigger value="grammar">Grammar</TabsTrigger>
+          <TabsTrigger value="content">Content</TabsTrigger>
+          <TabsTrigger value="formatting">Formatting</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="chapters" className="mt-4">
+          <SelectChaptersTab 
+            chapters={chapters}
+            selectedChapters={selectedChapters}
+            setSelectedChapters={setSelectedChapters}
+          />
+        </TabsContent>
+
+        <TabsContent value="grammar" className="mt-4">
+          <GrammarEnhancementTab
+            enableGrammarCheck={enableGrammarCheck}
+            setEnableGrammarCheck={setEnableGrammarCheck}
+            grammarLevel={grammarLevel}
+            setGrammarLevel={setGrammarLevel}
+            enableSpellingCheck={enableSpellingCheck}
+            setEnableSpellingCheck={setEnableSpellingCheck}
+          />
+        </TabsContent>
+
+        <TabsContent value="content" className="mt-4">
+          <ContentEnhancementTab
+            enableContentExpansion={enableContentExpansion}
+            setEnableContentExpansion={setEnableContentExpansion}
+            expansionLevel={expansionLevel}
+            setExpansionLevel={setExpansionLevel}
+            writingStyle={writingStyle}
+            setWritingStyle={setWritingStyle}
+            improveClarity={improveClarity}
+            setImproveClarity={setImproveClarity}
+          />
+        </TabsContent>
+
+        <TabsContent value="formatting" className="mt-4">
+          <FormattingTab
+            enableProfessionalFormatting={enableProfessionalFormatting}
+            setEnableProfessionalFormatting={setEnableProfessionalFormatting}
+            fontFamily={fontFamily}
+            setFontFamily={setFontFamily}
+            generateTOC={generateTOC}
+            setGenerateTOC={setGenerateTOC}
+            addChapterBreaks={addChapterBreaks}
+            setAddChapterBreaks={setAddChapterBreaks}
+          />
+        </TabsContent>
+      </Tabs>
+
+      <div className="flex justify-end">
+        <Button 
+          onClick={handleEnhance} 
+          disabled={isProcessing || selectedChapters.length === 0}
+          className="flex items-center space-x-2"
+        >
+          <Wand2 className="h-4 w-4" />
+          <span>{isProcessing ? 'Enhancing...' : 'Enhance Book'}</span>
+        </Button>
       </div>
-
-      <RadioGroup 
-        value={enhancementType} 
-        onValueChange={(value) => setEnhancementType(value as 'grammar' | 'content' | 'formatting')}
-        className="space-y-4"
-      >
-        <div>
-          <Card className={`cursor-pointer transition ${enhancementType === 'grammar' ? 'border-primary' : ''}`}>
-            <CardContent className="p-4 flex items-start space-x-4">
-              <RadioGroupItem value="grammar" id="grammar" className="mt-1" />
-              <div className="flex-1">
-                <Label htmlFor="grammar" className="text-base font-medium flex items-center cursor-pointer">
-                  <Check className="mr-2 h-5 w-5" />
-                  Grammar & Style Correction
-                </Label>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Fix spelling, grammar, punctuation errors and improve readability. This is ideal for
-                  polishing a mostly complete manuscript.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div>
-          <Card className={`cursor-pointer transition ${enhancementType === 'content' ? 'border-primary' : ''}`}>
-            <CardContent className="p-4 flex items-start space-x-4">
-              <RadioGroupItem value="content" id="content" className="mt-1" />
-              <div className="flex-1">
-                <Label htmlFor="content" className="text-base font-medium flex items-center cursor-pointer">
-                  <Pencil className="mr-2 h-5 w-5" />
-                  Content Enhancement
-                </Label>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Expand content with additional details, examples, and explanations. 
-                  This option creates more comprehensive chapters from your existing content.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div>
-          <Card className={`cursor-pointer transition ${enhancementType === 'formatting' ? 'border-primary' : ''}`}>
-            <CardContent className="p-4 flex items-start space-x-4">
-              <RadioGroupItem value="formatting" id="formatting" className="mt-1" />
-              <div className="flex-1">
-                <Label htmlFor="formatting" className="text-base font-medium flex items-center cursor-pointer">
-                  <Type className="mr-2 h-5 w-5" />
-                  Professional Formatting
-                </Label>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Improve the structure, headings, and layout of your book to match 
-                  professional publishing standards. Includes proper chapter formatting and 
-                  consistent styling.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </RadioGroup>
     </div>
   );
 };
