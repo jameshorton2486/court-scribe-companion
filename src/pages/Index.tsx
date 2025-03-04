@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Book, BookOpen, Download, Upload } from "lucide-react";
-import { PageTransition } from "@/components/PageTransition";
+import PageTransition from "@/components/PageTransition";
 import MainNavigation from "@/components/MainNavigation";
 
 const Index = () => {
