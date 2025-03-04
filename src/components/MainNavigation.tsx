@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Book, BookOpen, Home, Menu, X } from 'lucide-react';
+import { BookOpen, FileCode, Github, Home, Menu, Terminal, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -31,15 +31,28 @@ const MainNavigation = () => {
                   Home
                 </div>
               </Link>
-              <Link 
-                to="/reader/sample" 
+              <a 
+                href="https://github.com/your-repo/book-processor" 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="px-3 py-2 rounded-md text-sm font-medium hover:bg-primary/70 transition-colors"
               >
                 <div className="flex items-center">
-                  <Book className="h-4 w-4 mr-2" />
-                  Book Reader
+                  <Github className="h-4 w-4 mr-2" />
+                  Repository
                 </div>
-              </Link>
+              </a>
+              <a 
+                href="https://docs.python.org/3/library/tkinter.html" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-2 rounded-md text-sm font-medium hover:bg-primary/70 transition-colors"
+              >
+                <div className="flex items-center">
+                  <FileCode className="h-4 w-4 mr-2" />
+                  Documentation
+                </div>
+              </a>
             </div>
           </div>
           
@@ -74,16 +87,30 @@ const MainNavigation = () => {
               Home
             </div>
           </Link>
-          <Link 
-            to="/reader/sample" 
+          <a 
+            href="https://github.com/your-repo/book-processor" 
+            target="_blank"
+            rel="noopener noreferrer"
             className="block px-3 py-2 rounded-md text-base font-medium hover:bg-primary/70 transition-colors"
             onClick={() => setIsOpen(false)}
           >
             <div className="flex items-center">
-              <Book className="h-4 w-4 mr-2" />
-              Book Reader
+              <Github className="h-4 w-4 mr-2" />
+              Repository
             </div>
-          </Link>
+          </a>
+          <a 
+            href="https://docs.python.org/3/library/tkinter.html" 
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block px-3 py-2 rounded-md text-base font-medium hover:bg-primary/70 transition-colors"
+            onClick={() => setIsOpen(false)}
+          >
+            <div className="flex items-center">
+              <FileCode className="h-4 w-4 mr-2" />
+              Documentation
+            </div>
+          </a>
         </div>
       </div>
     </nav>
