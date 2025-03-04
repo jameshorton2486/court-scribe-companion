@@ -1,69 +1,64 @@
-# Welcome to your Lovable project
 
-## Project info
+# Book Processor
 
-**URL**: https://lovable.dev/projects/5e109567-46d0-482e-893c-10cae213df2b
+A standalone GUI application for processing and enhancing book documents.
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+- Load DOCX files
+- Fix text encoding issues
+- Generate table of contents
+- Create chapter outlines
+- Enhance book content
+- Save individual chapters
+- Generate complete book as DOCX
 
-**Use Lovable**
+## Requirements
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/5e109567-46d0-482e-893c-10cae213df2b) and start prompting.
+- Python 3.6 or higher
+- python-docx library
 
-Changes made via Lovable will be committed automatically to this repo.
+## Installation
 
-**Use your preferred IDE**
+1. Clone this repository or download the files
+2. Install the required packages:
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+pip install -r requirements.txt
 ```
 
-**Edit a file directly in GitHub**
+## Usage
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Run the application with:
 
-**Use GitHub Codespaces**
+```
+python book_processor.py
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Processing Steps
 
-## What technologies are used for this project?
+1. Click "Browse..." to select an input DOCX file
+2. Set output directory for processed files (defaults to "output" folder)
+3. Fill in book title and author (optional)
+4. Select processing options
+5. Click "Load Document" to load the document
+6. Click "Process Document" to analyze and process the document
+7. Click "Save All Chapters" to save individual chapter files
+8. Click "Generate Complete Book" to create the final document
 
-This project is built with .
+## Processing Options
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- **Fix Text Encoding Issues**: Corrects common encoding problems
+- **Generate Table of Contents**: Creates a TOC based on chapter headings
+- **Create Chapter Outlines**: Identifies and organizes chapters
+- **Enhance Book Content**: Simple text improvements (experimental)
 
-## How can I deploy this project?
+## Notes
 
-Simply open [Lovable](https://lovable.dev/projects/5e109567-46d0-482e-893c-10cae213df2b) and click on Share -> Publish.
+This application works best with DOCX files that have some structure (headings, chapters, etc.).
+The chapter detection algorithm looks for:
+- Paragraphs with Heading styles
+- Text starting with "Chapter" or chapter numbers
+- Short, all-uppercase paragraphs that might be chapter titles
 
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+For best results, ensure your document has proper formatting before processing.
