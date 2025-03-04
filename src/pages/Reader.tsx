@@ -11,6 +11,8 @@ import ChapterContent from '@/components/reader/ChapterContent';
 import ChapterNavigation from '@/components/reader/ChapterNavigation';
 import useBookLoader from '@/hooks/useBookLoader';
 import MobileToc from '@/components/reader/MobileToc';
+import { Button } from '@/components/ui/button';
+import BookEnhancer from '@/components/book-enhancer/BookEnhancer';
 
 const Reader = () => {
   const { bookId, chapterId } = useParams<{ bookId: string; chapterId: string }>();
@@ -18,8 +20,9 @@ const Reader = () => {
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [tocVisible, setTocVisible] = useState(false);
   const [activeChapter, setActiveChapter] = useState<string | undefined>(chapterId);
+  const [showEnhancer, setShowEnhancer] = useState(false);
   
-  const { book, toc } = useBookLoader(bookId, navigate);
+  const { book, toc, updateBook } = useBookLoader(bookId, navigate);
 
   // Set the first chapter as active if no chapter is specified
   useEffect(() => {
@@ -76,6 +79,14 @@ const Reader = () => {
     window.scrollTo(0, 0);
   };
 
+  const handleEnhancementComplete = (enhancedBook: Book) => {
+    updateBook(enhancedBook);
+    setShowEnhancer(false);
+    toast.success("Book enhancement completed", {
+      description: "Your book has been successfully enhanced and updated.",
+    });
+  };
+
   if (!currentChapter) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -88,6 +99,27 @@ const Reader = () => {
           >
             Go to first chapter
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (showEnhancer) {
+    return (
+      <div className="min-h-screen pt-24 pb-24">
+        <ReaderToolbar 
+          title={book.title}
+          onToggleToc={() => {}}
+          onToggleTheme={handleToggleTheme}
+          isDarkTheme={isDarkTheme}
+        />
+        <div className="container mx-auto">
+          <div className="mb-4">
+            <Button variant="outline" onClick={() => setShowEnhancer(false)}>
+              Back to Reader
+            </Button>
+          </div>
+          <BookEnhancer book={book} onEnhancementComplete={handleEnhancementComplete} />
         </div>
       </div>
     );
@@ -147,7 +179,12 @@ const Reader = () => {
           )}>
             <div className="reader-page">
               <div className="animate-blur-in">
-                <h1 className="text-3xl font-semibold mb-6">{currentChapter.title}</h1>
+                <div className="flex justify-between items-center mb-6">
+                  <h1 className="text-3xl font-semibold">{currentChapter.title}</h1>
+                  <Button onClick={() => setShowEnhancer(true)} variant="outline" size="sm">
+                    Enhance Book
+                  </Button>
+                </div>
                 
                 <ChapterContent content={currentChapter.content} />
                 

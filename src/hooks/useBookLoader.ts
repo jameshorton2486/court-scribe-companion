@@ -145,6 +145,17 @@ const getSavedBooks = (): Book[] => {
   return [];
 };
 
+const saveBooksToStorage = (books: Book[]): void => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
+  } catch (e) {
+    console.error('Error saving books to localStorage:', e);
+    toast.error("Failed to save book", {
+      description: "There was an error saving your book to local storage."
+    });
+  }
+};
+
 const useBookLoader = (bookId: string | undefined, navigate: NavigateFunction) => {
   const [book, setBook] = useState<Book | null>(null);
   const [toc, setToc] = useState<TocItem[]>([]);
@@ -172,7 +183,36 @@ const useBookLoader = (bookId: string | undefined, navigate: NavigateFunction) =
     }
   }, [bookId, navigate]);
 
-  return { book, toc };
+  // Function to update a book in storage
+  const updateBook = (updatedBook: Book) => {
+    if (!updatedBook || !updatedBook.id) {
+      toast.error("Invalid book data", {
+        description: "Cannot update book with invalid data."
+      });
+      return;
+    }
+
+    // Update state
+    setBook(updatedBook);
+    setToc(generateToc(updatedBook.chapters));
+
+    // Save to storage (skip sample book)
+    if (updatedBook.id !== 'court-scribe-companion') {
+      const savedBooks = getSavedBooks();
+      const updatedBooks = savedBooks.map(b => 
+        b.id === updatedBook.id ? updatedBook : b
+      );
+      
+      // If book wasn't found, add it
+      if (!savedBooks.some(b => b.id === updatedBook.id)) {
+        updatedBooks.push(updatedBook);
+      }
+      
+      saveBooksToStorage(updatedBooks);
+    }
+  };
+
+  return { book, toc, updateBook };
 };
 
 export default useBookLoader;
