@@ -1,16 +1,13 @@
 
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
+from tkinter import ttk, messagebox, filedialog, scrolledtext
 from modules.ui.file_tab import create_file_tab
 from modules.ui.ai_tab import create_ai_tab
 from modules.ui.chapter_tab import create_chapter_tab
 from modules.ui.navigation_utils import on_chapter_select, prev_chapter, next_chapter
 from modules.document.document_processor import load_document, process_document
 from modules.document.chapter_processor import save_all_chapters, generate_complete_book
-from modules.ai.openai_integration import test_openai_connection
-from modules.ai.content_reviewer import review_with_ai
-from modules.ai.toc_generator import generate_ai_toc
-from modules.ai.chapter_generator import generate_chapter_content, save_generated_chapter
+from modules.ui.file_actions import add_files, remove_file, update_file_listbox, batch_process_all
 
 class BookProcessor:
     def __init__(self, root):
@@ -74,7 +71,6 @@ class BookProcessor:
         create_chapter_tab(chapter_tab, self)
         
         # Log display (shared across tabs)
-        from tkinter import scrolledtext
         log_frame = ttk.LabelFrame(main_frame, text="Processing Log", padding=10)
         log_frame.pack(fill=tk.BOTH, expand=True, pady=5)
         
@@ -105,6 +101,7 @@ class BookProcessor:
             self.current_status.set(status)
         self.root.update()
     
+    # Core document processing methods
     def load_document(self):
         # Check if we have files in the list
         if not self.input_files:
@@ -119,91 +116,23 @@ class BookProcessor:
         else:
             self.input_file.set(self.input_files[0])
             
-        # Now call the original load_document function
+        # Call the document loader function
         load_document(self)
     
+    # Delegate to file action methods
     def add_files(self):
-        # Open file dialog to select multiple files
-        files = filedialog.askopenfilenames(
-            title="Select Input Files",
-            filetypes=[
-                ("Document Files", "*.docx *.txt *.md"),
-                ("Word Documents", "*.docx"),
-                ("Text Files", "*.txt"),
-                ("Markdown Files", "*.md"),
-                ("All Files", "*.*")
-            ]
-        )
-        
-        # Add selected files to the list
-        if files:
-            for file in files:
-                if file not in self.input_files:
-                    self.input_files.append(file)
-            
-            # Update the listbox
-            self.update_file_listbox()
-            self.log(f"Added {len(files)} files to the processing list")
+        add_files(self)
     
     def remove_file(self):
-        # Get selected file from listbox
-        selected = self.file_listbox.curselection()
-        if not selected:
-            messagebox.showerror("Error", "Please select a file to remove")
-            return
-        
-        file_index = selected[0]
-        file_path = self.input_files[file_index]
-        
-        # Remove the file from the list
-        self.input_files.pop(file_index)
-        
-        # Update the listbox
-        self.update_file_listbox()
-        self.log(f"Removed file: {file_path}")
+        remove_file(self)
     
     def update_file_listbox(self):
-        # Clear the listbox
-        self.file_listbox.delete(0, tk.END)
-        
-        # Add all files to the listbox
-        for file in self.input_files:
-            # Get just the filename without the full path
-            import os
-            filename = os.path.basename(file)
-            self.file_listbox.insert(tk.END, filename)
+        update_file_listbox(self)
     
     def batch_process_all(self):
-        if not self.input_files:
-            messagebox.showerror("Error", "Please add at least one input file")
-            return
-        
-        try:
-            total_files = len(self.input_files)
-            self.log(f"Starting batch processing of {total_files} files...")
-            
-            for i, file_path in enumerate(self.input_files):
-                file_name = os.path.basename(file_path)
-                self.log(f"Processing file {i+1}/{total_files}: {file_name}")
-                self.update_progress((i / total_files) * 100, f"Processing {file_name}...")
-                
-                # Set current file and process it
-                self.input_file.set(file_path)
-                load_document(self)
-                process_document(self)
-                
-                # Save chapters for this file
-                save_all_chapters(self)
-            
-            self.update_progress(100, "Batch processing completed")
-            self.log("All files processed successfully")
-            messagebox.showinfo("Success", f"Processed {total_files} files successfully")
-            
-        except Exception as e:
-            self.log(f"Error during batch processing: {str(e)}")
-            self.update_progress(0, "Error during batch processing")
-            messagebox.showerror("Error", f"Failed to process files: {str(e)}")
+        batch_process_all(self)
     
+    # Document processing methods
     def process_document(self):
         process_document(self)
     
@@ -213,26 +142,8 @@ class BookProcessor:
     def generate_complete_book(self):
         generate_complete_book(self)
     
-    def test_openai_connection(self):
-        test_openai_connection(self)
-    
-    def review_with_ai(self):
-        review_with_ai(self)
-    
-    def generate_ai_toc(self):
-        generate_ai_toc(self)
-
-    def on_chapter_select(self, event):
-        on_chapter_select(self, event)
-    
-    def prev_chapter(self):
-        prev_chapter(self)
-    
-    def next_chapter(self):
-        next_chapter(self)
-    
-    def generate_chapter_content(self):
-        generate_chapter_content(self)
-    
-    def save_generated_chapter(self):
-        save_generated_chapter(self)
+    # AI-related methods - these now just delegate to imported functions
+    from modules.ai.openai_integration import test_openai_connection
+    from modules.ai.content_reviewer import review_with_ai
+    from modules.ai.toc_generator import generate_ai_toc
+    from modules.ai.chapter_generator import generate_chapter_content, save_generated_chapter
