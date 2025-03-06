@@ -59,7 +59,7 @@ def create_file_tab(parent, app):
         if dir_path:
             app.output_dir.set(dir_path)
     
-    # Attach methods to app before using them in UI creation
+    # Attach methods to app
     app.browse_input_file = browse_input_file
     app.browse_text_file = browse_text_file
     app.remove_selected_file = remove_selected_file
