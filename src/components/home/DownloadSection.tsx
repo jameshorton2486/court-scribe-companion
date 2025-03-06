@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, FileDown, ExternalLink } from 'lucide-react';
+import { Download, FileDown, ExternalLink, AlertTriangle } from 'lucide-react';
 import { toast } from "sonner";
 
 // Custom Github icon component
@@ -23,32 +23,23 @@ const Github = ({ className, ...props }) => (
 );
 
 const DownloadSection = () => {
-  // Function to handle direct download
-  const handleDirectDownload = () => {
+  // Function to redirect to the GitHub releases page
+  // Note: We're changing the approach since the direct download link isn't working
+  const handleDownloadRedirect = () => {
     try {
-      // This is a direct download approach that works more reliably
-      const githubReleaseUrl = 'https://github.com/jameshorton2486/court-scribe-companion/releases/download/v1.0.0/book-processor.zip';
+      // Instead of trying to download directly, we'll redirect to the releases page
+      const githubReleasesUrl = 'https://github.com/jameshorton2486/court-scribe-companion/releases';
       
-      toast.info("Download starting", {
-        description: "Your download will begin shortly..."
+      toast.info("Redirecting to GitHub", {
+        description: "You'll be redirected to GitHub where you can download the latest release."
       });
       
-      // Create a temporary anchor element
-      const link = document.createElement('a');
-      link.href = githubReleaseUrl;
-      link.setAttribute('download', 'book-processor.zip');
-      link.setAttribute('target', '_blank');
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      toast.success("Download started", {
-        description: "Once complete, extract the ZIP file and follow the installation instructions."
-      });
+      // Open GitHub releases page in a new tab
+      window.open(githubReleasesUrl, '_blank');
     } catch (error) {
-      console.error("Download error:", error);
-      toast.error("Download failed", {
-        description: "There was a problem downloading the file. Please try the GitHub alternative link."
+      console.error("Redirect error:", error);
+      toast.error("Redirect failed", {
+        description: "There was a problem opening the GitHub page. Please try visiting the link directly."
       });
     }
   };
@@ -61,31 +52,39 @@ const DownloadSection = () => {
           Download Application
         </CardTitle>
         <CardDescription>
-          Download the application source code directly from this page
+          Download the application source code from GitHub
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-6">
         <div className="space-y-2">
-          <p>Click the button below to download the Book Processor application source code:</p>
+          <p>Click the button below to download the Book Processor application:</p>
+          
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-md flex items-start mb-4">
+            <AlertTriangle className="text-amber-500 h-5 w-5 mt-0.5 mr-2 flex-shrink-0" />
+            <p className="text-sm text-amber-800">
+              The direct download link is currently unavailable. Please use the GitHub releases page to download the application.
+            </p>
+          </div>
+          
           <div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4 mt-4">
-            <Button size="lg" className="w-full" onClick={handleDirectDownload}>
-              <FileDown className="mr-2 h-5 w-5" />
-              Download Book Processor (ZIP)
+            <Button size="lg" className="w-full" onClick={handleDownloadRedirect}>
+              <Github className="mr-2 h-5 w-5" />
+              Download from GitHub Releases
             </Button>
             <Button variant="outline" size="lg" className="w-full" asChild>
-              <a href="https://github.com/jameshorton2486/court-scribe-companion/releases/latest" target="_blank" rel="noopener noreferrer">
+              <a href="https://github.com/jameshorton2486/court-scribe-companion" target="_blank" rel="noopener noreferrer">
                 <Github className="mr-2 h-5 w-5" />
-                Alternative Download (GitHub)
+                View Repository
               </a>
             </Button>
           </div>
         </div>
         
         <div className="mt-6 p-4 bg-muted rounded-lg">
-          <h3 className="font-medium text-lg mb-2">Note about Downloads</h3>
+          <h3 className="font-medium text-lg mb-2">Installation Requirements</h3>
           <p className="text-muted-foreground">
-            If you have trouble with the direct download, please try the GitHub alternative link. 
-            The application is a Python application that requires Python 3.7+ to be installed on your system.
+            The Book Processor is a Python application that requires Python 3.7+ to be installed on your system.
+            After downloading, extract the ZIP file and follow the installation instructions in the README.
           </p>
         </div>
         
@@ -99,12 +98,10 @@ const DownloadSection = () => {
           </p>
           <ol className="list-decimal list-inside text-sm space-y-2 text-muted-foreground">
             <li>Download and install <a href="https://desktop.github.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">GitHub Desktop</a></li>
-            <li>Extract the downloaded ZIP file to a folder</li>
-            <li>Open GitHub Desktop and choose "Add an Existing Repository from your Hard Drive"</li>
-            <li>Browse to the extracted folder location</li>
-            <li>Create a new repository on GitHub.com</li>
-            <li>In GitHub Desktop, publish your local repository to GitHub</li>
-            <li>Make changes locally and use GitHub Desktop to commit and push them</li>
+            <li>Go to <a href="https://github.com/jameshorton2486/court-scribe-companion" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">the repository</a> and click "Code" → "Open with GitHub Desktop"</li>
+            <li>Choose where to save the repository on your computer</li>
+            <li>Make changes locally using your favorite code editor</li>
+            <li>Use GitHub Desktop to commit and push your changes back to GitHub</li>
           </ol>
           <div className="mt-3">
             <Button variant="link" size="sm" className="h-auto p-0" asChild>
