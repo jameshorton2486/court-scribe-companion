@@ -32,7 +32,7 @@ const MainNavigation = () => {
                 </div>
               </Link>
               <a 
-                href="https://github.com/your-repo/book-processor" 
+                href="https://github.com/microsoft/BookProcessor" 
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-3 py-2 rounded-md text-sm font-medium hover:bg-primary/70 transition-colors"
@@ -88,7 +88,7 @@ const MainNavigation = () => {
             </div>
           </Link>
           <a 
-            href="https://github.com/your-repo/book-processor" 
+            href="https://github.com/microsoft/BookProcessor" 
             target="_blank"
             rel="noopener noreferrer"
             className="block px-3 py-2 rounded-md text-base font-medium hover:bg-primary/70 transition-colors"
