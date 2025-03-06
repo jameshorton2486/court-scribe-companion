@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, FileDown } from 'lucide-react';
+import { Download, FileDown, ExternalLink } from 'lucide-react';
 import { toast } from "sonner";
 
 // Custom Github icon component
@@ -80,12 +80,40 @@ const DownloadSection = () => {
             </Button>
           </div>
         </div>
+        
         <div className="mt-6 p-4 bg-muted rounded-lg">
           <h3 className="font-medium text-lg mb-2">Note about Downloads</h3>
           <p className="text-muted-foreground">
             If you have trouble with the direct download, please try the GitHub alternative link. 
             The application is a Python application that requires Python 3.7+ to be installed on your system.
           </p>
+        </div>
+        
+        <div className="mt-6 border border-dashed border-primary/20 rounded-lg p-4">
+          <h3 className="font-medium text-lg mb-2 flex items-center">
+            <Github className="mr-2 h-5 w-5" />
+            Using GitHub Desktop
+          </h3>
+          <p className="text-sm mb-3">
+            Prefer a visual interface for managing your repository? Follow these steps:
+          </p>
+          <ol className="list-decimal list-inside text-sm space-y-2 text-muted-foreground">
+            <li>Download and install <a href="https://desktop.github.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">GitHub Desktop</a></li>
+            <li>Extract the downloaded ZIP file to a folder</li>
+            <li>Open GitHub Desktop and choose "Add an Existing Repository from your Hard Drive"</li>
+            <li>Browse to the extracted folder location</li>
+            <li>Create a new repository on GitHub.com</li>
+            <li>In GitHub Desktop, publish your local repository to GitHub</li>
+            <li>Make changes locally and use GitHub Desktop to commit and push them</li>
+          </ol>
+          <div className="mt-3">
+            <Button variant="link" size="sm" className="h-auto p-0" asChild>
+              <a href="https://docs.github.com/en/desktop/installing-and-configuring-github-desktop/overview/getting-started-with-github-desktop" target="_blank" rel="noopener noreferrer" className="flex items-center">
+                Learn more about GitHub Desktop
+                <ExternalLink className="ml-1 h-3 w-3" />
+              </a>
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
