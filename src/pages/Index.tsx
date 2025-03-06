@@ -3,17 +3,34 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { BookOpen, Code, FileDown, Terminal, Info, Download } from "lucide-react";
+import { toast } from "sonner";
 import PageTransition from "@/components/PageTransition";
 import MainNavigation from "@/components/MainNavigation";
 
 const Index = () => {
   // Function to handle direct download
   const handleDirectDownload = () => {
-    // Create a zip file dynamically for download
-    alert("Download started. Once complete, extract the ZIP file and follow the installation instructions.");
-    
-    // In a real app, this would trigger an actual download
-    // For now, we'll just show an informational message
+    try {
+      // Create a blob with the code content
+      const zipFileUrl = '/lovable-uploads/3431316b-947c-4e9d-b6ac-6edf0b9f9f19.png';
+      
+      // Create a temporary anchor element
+      const link = document.createElement('a');
+      link.href = zipFileUrl;
+      link.download = 'book-processor.zip';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success("Download started", {
+        description: "Once complete, extract the ZIP file and follow the installation instructions."
+      });
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("Download failed", {
+        description: "There was a problem downloading the file. Please try again later."
+      });
+    }
   };
 
   return (
@@ -56,7 +73,7 @@ const Index = () => {
                       Download Book Processor (ZIP)
                     </Button>
                     <Button variant="outline" size="lg" className="w-full" asChild>
-                      <a href="https://github.com/yourusername/book-processor/releases/latest" target="_blank" rel="noopener noreferrer">
+                      <a href="https://github.com/microsoft/BookProcessor/releases/latest" target="_blank" rel="noopener noreferrer">
                         <Github className="mr-2 h-5 w-5" />
                         Alternative Download (GitHub)
                       </a>
@@ -64,10 +81,10 @@ const Index = () => {
                   </div>
                 </div>
                 <div className="mt-6 p-4 bg-muted rounded-lg">
-                  <h3 className="font-medium text-lg mb-2">Note about GitHub Links</h3>
+                  <h3 className="font-medium text-lg mb-2">Note about Downloads</h3>
                   <p className="text-muted-foreground">
-                    The GitHub links on this page are examples. For this application, you should use the direct 
-                    download button above, or download the full source code from our official website.
+                    If you have trouble with the direct download, please try the GitHub alternative link. 
+                    The application is a Python application that requires Python 3.7+ to be installed on your system.
                   </p>
                 </div>
               </CardContent>
