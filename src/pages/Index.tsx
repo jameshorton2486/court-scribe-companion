@@ -3,6 +3,7 @@ import PageTransition from "@/components/PageTransition";
 import MainNavigation from "@/components/MainNavigation";
 import Header from "@/components/home/Header";
 import DownloadSection from "@/components/home/DownloadSection";
+import FeaturesSection from "@/components/home/FeaturesSection";
 import InstructionsSection from "@/components/home/InstructionsSection";
 import Footer from "@/components/home/Footer";
 
@@ -16,6 +17,7 @@ const Index = () => {
           <Header />
           <div className="max-w-4xl mx-auto">
             <DownloadSection />
+            <FeaturesSection />
             <InstructionsSection />
           </div>
         </main>
