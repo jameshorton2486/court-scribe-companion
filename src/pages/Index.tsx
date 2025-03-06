@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -73,7 +72,7 @@ const Index = () => {
                       Download Book Processor (ZIP)
                     </Button>
                     <Button variant="outline" size="lg" className="w-full" asChild>
-                      <a href="https://github.com/microsoft/BookProcessor/releases/latest" target="_blank" rel="noopener noreferrer">
+                      <a href="https://github.com/jameshorton2486/court-scribe-companion/releases/latest" target="_blank" rel="noopener noreferrer">
                         <Github className="mr-2 h-5 w-5" />
                         Alternative Download (GitHub)
                       </a>
