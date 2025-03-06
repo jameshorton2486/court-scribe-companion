@@ -3,6 +3,68 @@ import tkinter as tk
 from tkinter import ttk, filedialog
 
 def create_file_tab(parent, app):
+    # Define the helper methods first, before they are used
+    def browse_input_file():
+        file_paths = filedialog.askopenfilenames(
+            filetypes=[("Word Documents", "*.docx"), ("All Files", "*.*")]
+        )
+        if file_paths:
+            for file_path in file_paths:
+                # Check if file is already in the list
+                if file_path not in app.input_files:
+                    app.input_files.append(file_path)
+                    app.file_listbox.insert(tk.END, file_path)
+                    
+            # Try to extract title from first filename if no title set
+            if not app.book_title.get() and len(app.input_files) > 0:
+                import os
+                filename = os.path.basename(app.input_files[0])
+                title, _ = os.path.splitext(filename)
+                app.book_title.set(title)
+    
+    def browse_text_file():
+        file_paths = filedialog.askopenfilenames(
+            filetypes=[("Text Files", "*.txt"), ("Markdown", "*.md"), ("All Files", "*.*")]
+        )
+        if file_paths:
+            for file_path in file_paths:
+                # Check if file is already in the list
+                if file_path not in app.input_files:
+                    app.input_files.append(file_path)
+                    app.file_listbox.insert(tk.END, file_path)
+                    
+            # Try to extract title from first filename if no title set
+            if not app.book_title.get() and len(app.input_files) > 0:
+                import os
+                filename = os.path.basename(app.input_files[0])
+                title, _ = os.path.splitext(filename)
+                app.book_title.set(title)
+    
+    def remove_selected_file():
+        try:
+            # Get selected indices
+            selected_indices = app.file_listbox.curselection()
+            
+            # Remove files in reverse order to avoid index shifting
+            for index in sorted(selected_indices, reverse=True):
+                file_path = app.file_listbox.get(index)
+                app.input_files.remove(file_path)
+                app.file_listbox.delete(index)
+                
+        except Exception as e:
+            print(f"Error removing file: {e}")
+    
+    def browse_output_dir():
+        dir_path = filedialog.askdirectory()
+        if dir_path:
+            app.output_dir.set(dir_path)
+    
+    # Attach methods to app before using them in UI creation
+    app.browse_input_file = browse_input_file
+    app.browse_text_file = browse_text_file
+    app.remove_selected_file = remove_selected_file
+    app.browse_output_dir = browse_output_dir
+
     # File input section
     file_frame = ttk.LabelFrame(parent, text="File Selection", padding=10)
     file_frame.pack(fill=tk.X, pady=5)
@@ -74,65 +136,3 @@ def create_file_tab(parent, app):
     ttk.Button(button_frame, text="Process Document", command=app.process_document, width=20).pack(side=tk.LEFT, padx=5)
     ttk.Button(button_frame, text="Save All Chapters", command=app.save_all_chapters, width=20).pack(side=tk.LEFT, padx=5)
     ttk.Button(button_frame, text="Generate Complete Book", command=app.generate_complete_book, width=20).pack(side=tk.LEFT, padx=5)
-
-    # Add helper methods to app
-    def browse_input_file():
-        file_paths = filedialog.askopenfilenames(
-            filetypes=[("Word Documents", "*.docx"), ("All Files", "*.*")]
-        )
-        if file_paths:
-            for file_path in file_paths:
-                # Check if file is already in the list
-                if file_path not in app.input_files:
-                    app.input_files.append(file_path)
-                    app.file_listbox.insert(tk.END, file_path)
-                    
-            # Try to extract title from first filename if no title set
-            if not app.book_title.get() and len(app.input_files) > 0:
-                import os
-                filename = os.path.basename(app.input_files[0])
-                title, _ = os.path.splitext(filename)
-                app.book_title.set(title)
-    
-    def browse_text_file():
-        file_paths = filedialog.askopenfilenames(
-            filetypes=[("Text Files", "*.txt"), ("Markdown", "*.md"), ("All Files", "*.*")]
-        )
-        if file_paths:
-            for file_path in file_paths:
-                # Check if file is already in the list
-                if file_path not in app.input_files:
-                    app.input_files.append(file_path)
-                    app.file_listbox.insert(tk.END, file_path)
-                    
-            # Try to extract title from first filename if no title set
-            if not app.book_title.get() and len(app.input_files) > 0:
-                import os
-                filename = os.path.basename(app.input_files[0])
-                title, _ = os.path.splitext(filename)
-                app.book_title.set(title)
-    
-    def remove_selected_file():
-        try:
-            # Get selected indices
-            selected_indices = app.file_listbox.curselection()
-            
-            # Remove files in reverse order to avoid index shifting
-            for index in sorted(selected_indices, reverse=True):
-                file_path = app.file_listbox.get(index)
-                app.input_files.remove(file_path)
-                app.file_listbox.delete(index)
-                
-        except Exception as e:
-            print(f"Error removing file: {e}")
-    
-    def browse_output_dir():
-        dir_path = filedialog.askdirectory()
-        if dir_path:
-            app.output_dir.set(dir_path)
-    
-    # Attach methods to app
-    app.browse_input_file = browse_input_file
-    app.browse_text_file = browse_text_file
-    app.remove_selected_file = remove_selected_file
-    app.browse_output_dir = browse_output_dir
