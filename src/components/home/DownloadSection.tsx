@@ -26,13 +26,18 @@ const DownloadSection = () => {
   // Function to handle direct download
   const handleDirectDownload = () => {
     try {
-      // Create a blob with the code content
-      const zipFileUrl = '/lovable-uploads/3431316b-947c-4e9d-b6ac-6edf0b9f9f19.png';
+      // This is a direct download approach that works more reliably
+      const githubReleaseUrl = 'https://github.com/jameshorton2486/court-scribe-companion/releases/download/v1.0.0/book-processor.zip';
+      
+      toast.info("Download starting", {
+        description: "Your download will begin shortly..."
+      });
       
       // Create a temporary anchor element
       const link = document.createElement('a');
-      link.href = zipFileUrl;
-      link.download = 'book-processor.zip';
+      link.href = githubReleaseUrl;
+      link.setAttribute('download', 'book-processor.zip');
+      link.setAttribute('target', '_blank');
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -43,7 +48,7 @@ const DownloadSection = () => {
     } catch (error) {
       console.error("Download error:", error);
       toast.error("Download failed", {
-        description: "There was a problem downloading the file. Please try again later."
+        description: "There was a problem downloading the file. Please try the GitHub alternative link."
       });
     }
   };
