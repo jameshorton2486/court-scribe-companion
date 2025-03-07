@@ -8,6 +8,8 @@ from modules.ui.navigation_utils import on_chapter_select, prev_chapter, next_ch
 from modules.document.document_processor import load_document, process_document
 from modules.document.chapter_processor import save_all_chapters, generate_complete_book
 from modules.ui.file_actions import add_files, remove_file, update_file_listbox, batch_process_all
+import threading
+import time
 
 class BookProcessor:
     def __init__(self, root):
@@ -26,6 +28,7 @@ class BookProcessor:
         self.progress_value = tk.DoubleVar(value=0.0)
         self.openai_api_key = tk.StringVar()
         self.chapter_outline = tk.StringVar()
+        self.is_processing = False
         
         # Default output directory is 'output' in current directory
         import os
@@ -83,10 +86,19 @@ class BookProcessor:
         progress_frame.pack(fill=tk.X, pady=5)
         
         ttk.Label(progress_frame, text="Status:").pack(side=tk.LEFT, padx=5)
-        ttk.Label(progress_frame, textvariable=self.current_status).pack(side=tk.LEFT, padx=5)
+        self.status_label = ttk.Label(progress_frame, textvariable=self.current_status, width=30, anchor=tk.W)
+        self.status_label.pack(side=tk.LEFT, padx=5)
+        
+        # New spinner for indicating activity
+        self.spinner_label = ttk.Label(progress_frame, text="")
+        self.spinner_label.pack(side=tk.LEFT, padx=5)
         
         self.progress_bar = ttk.Progressbar(progress_frame, variable=self.progress_value, length=400, mode="determinate")
         self.progress_bar.pack(side=tk.RIGHT, padx=5)
+        
+        # Create cancel button for long-running operations
+        self.cancel_button = ttk.Button(progress_frame, text="Cancel", command=self.cancel_operation, state=tk.DISABLED)
+        self.cancel_button.pack(side=tk.RIGHT, padx=5)
     
     def log(self, message):
         self.log_text.config(state=tk.NORMAL)
@@ -99,7 +111,62 @@ class BookProcessor:
         self.progress_value.set(value)
         if status:
             self.current_status.set(status)
+        if value > 0 and value < 100:
+            self.cancel_button.config(state=tk.NORMAL)
+            if not self.is_processing:
+                self.is_processing = True
+                self.start_spinner()
+        else:
+            self.cancel_button.config(state=tk.DISABLED)
+            self.is_processing = False
+            self.stop_spinner()
         self.root.update()
+    
+    def start_spinner(self):
+        """Start the spinner animation for long-running tasks"""
+        self.spinner_chars = ["|", "/", "-", "\\"]
+        self.spinner_index = 0
+        self.update_spinner()
+    
+    def update_spinner(self):
+        """Update the spinner animation"""
+        if self.is_processing:
+            self.spinner_label.config(text=f" {self.spinner_chars[self.spinner_index]} ")
+            self.spinner_index = (self.spinner_index + 1) % len(self.spinner_chars)
+            self.root.after(100, self.update_spinner)
+    
+    def stop_spinner(self):
+        """Stop the spinner animation"""
+        self.spinner_label.config(text="")
+    
+    def cancel_operation(self):
+        """Cancel the current operation"""
+        if self.is_processing:
+            result = messagebox.askyesno("Cancel Operation", 
+                                          "Are you sure you want to cancel the current operation?")
+            if result:
+                self.log("Operation cancelled by user")
+                self.update_progress(0, "Operation cancelled")
+                self.is_processing = False
+    
+    def run_with_progress(self, func, *args, **kwargs):
+        """Run a function with progress indication"""
+        self.is_processing = True
+        self.update_progress(1, "Starting operation...")
+        
+        def worker():
+            try:
+                func(*args, **kwargs)
+            except Exception as e:
+                self.log(f"Error: {str(e)}")
+                messagebox.showerror("Error", str(e))
+            finally:
+                self.update_progress(100, "Operation completed")
+                self.is_processing = False
+        
+        thread = threading.Thread(target=worker)
+        thread.daemon = True
+        thread.start()
     
     # Core document processing methods
     def load_document(self):
@@ -115,9 +182,8 @@ class BookProcessor:
             self.input_file.set(self.input_files[file_index])
         else:
             self.input_file.set(self.input_files[0])
-            
-        # Call the document loader function
-        load_document(self)
+        
+        self.run_with_progress(load_document, self)
     
     # Delegate to file action methods
     def add_files(self):
@@ -130,19 +196,19 @@ class BookProcessor:
         update_file_listbox(self)
     
     def batch_process_all(self):
-        batch_process_all(self)
+        self.run_with_progress(batch_process_all, self)
     
     # Document processing methods
     def process_document(self):
-        process_document(self)
+        self.run_with_progress(process_document, self)
     
     def save_all_chapters(self):
-        save_all_chapters(self)
+        self.run_with_progress(save_all_chapters, self)
     
     def generate_complete_book(self):
-        generate_complete_book(self)
+        self.run_with_progress(generate_complete_book, self)
     
-    # AI-related methods - these now just delegate to imported functions
+    # AI-related methods
     from modules.ai.openai_integration import test_openai_connection
     from modules.ai.content_reviewer import review_with_ai
     from modules.ai.toc_generator import generate_ai_toc

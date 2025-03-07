@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, X } from 'lucide-react';
@@ -24,7 +23,6 @@ const Reader = () => {
   
   const { book, toc, updateBook } = useBookLoader(bookId, navigate);
 
-  // Set the first chapter as active if no chapter is specified
   useEffect(() => {
     if (book && book.chapters.length > 0) {
       if (!activeChapter) {
@@ -141,7 +139,6 @@ const Reader = () => {
       
       <div className="container mx-auto pt-24">
         <div className="flex flex-col md:flex-row">
-          {/* Table of Contents Sidebar - larger screens */}
           <div 
             className={cn(
               "fixed inset-y-0 left-0 z-40 w-64 pt-24 pb-4 transition-transform duration-300 transform md:translate-x-0 bg-card border-r",
@@ -167,7 +164,6 @@ const Reader = () => {
             </div>
           </div>
 
-          {/* Mobile TOC */}
           {tocVisible && (
             <MobileToc 
               toc={toc} 
@@ -177,7 +173,6 @@ const Reader = () => {
             />
           )}
 
-          {/* Main Content */}
           <main className={cn(
             "flex-1 transition-all duration-300", 
             tocVisible ? "md:ml-64" : "ml-0"
@@ -198,6 +193,8 @@ const Reader = () => {
                   onNextChapter={handleNextChapter}
                   hasPrevious={currentChapterIndex > 0}
                   hasNext={currentChapterIndex < book.chapters.length - 1}
+                  currentChapter={currentChapterIndex + 1}
+                  totalChapters={book.chapters.length}
                 />
               </div>
             </div>
