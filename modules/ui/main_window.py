@@ -1,11 +1,11 @@
-
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog, scrolledtext
 from modules.ui.file_tab import create_file_tab
 from modules.ui.ai_tab import create_ai_tab
 from modules.ui.chapter_tab import create_chapter_tab
 from modules.ui.navigation_utils import on_chapter_select, prev_chapter, next_chapter
-from modules.document.document_processor import load_document, process_document
+from modules.document.document_loader import load_document
+from modules.document.document_processor import process_document
 from modules.document.chapter_processor import save_all_chapters, generate_complete_book
 from modules.ui.file_actions import add_files, remove_file, update_file_listbox, batch_process_all
 import threading
