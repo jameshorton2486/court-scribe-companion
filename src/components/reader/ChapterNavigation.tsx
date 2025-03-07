@@ -1,8 +1,9 @@
 
-import React from 'react';
-import { ArrowLeft, ArrowRight, Bookmark } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 interface ChapterNavigationProps {
   onPrevChapter: () => void;
@@ -21,18 +22,50 @@ const ChapterNavigation: React.FC<ChapterNavigationProps> = ({
   currentChapter,
   totalChapters
 }) => {
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  
+  const handleBookmark = () => {
+    setIsBookmarked(!isBookmarked);
+    if (!isBookmarked) {
+      toast.success("Chapter bookmarked", {
+        description: `Chapter ${currentChapter} has been bookmarked for later reading.`,
+      });
+    } else {
+      toast.info("Bookmark removed", {
+        description: `Bookmark for Chapter ${currentChapter} has been removed.`,
+      });
+    }
+  };
+
+  // Calculate percentage for progress
+  const progressPercentage = (currentChapter / totalChapters) * 100;
+  
   return (
     <div className="flex flex-col space-y-4 mt-12 pt-6 border-t">
-      <div className="flex justify-center items-center mb-2">
+      {/* Chapter info and bookmark */}
+      <div className="flex justify-between items-center mb-2">
         <div className="text-sm text-muted-foreground">
           Chapter {currentChapter} of {totalChapters}
         </div>
-        <Button variant="ghost" size="sm" className="ml-2">
-          <Bookmark size={16} className="mr-1" />
-          <span className="text-xs">Bookmark</span>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={handleBookmark}
+          className={cn(
+            "ml-2 transition-colors",
+            isBookmarked && "text-primary"
+          )}
+        >
+          {isBookmarked ? (
+            <BookmarkCheck size={16} className="mr-1" />
+          ) : (
+            <Bookmark size={16} className="mr-1" />
+          )}
+          <span className="text-xs">{isBookmarked ? "Bookmarked" : "Bookmark"}</span>
         </Button>
       </div>
       
+      {/* Navigation buttons */}
       <div className="flex justify-between">
         <Button
           onClick={onPrevChapter}
@@ -61,12 +94,19 @@ const ChapterNavigation: React.FC<ChapterNavigationProps> = ({
         </Button>
       </div>
       
-      {/* Progress indicator */}
-      <div className="w-full bg-muted rounded-full h-1.5 mt-2">
-        <div 
-          className="bg-primary h-1.5 rounded-full transition-all duration-300 ease-in-out" 
-          style={{ width: `${(currentChapter / totalChapters) * 100}%` }}
-        ></div>
+      {/* Enhanced progress indicator */}
+      <div className="w-full mt-2 space-y-1">
+        <div className="bg-muted rounded-full h-2">
+          <div 
+            className="bg-primary h-2 rounded-full transition-all duration-300 ease-in-out" 
+            style={{ width: `${progressPercentage}%` }}
+          ></div>
+        </div>
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <span>Beginning</span>
+          <span>{Math.round(progressPercentage)}% Complete</span>
+          <span>End</span>
+        </div>
       </div>
     </div>
   );

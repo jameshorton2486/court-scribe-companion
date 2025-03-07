@@ -29,6 +29,7 @@ class BookProcessor:
         self.openai_api_key = tk.StringVar()
         self.chapter_outline = tk.StringVar()
         self.is_processing = False
+        self.processing_cancelled = False
         
         # Default output directory is 'output' in current directory
         import os
@@ -85,20 +86,33 @@ class BookProcessor:
         progress_frame = ttk.Frame(main_frame)
         progress_frame.pack(fill=tk.X, pady=5)
         
-        ttk.Label(progress_frame, text="Status:").pack(side=tk.LEFT, padx=5)
-        self.status_label = ttk.Label(progress_frame, textvariable=self.current_status, width=30, anchor=tk.W)
+        # Status indicator with improved layout
+        status_section = ttk.Frame(progress_frame)
+        status_section.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        
+        ttk.Label(status_section, text="Status:").pack(side=tk.LEFT, padx=5)
+        self.status_label = ttk.Label(status_section, textvariable=self.current_status, width=30, anchor=tk.W)
         self.status_label.pack(side=tk.LEFT, padx=5)
         
         # New spinner for indicating activity
-        self.spinner_label = ttk.Label(progress_frame, text="")
+        self.spinner_label = ttk.Label(status_section, text="")
         self.spinner_label.pack(side=tk.LEFT, padx=5)
         
-        self.progress_bar = ttk.Progressbar(progress_frame, variable=self.progress_value, length=400, mode="determinate")
+        # Progress controls
+        progress_controls = ttk.Frame(progress_frame)
+        progress_controls.pack(side=tk.RIGHT, fill=tk.X)
+        
+        self.progress_bar = ttk.Progressbar(progress_controls, variable=self.progress_value, length=400, mode="determinate")
         self.progress_bar.pack(side=tk.RIGHT, padx=5)
         
         # Create cancel button for long-running operations
-        self.cancel_button = ttk.Button(progress_frame, text="Cancel", command=self.cancel_operation, state=tk.DISABLED)
+        self.cancel_button = ttk.Button(progress_controls, text="Cancel", command=self.cancel_operation, state=tk.DISABLED)
         self.cancel_button.pack(side=tk.RIGHT, padx=5)
+        
+        # Elapsed time indicator
+        self.elapsed_time = tk.StringVar(value="Time: 00:00")
+        self.time_label = ttk.Label(progress_controls, textvariable=self.elapsed_time)
+        self.time_label.pack(side=tk.RIGHT, padx=10)
     
     def log(self, message):
         self.log_text.config(state=tk.NORMAL)
@@ -115,16 +129,28 @@ class BookProcessor:
             self.cancel_button.config(state=tk.NORMAL)
             if not self.is_processing:
                 self.is_processing = True
+                self.start_time = time.time()
                 self.start_spinner()
+                self.update_elapsed_time()
         else:
             self.cancel_button.config(state=tk.DISABLED)
             self.is_processing = False
             self.stop_spinner()
+            self.elapsed_time.set("Time: 00:00")
         self.root.update()
+    
+    def update_elapsed_time(self):
+        """Update the elapsed time display"""
+        if self.is_processing:
+            elapsed = time.time() - self.start_time
+            minutes = int(elapsed // 60)
+            seconds = int(elapsed % 60)
+            self.elapsed_time.set(f"Time: {minutes:02d}:{seconds:02d}")
+            self.root.after(1000, self.update_elapsed_time)
     
     def start_spinner(self):
         """Start the spinner animation for long-running tasks"""
-        self.spinner_chars = ["|", "/", "-", "\\"]
+        self.spinner_chars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
         self.spinner_index = 0
         self.update_spinner()
     
@@ -147,12 +173,14 @@ class BookProcessor:
             if result:
                 self.log("Operation cancelled by user")
                 self.update_progress(0, "Operation cancelled")
-                self.is_processing = False
+                self.processing_cancelled = True
     
     def run_with_progress(self, func, *args, **kwargs):
         """Run a function with progress indication"""
         self.is_processing = True
+        self.processing_cancelled = False
         self.update_progress(1, "Starting operation...")
+        self.start_time = time.time()
         
         def worker():
             try:
@@ -161,7 +189,8 @@ class BookProcessor:
                 self.log(f"Error: {str(e)}")
                 messagebox.showerror("Error", str(e))
             finally:
-                self.update_progress(100, "Operation completed")
+                if not self.processing_cancelled:
+                    self.update_progress(100, "Operation completed")
                 self.is_processing = False
         
         thread = threading.Thread(target=worker)
@@ -207,6 +236,16 @@ class BookProcessor:
     
     def generate_complete_book(self):
         self.run_with_progress(generate_complete_book, self)
+    
+    # Navigation methods
+    def on_chapter_select(self, event):
+        on_chapter_select(self, event)
+    
+    def prev_chapter(self):
+        prev_chapter(self)
+    
+    def next_chapter(self):
+        next_chapter(self)
     
     # AI-related methods
     from modules.ai.openai_integration import test_openai_connection
