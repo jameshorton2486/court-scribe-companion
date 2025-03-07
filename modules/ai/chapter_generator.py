@@ -1,4 +1,3 @@
-
 import threading
 import io
 import os
@@ -28,10 +27,15 @@ def generate_chapter_content(app):
         messagebox.showerror("Error", "Please provide an outline for the chapter.")
         return
     
-    api_key = app.openai_api_key.get()
+    # First try to get API key from environment variables
+    api_key = os.environ.get('OPENAI_API_KEY')
+    
+    # If not in environment, use the one from the application
     if not api_key:
-        messagebox.showerror("Error", "Please enter an OpenAI API key")
-        return
+        api_key = app.openai_api_key.get()
+        if not api_key:
+            messagebox.showerror("Error", "No OpenAI API key found. Please set the OPENAI_API_KEY environment variable or enter it in the application.")
+            return
     
     openai.api_key = api_key
     
