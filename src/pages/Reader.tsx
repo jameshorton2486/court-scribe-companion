@@ -9,7 +9,7 @@ import ReaderContent from '@/components/reader/ReaderContent';
 import EnhancerWrapper from '@/components/reader/EnhancerWrapper';
 import { Book } from '@/components/ebook-uploader/EbookUploader';
 
-const ReaderContent = () => {
+const ReaderInner = () => {
   const { bookId, chapterId } = useParams<{ bookId: string; chapterId: string }>();
   const navigate = useNavigate();
   const { 
@@ -62,7 +62,7 @@ const ReaderContent = () => {
 const Reader = () => {
   return (
     <ReaderProvider>
-      <ReaderContent />
+      <ReaderInner />
     </ReaderProvider>
   );
 };

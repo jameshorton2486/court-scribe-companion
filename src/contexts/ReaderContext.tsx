@@ -9,12 +9,14 @@ interface ReaderContextType {
   activeChapter: string | undefined;
   tocVisible: boolean;
   showEnhancer: boolean;
+  showExportDialog: boolean;
   setBook: (book: Book | null) => void;
   setToc: (toc: TocItem[]) => void;
   setIsDarkTheme: (isDark: boolean) => void;
   setActiveChapter: (chapterId: string | undefined) => void;
   setTocVisible: (visible: boolean) => void;
   setShowEnhancer: (show: boolean) => void;
+  setShowExportDialog: (show: boolean) => void;
   toggleTheme: () => void;
 }
 
@@ -34,6 +36,7 @@ export const ReaderProvider = ({ children }: { children: ReactNode }) => {
   const [activeChapter, setActiveChapter] = useState<string | undefined>(undefined);
   const [tocVisible, setTocVisible] = useState(false);
   const [showEnhancer, setShowEnhancer] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
 
   const toggleTheme = () => {
     setIsDarkTheme(!isDarkTheme);
@@ -49,12 +52,14 @@ export const ReaderProvider = ({ children }: { children: ReactNode }) => {
         activeChapter,
         tocVisible,
         showEnhancer,
+        showExportDialog,
         setBook,
         setToc,
         setIsDarkTheme,
         setActiveChapter,
         setTocVisible,
         setShowEnhancer,
+        setShowExportDialog,
         toggleTheme
       }}
     >
