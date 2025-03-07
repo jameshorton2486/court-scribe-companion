@@ -14,6 +14,9 @@ def create_ai_tab(parent, app):
         app.openai_api_key.set(env_api_key)
         env_status = ttk.Label(api_frame, text="✓ Using API key from environment variables", foreground="green")
         env_status.grid(row=0, column=0, columnspan=3, sticky=tk.W, pady=5)
+    else:
+        env_status = ttk.Label(api_frame, text="⚠ No API key found in environment variables", foreground="orange")
+        env_status.grid(row=0, column=0, columnspan=3, sticky=tk.W, pady=5)
     
     ttk.Label(api_frame, text="OpenAI API Key:").grid(row=1, column=0, sticky=tk.W, pady=5)
     api_entry = ttk.Entry(api_frame, textvariable=app.openai_api_key, width=50, show="*")

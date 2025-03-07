@@ -20,6 +20,9 @@ def review_with_ai(app):
         if not api_key:
             messagebox.showerror("Error", "No OpenAI API key found. Please set the OPENAI_API_KEY environment variable or enter it in the application.")
             return
+        app.log("Using OpenAI API key from application input")
+    else:
+        app.log("Using OpenAI API key from environment variables")
     
     openai.api_key = api_key
     
@@ -56,6 +59,7 @@ def _review_with_ai_thread(app):
                 prompt += "Suggest specific improvements to enhance the content. "
             
             # Send to OpenAI
+            app.log(f"Sending chapter content to OpenAI for review...")
             response = openai.chat.completions.create(
                 model="gpt-4",
                 messages=[
