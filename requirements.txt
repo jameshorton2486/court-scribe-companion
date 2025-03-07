@@ -4,3 +4,4 @@ openai>=1.0.0
 pillow>=9.0.0
 matplotlib>=3.5.0
 beautifulsoup4>=4.9.3
+markdown>=3.3.4

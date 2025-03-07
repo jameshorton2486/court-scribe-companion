@@ -4,6 +4,14 @@ import tkinter as tk
 from tkinter import messagebox
 from docx import Document
 import os
+from modules.document.format_handler import (
+    detect_file_format, load_docx_document, load_text_document,
+    load_html_document, convert_html_to_document, convert_markdown_to_document,
+    extract_chapters_from_headings, detect_chapter_patterns
+)
+from modules.document.text_processor import (
+    fix_text_encoding, clean_html_content, extract_text_from_markdown, normalize_whitespace
+)
 
 def load_document(app):
     if not app.input_file.get():
@@ -15,36 +23,21 @@ def load_document(app):
         app.log(f"Loading document: {file_path}")
         app.update_progress(10, "Loading document...")
         
-        # Check file extension to determine processing method
-        file_ext = os.path.splitext(file_path)[1].lower()
+        # Detect file format
+        file_format = detect_file_format(file_path)
+        app.log(f"Detected file format: {file_format}")
         
-        if file_ext == '.docx':
+        # Load document based on format
+        if file_format == 'docx':
             # Load the DOCX document
-            doc = Document(file_path)
+            doc = load_docx_document(file_path)
             app.docx_content = doc
             
-            app.update_progress(50, "Extracting text...")
-            # Extract text
-            full_text = ""
-            for para in doc.paragraphs:
-                full_text += para.text + "\n"
-            
-            app.log(f"DOCX document loaded successfully. {len(doc.paragraphs)} paragraphs found.")
-            
-            # Set book title if not already set
-            if not app.book_title.get():
-                # Try to find title in the first few paragraphs
-                for para in doc.paragraphs[:10]:
-                    if para.style.name.startswith('Heading') or para.style.name.startswith('Title'):
-                        app.book_title.set(para.text)
-                        break
-        
-        elif file_ext in ['.txt', '.md']:
+        elif file_format == 'txt':
             # Load text file
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
+            content = load_text_document(file_path)
             
-            # Create a Document object to maintain compatibility with existing code
+            # Create a Document object from text
             doc = Document()
             
             # Split the text content by lines and add as paragraphs
@@ -52,26 +45,48 @@ def load_document(app):
             for line in lines:
                 if line.strip():  # Skip empty lines
                     para = doc.add_paragraph(line)
-                    # If line starts with #, mark it as a heading
-                    if line.strip().startswith('#'):
-                        heading_level = min(len(line.strip()) - len(line.strip().lstrip('#')), 6)
-                        para.style = f'Heading {heading_level}'
             
             app.docx_content = doc
-            app.log(f"Text document loaded successfully. {len(doc.paragraphs)} paragraphs found.")
             
-            # Set book title if not already set (use filename)
+        elif file_format == 'md':
+            # Load markdown file
+            content = load_text_document(file_path)
+            
+            # Convert markdown to Document
+            doc = convert_markdown_to_document(content)
+            app.docx_content = doc
+            
+        elif file_format == 'html':
+            # Load HTML file
+            soup = load_html_document(file_path)
+            
+            # Convert HTML to Document
+            doc = convert_html_to_document(soup)
+            app.docx_content = doc
+            
+        else:
+            messagebox.showerror("Error", f"Unsupported file format: {file_format}")
+            app.update_progress(0, "Error loading document")
+            return
+        
+        app.update_progress(50, "Document loaded successfully")
+        
+        # Try to extract title from content or filename
+        if not app.book_title.get():
+            # First check if there's a Title style paragraph
+            for para in doc.paragraphs[:10]:
+                if para.style.name.startswith('Title') or para.style.name.startswith('Heading 1'):
+                    app.book_title.set(para.text)
+                    break
+            
+            # If still no title, use filename
             if not app.book_title.get():
                 filename = os.path.basename(file_path)
                 title, _ = os.path.splitext(filename)
                 app.book_title.set(title)
         
-        else:
-            messagebox.showerror("Error", f"Unsupported file format: {file_ext}")
-            app.update_progress(0, "Error loading document")
-            return
-        
         app.update_progress(100, "Document loaded successfully")
+        app.log(f"Document loaded successfully with {len(doc.paragraphs)} paragraphs")
         messagebox.showinfo("Success", "Document loaded successfully")
         
     except Exception as e:
@@ -92,49 +107,9 @@ def process_document(app):
         threading.Thread(target=_process_document_thread, args=(app,), daemon=True).start()
 
 def _batch_process_documents(app):
-    try:
-        app.log("Starting batch document processing...")
-        app.update_progress(0, "Batch processing documents...")
-        
-        # Save current docx_content to restore after batch processing
-        original_docx = app.docx_content
-        original_input_file = app.input_file.get()
-        
-        total_files = len(app.input_files)
-        for i, file_path in enumerate(app.input_files):
-            # Update progress
-            progress_pct = (i / total_files) * 100
-            app.update_progress(progress_pct, f"Processing file {i+1} of {total_files}")
-            app.log(f"Processing file: {file_path}")
-            
-            # Set current file
-            app.input_file.set(file_path)
-            
-            # Load the document
-            load_document(app)
-            
-            # Process the document
-            _process_document_thread(app, show_message=False)
-            
-            # Save the processed chapters
-            from modules.document.chapter_processor import save_all_chapters
-            save_all_chapters(app)
-        
-        # Restore original docx_content
-        app.docx_content = original_docx
-        app.input_file.set(original_input_file)
-        
-        app.update_progress(100, "Batch processing completed")
-        app.log("Batch document processing completed successfully")
-        messagebox.showinfo("Success", "Batch document processing completed successfully")
-        
-    except Exception as e:
-        app.log(f"Error in batch processing: {str(e)}")
-        app.update_progress(0, "Error in batch processing")
-        messagebox.showerror("Error", f"Failed to batch process documents: {str(e)}")
+    # ... keep existing code (batch processing logic)
 
 def _process_document_thread(app, show_message=True):
-    from modules.document.text_processor import fix_text_encoding
     from modules.document.content_enhancer import enhance_book_content
     
     try:
@@ -154,40 +129,92 @@ def _process_document_thread(app, show_message=True):
             app.update_progress(20, "Fixing text encoding...")
             fix_text_encoding(app)
         
-        # Extract chapters
+        # Extract chapters using multiple detection methods
         app.update_progress(40, "Extracting chapters...")
         app.chapters = []
         
-        current_chapter = None
-        chapter_content = []
+        # First try to extract based on heading styles
+        heading_chapters = extract_chapters_from_headings(
+            app.docx_content,
+            min_heading_level=1,
+            max_heading_level=2
+        )
         
-        for para in app.docx_content.paragraphs:
-            # Check if this is a heading (potential chapter title)
-            if para.style.name.startswith('Heading 1') or para.style.name.startswith('Title'):
-                # If we already have a chapter in progress, save it
-                if current_chapter:
+        if heading_chapters:
+            app.log(f"Found {len(heading_chapters)} chapters based on headings")
+            app.chapters = heading_chapters
+        else:
+            app.log("No chapters found by heading analysis, trying pattern detection...")
+            
+            # Try to detect chapter patterns
+            chapter_indices = detect_chapter_patterns(app.docx_content)
+            
+            if chapter_indices:
+                app.log(f"Found {len(chapter_indices)} potential chapter patterns")
+                
+                # Convert chapter indices to chapters
+                for i, idx in enumerate(chapter_indices):
+                    # Determine end index (start of next chapter or end of document)
+                    end_idx = chapter_indices[i+1] if i+1 < len(chapter_indices) else len(app.docx_content.paragraphs)
+                    
+                    chapter_title = app.docx_content.paragraphs[idx].text
+                    chapter_content = app.docx_content.paragraphs[idx:end_idx]
+                    
+                    app.chapters.append({
+                        'title': chapter_title,
+                        'content': chapter_content
+                    })
+            else:
+                # If no patterns found, try to split by blank lines
+                app.log("No chapter patterns found, splitting by logical sections...")
+                
+                current_chapter = None
+                chapter_content = []
+                section_break_count = 0
+                
+                for i, para in enumerate(app.docx_content.paragraphs):
+                    # Check if this paragraph is empty (potential section break)
+                    if not para.text.strip():
+                        section_break_count += 1
+                    else:
+                        # If we have consecutive blank lines and text after, potential new section
+                        if section_break_count >= 2 and i > 0:
+                            # If we have content already, save as chapter
+                            if current_chapter and chapter_content:
+                                app.chapters.append({
+                                    'title': current_chapter,
+                                    'content': chapter_content
+                                })
+                                
+                                # Start new chapter with this paragraph as title
+                                current_chapter = para.text
+                                chapter_content = [para]
+                            else:
+                                # First chapter
+                                current_chapter = para.text
+                                chapter_content = [para]
+                        else:
+                            # Continue current chapter
+                            if current_chapter:
+                                chapter_content.append(para)
+                            else:
+                                # First paragraph becomes chapter title
+                                current_chapter = para.text
+                                chapter_content = [para]
+                        
+                        # Reset section break counter
+                        section_break_count = 0
+                
+                # Add the last chapter if it exists
+                if current_chapter and chapter_content:
                     app.chapters.append({
                         'title': current_chapter,
                         'content': chapter_content
                     })
-                
-                # Start a new chapter
-                current_chapter = para.text
-                chapter_content = [para]
-            elif current_chapter:
-                # Add to current chapter
-                chapter_content.append(para)
-            
-        # Add the last chapter if it exists
-        if current_chapter:
-            app.chapters.append({
-                'title': current_chapter,
-                'content': chapter_content
-            })
         
-        # If no chapters were found, create a single chapter with the book title
+        # If no chapters were found by any method, create a single chapter
         if not app.chapters:
-            app.log("No chapters found, creating a single chapter...")
+            app.log("No chapters found with any method, creating a single chapter...")
             app.chapters.append({
                 'title': app.book_title.get() or "Untitled Chapter",
                 'content': app.docx_content.paragraphs
@@ -213,6 +240,12 @@ def _process_document_thread(app, show_message=True):
                         app.toc.append({
                             'title': para.text,
                             'level': 2,
+                            'index': i
+                        })
+                    elif para.style.name.startswith('Heading 3'):
+                        app.toc.append({
+                            'title': para.text,
+                            'level': 3,
                             'index': i
                         })
             
