@@ -5,3 +5,4 @@ pillow>=9.0.0
 matplotlib>=3.5.0
 beautifulsoup4>=4.9.3
 markdown>=3.3.4
+chardet>=4.0.0

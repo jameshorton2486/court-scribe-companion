@@ -38,7 +38,7 @@ def create_ai_tab(parent, app):
     # Create a model selection combobox
     app.openai_model = tk.StringVar(value="gpt-3.5-turbo")
     model_combo = ttk.Combobox(api_frame, textvariable=app.openai_model, width=20)
-    model_combo['values'] = ("gpt-3.5-turbo", "gpt-4", "gpt-4-turbo")
+    model_combo['values'] = ("gpt-3.5-turbo", "gpt-4", "gpt-4o")
     model_combo.grid(row=2, column=1, sticky=tk.W, padx=5, pady=5)
     
     # Test API key button
@@ -91,8 +91,59 @@ def create_ai_tab(parent, app):
         value="simplify"
     ).grid(row=2, column=1, sticky=tk.W, pady=2)
     
+    ttk.Radiobutton(
+        enhance_frame, 
+        text="Change Writing Style", 
+        variable=app.enhancement_type, 
+        value="style"
+    ).grid(row=3, column=1, sticky=tk.W, pady=2)
+    
+    # Style options (only visible when style is selected)
+    app.style_type = tk.StringVar(value="professional")
+    
+    def update_style_frame():
+        if app.enhancement_type.get() == "style":
+            style_frame.grid(row=4, column=1, sticky=tk.W, pady=2)
+        else:
+            style_frame.grid_forget()
+    
+    style_frame = ttk.Frame(enhance_frame)
+    
+    ttk.Radiobutton(
+        style_frame, 
+        text="Professional", 
+        variable=app.style_type, 
+        value="professional"
+    ).grid(row=0, column=0, sticky=tk.W, pady=2, padx=(15, 5))
+    
+    ttk.Radiobutton(
+        style_frame, 
+        text="Academic", 
+        variable=app.style_type, 
+        value="academic"
+    ).grid(row=0, column=1, sticky=tk.W, pady=2, padx=5)
+    
+    ttk.Radiobutton(
+        style_frame, 
+        text="Conversational", 
+        variable=app.style_type, 
+        value="conversational"
+    ).grid(row=1, column=0, sticky=tk.W, pady=2, padx=(15, 5))
+    
+    ttk.Radiobutton(
+        style_frame, 
+        text="Storytelling", 
+        variable=app.style_type, 
+        value="storytelling"
+    ).grid(row=1, column=1, sticky=tk.W, pady=2, padx=5)
+    
+    # Bind the radiobutton change to update the style frame visibility
+    for rb in enhance_frame.winfo_children():
+        if isinstance(rb, ttk.Radiobutton) and rb['variable'] == str(app.enhancement_type):
+            rb.configure(command=update_style_frame)
+    
     # Enhancement intensity
-    ttk.Label(enhance_frame, text="Enhancement Intensity:").grid(row=3, column=0, sticky=tk.W, pady=5)
+    ttk.Label(enhance_frame, text="Enhancement Intensity:").grid(row=5, column=0, sticky=tk.W, pady=5)
     
     app.enhancement_intensity = tk.DoubleVar(value=0.5)
     intensity_scale = ttk.Scale(
@@ -103,22 +154,46 @@ def create_ai_tab(parent, app):
         variable=app.enhancement_intensity, 
         length=200
     )
-    intensity_scale.grid(row=3, column=1, sticky=tk.W, pady=2)
+    intensity_scale.grid(row=5, column=1, sticky=tk.W, pady=2)
     
-    intensity_label = ttk.Label(enhance_frame, text="Medium")
-    intensity_label.grid(row=3, column=2, sticky=tk.W, pady=2)
+    app.intensity_label = ttk.Label(enhance_frame, text="Medium")
+    app.intensity_label.grid(row=5, column=2, sticky=tk.W, pady=2)
     
     # Update intensity label when slider moves
-    def update_intensity_label(event):
+    def update_intensity_label(event=None):
         value = app.enhancement_intensity.get()
         if value < 0.3:
-            intensity_label.config(text="Subtle")
+            app.intensity_label.config(text="Subtle")
         elif value < 0.7:
-            intensity_label.config(text="Medium")
+            app.intensity_label.config(text="Medium")
         else:
-            intensity_label.config(text="Strong")
+            app.intensity_label.config(text="Strong")
     
     intensity_scale.bind("<Motion>", update_intensity_label)
+    update_intensity_label()  # Initialize label
+    
+    # Error handling options
+    error_frame = ttk.LabelFrame(parent, text="Error Handling Options", padding=10)
+    error_frame.pack(fill=tk.X, pady=5)
+    
+    app.retry_on_error = tk.BooleanVar(value=True)
+    ttk.Checkbutton(
+        error_frame, 
+        text="Retry API calls on rate limit errors", 
+        variable=app.retry_on_error
+    ).grid(row=0, column=0, sticky=tk.W, pady=2)
+    
+    app.max_retries = tk.IntVar(value=3)
+    ttk.Label(error_frame, text="Maximum retries:").grid(row=1, column=0, sticky=tk.W, pady=2)
+    retry_spin = ttk.Spinbox(error_frame, from_=1, to=5, textvariable=app.max_retries, width=5)
+    retry_spin.grid(row=1, column=1, sticky=tk.W, pady=2, padx=5)
+    
+    app.fallback_to_local = tk.BooleanVar(value=True)
+    ttk.Checkbutton(
+        error_frame, 
+        text="Fall back to local processing if API fails", 
+        variable=app.fallback_to_local
+    ).grid(row=2, column=0, columnspan=2, sticky=tk.W, pady=2)
     
     # Action buttons
     ai_button_frame = ttk.Frame(parent)

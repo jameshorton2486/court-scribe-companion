@@ -22,12 +22,18 @@ interface OptionsSectionProps {
   };
 }
 
+interface OptionItem {
+  enabled: boolean;
+  label: string;
+  indented?: boolean;
+}
+
 const OptionsSection: React.FC<OptionsSectionProps> = ({
   grammarOptions,
   contentOptions,
   formattingOptions
 }) => {
-  const grammarItems = [
+  const grammarItems: OptionItem[] = [
     {
       enabled: grammarOptions.enableGrammarCheck,
       label: `Grammar Correction ${grammarOptions.enableGrammarCheck ? `(Level ${grammarOptions.grammarLevel})` : ''}`
@@ -38,7 +44,7 @@ const OptionsSection: React.FC<OptionsSectionProps> = ({
     }
   ];
 
-  const contentItems = [
+  const contentItems: OptionItem[] = [
     {
       enabled: contentOptions.enableContentExpansion,
       label: `Content Expansion ${contentOptions.enableContentExpansion ? `(Level ${contentOptions.expansionLevel})` : ''}`
@@ -53,7 +59,7 @@ const OptionsSection: React.FC<OptionsSectionProps> = ({
     }
   ];
 
-  const formattingItems = [
+  const formattingItems: OptionItem[] = [
     {
       enabled: formattingOptions.enableProfessionalFormatting,
       label: 'Professional Formatting'
