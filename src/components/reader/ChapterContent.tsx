@@ -1,56 +1,25 @@
 
-import React, { useEffect, useRef } from 'react';
-import { cn } from '@/lib/utils';
+import React from 'react';
+import GlossaryFormatter from './GlossaryFormatter';
 
 interface ChapterContentProps {
   content: string;
-  fontFamily?: string;
 }
 
-const ChapterContent: React.FC<ChapterContentProps> = ({ 
-  content, 
-  fontFamily = 'serif' 
-}) => {
-  const contentRef = useRef<HTMLDivElement>(null);
+const ChapterContent: React.FC<ChapterContentProps> = ({ content }) => {
+  const isGlossaryContent = (text: string): boolean => {
+    // Look for patterns like roman numerals and numbered lists
+    const containsRomanNumerals = /^[IVX]+\.\s+/m.test(text);
+    const containsNumberedTerms = /^\d+\.\s+[A-Za-z]/m.test(text);
+    
+    return containsRomanNumerals || containsNumberedTerms;
+  };
   
-  // Apply syntax highlighting and other enhancements after render
-  useEffect(() => {
-    if (contentRef.current) {
-      // You could add additional formatting or syntax highlighting here
-      // For example, if you wanted to highlight code blocks or apply other styling
-      
-      // Add support for table of contents links
-      const headings = contentRef.current.querySelectorAll('h2, h3, h4');
-      headings.forEach((heading, index) => {
-        const id = `heading-${index}`;
-        heading.setAttribute('id', id);
-      });
-    }
-  }, [content]);
-
-  // Map font family values to Tailwind classes
-  const fontFamilyClass = {
-    'serif': 'font-serif',
-    'sans-serif': 'font-sans',
-    'georgia': 'font-serif', // Fallback to serif
-    'garamond': 'font-serif', // Fallback to serif
-    'palatino': 'font-serif'  // Fallback to serif
-  }[fontFamily] || 'font-serif';
-
-  return (
-    <div 
-      ref={contentRef}
-      className={cn(
-        "reader-content prose prose-slate max-w-none dark:prose-invert",
-        fontFamilyClass,
-        "prose-headings:mb-4 prose-headings:mt-6",
-        "prose-p:my-3 prose-p:leading-7",
-        "prose-li:my-1",
-        "prose-img:rounded-md"
-      )}
-      dangerouslySetInnerHTML={{ __html: content }}
-    />
-  );
+  if (isGlossaryContent(content)) {
+    return <GlossaryFormatter content={content} />;
+  }
+  
+  return <div className="prose prose-lg dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: content }} />;
 };
 
 export default ChapterContent;

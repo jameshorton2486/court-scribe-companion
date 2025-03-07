@@ -1,8 +1,9 @@
+
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ReaderLayout from '@/components/reader/ReaderLayout';
 import TocSidebar from '@/components/reader/TocSidebar';
-import ReaderContent from '@/components/reader/ReaderContent';
+import ReaderContent, { ReaderMainContent } from '@/components/reader/ReaderContent';
 import EnhancerWrapper from '@/components/reader/EnhancerWrapper';
 import { ReaderProvider, useReader } from '@/contexts/ReaderContext';
 import useBookLoader from '@/hooks/useBookLoader';

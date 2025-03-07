@@ -1,0 +1,28 @@
+
+.glossary-container {
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.glossary-category {
+  margin-bottom: 2rem;
+}
+
+.glossary-term {
+  background-color: hsl(var(--card));
+  transition: all 0.2s ease;
+}
+
+.glossary-term:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+html.dark .glossary-term:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 640px) {
+  .glossary-term h3 {
+    font-size: 1rem;
+  }
+}
