@@ -1,67 +1,97 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import useBookLoader from '@/hooks/useBookLoader';
-import { ReaderProvider, useReader } from '@/contexts/ReaderContext';
 import ReaderLayout from '@/components/reader/ReaderLayout';
 import TocSidebar from '@/components/reader/TocSidebar';
-import { ReaderMainContent } from '@/components/reader/ReaderContent';
+import ReaderContent from '@/components/reader/ReaderContent';
 import EnhancerWrapper from '@/components/reader/EnhancerWrapper';
-import { Book } from '@/components/ebook-uploader/EbookUploader';
+import { ReaderProvider, useReader } from '@/contexts/ReaderContext';
+import useBookLoader from '@/hooks/useBookLoader';
 
-const ReaderInner = () => {
-  const { bookId, chapterId } = useParams<{ bookId: string; chapterId: string }>();
+const ReaderPage = () => {
+  const params = useParams();
   const navigate = useNavigate();
-  const { 
-    book, 
-    activeChapter, 
-    showEnhancer,
-    setActiveChapter, 
-    setBook, 
-    setToc 
-  } = useReader();
-  
-  const { book: loadedBook, toc, updateBook } = useBookLoader(bookId, navigate);
+  const { book, toc, updateBook } = useBookLoader(params.bookId, navigate);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (loadedBook) {
-      setBook(loadedBook);
-      setToc(toc);
+    if (book) {
+      setIsLoading(false);
     }
-  }, [loadedBook, toc, setBook, setToc]);
-
-  useEffect(() => {
-    if (book && book.chapters.length > 0) {
-      if (!activeChapter) {
-        setActiveChapter(book.chapters[0].id);
-      } else if (chapterId) {
-        setActiveChapter(chapterId);
-      }
-    }
-  }, [book, chapterId, activeChapter, setActiveChapter]);
-
-  const handleBookEnhanced = (enhancedBook: Book) => {
-    updateBook(enhancedBook);
-  };
-
-  if (showEnhancer) {
-    return <EnhancerWrapper onBookEnhanced={handleBookEnhanced} />;
-  }
+  }, [book]);
 
   return (
-    <ReaderLayout>
-      <div className="flex flex-col md:flex-row">
-        <TocSidebar />
-        <ReaderMainContent />
-      </div>
-    </ReaderLayout>
+    <ReaderProvider>
+      <ReaderContent />
+    </ReaderProvider>
   );
 };
 
 const Reader = () => {
+  const { bookId, chapterId } = useParams();
+  const navigate = useNavigate();
+  const { book, toc, updateBook } = useBookLoader(bookId, navigate);
+  
   return (
     <ReaderProvider>
-      <ReaderInner />
+      <ReaderInitializer 
+        book={book} 
+        toc={toc} 
+        chapterId={chapterId} 
+        updateBook={updateBook}
+      />
+      
+      <ReaderUI />
     </ReaderProvider>
+  );
+};
+
+// Component to initialize the reader context
+const ReaderInitializer = ({ book, toc, chapterId, updateBook }) => {
+  const { 
+    setBook, 
+    setToc, 
+    setActiveChapter,
+  } = useReader();
+  
+  useEffect(() => {
+    if (book) {
+      setBook(book);
+      
+      // If we have chapters, set the active chapter
+      if (book.chapters && book.chapters.length > 0) {
+        // If chapterId is provided and exists in the book, use it
+        // Otherwise, default to the first chapter
+        const validChapterId = chapterId && 
+          book.chapters.some(ch => ch.id === chapterId) ? 
+          chapterId : book.chapters[0].id;
+          
+        setActiveChapter(validChapterId);
+      }
+    }
+  }, [book, chapterId, setBook, setActiveChapter]);
+  
+  useEffect(() => {
+    if (toc && toc.length > 0) {
+      setToc(toc);
+    }
+  }, [toc, setToc]);
+  
+  return null;
+};
+
+// UI component
+const ReaderUI = () => {
+  const { showEnhancer, book } = useReader();
+  
+  if (showEnhancer) {
+    return <EnhancerWrapper onBookEnhanced={(updatedBook) => {}} />;
+  }
+  
+  return (
+    <ReaderLayout>
+      <TocSidebar />
+      <ReaderContent />
+    </ReaderLayout>
   );
 };
 
