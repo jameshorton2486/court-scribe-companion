@@ -14,6 +14,18 @@ interface ReaderLayoutProps {
 const ReaderLayout: React.FC<ReaderLayoutProps> = ({ children }) => {
   const { isDarkTheme, tocVisible, toggleTheme, setTocVisible, book, showExportDialog, setShowExportDialog } = useReader();
 
+  const exportButton = (
+    <Button 
+      variant="outline" 
+      size="sm" 
+      className="ml-2"
+      onClick={() => setShowExportDialog(true)}
+    >
+      <FileDown size={16} className="mr-1" />
+      Export
+    </Button>
+  );
+
   return (
     <div className={cn("min-h-screen pb-24", isDarkTheme ? "dark" : "")}>
       <ReaderToolbar 
@@ -21,17 +33,7 @@ const ReaderLayout: React.FC<ReaderLayoutProps> = ({ children }) => {
         onToggleToc={() => setTocVisible(!tocVisible)}
         onToggleTheme={toggleTheme}
         isDarkTheme={isDarkTheme}
-        rightContent={
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="ml-2"
-            onClick={() => setShowExportDialog(true)}
-          >
-            <FileDown size={16} className="mr-1" />
-            Export
-          </Button>
-        }
+        rightElement={exportButton}
       />
       
       <div className="container mx-auto pt-24">

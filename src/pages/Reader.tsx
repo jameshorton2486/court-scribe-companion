@@ -1,11 +1,10 @@
-
 import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import useBookLoader from '@/hooks/useBookLoader';
 import { ReaderProvider, useReader } from '@/contexts/ReaderContext';
 import ReaderLayout from '@/components/reader/ReaderLayout';
 import TocSidebar from '@/components/reader/TocSidebar';
-import ReaderContent from '@/components/reader/ReaderContent';
+import { ReaderMainContent } from '@/components/reader/ReaderContent';
 import EnhancerWrapper from '@/components/reader/EnhancerWrapper';
 import { Book } from '@/components/ebook-uploader/EbookUploader';
 
@@ -52,13 +51,12 @@ const ReaderInner = () => {
     <ReaderLayout>
       <div className="flex flex-col md:flex-row">
         <TocSidebar />
-        <ReaderContent />
+        <ReaderMainContent />
       </div>
     </ReaderLayout>
   );
 };
 
-// Wrap everything in the ReaderProvider
 const Reader = () => {
   return (
     <ReaderProvider>
