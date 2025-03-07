@@ -19,6 +19,7 @@ interface ReaderToolbarProps {
   onToggleTheme: () => void;
   isDarkTheme: boolean;
   className?: string;
+  rightElement?: React.ReactNode;
 }
 
 const ReaderToolbar = ({
@@ -27,6 +28,7 @@ const ReaderToolbar = ({
   onToggleTheme,
   isDarkTheme,
   className,
+  rightElement,
 }: ReaderToolbarProps) => {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -96,6 +98,7 @@ const ReaderToolbar = ({
           >
             {isDarkTheme ? <Sun size={20} /> : <Moon size={20} />}
           </button>
+          {rightElement}
         </div>
 
         {/* Mobile Menu Button */}

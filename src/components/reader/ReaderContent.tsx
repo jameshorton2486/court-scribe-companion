@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { useReader } from '@/contexts/ReaderContext';
 import { cn } from '@/lib/utils';
 
-const ReaderContent: React.FC = () => {
+export const ReaderMainContent: React.FC = () => {
   const navigate = useNavigate();
   const { 
     book, 
@@ -98,4 +98,6 @@ const ReaderContent: React.FC = () => {
   );
 };
 
+// For backward compatibility
+const ReaderContent = ReaderMainContent;
 export default ReaderContent;
