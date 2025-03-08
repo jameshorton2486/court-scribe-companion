@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useReader } from '@/contexts/ReaderContext';
 import { Button } from '@/components/ui/button';
-import { Cloud, CloudOff, CloudSync, AlertCircle } from 'lucide-react';
+import { Cloud, CloudOff, RefreshCw, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 const SyncStatus = () => {
@@ -36,7 +36,7 @@ const SyncStatus = () => {
     label = 'Sync needed';
     buttonVariant = 'secondary';
   } else if (syncStatus === 'synchronizing' || isSyncing) {
-    icon = <CloudSync className="h-4 w-4 mr-2 animate-spin" />;
+    icon = <RefreshCw className="h-4 w-4 mr-2 animate-spin" />;
     label = 'Syncing...';
     buttonVariant = 'outline';
   } else if (syncStatus === 'error') {

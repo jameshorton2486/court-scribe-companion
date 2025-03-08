@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+
+import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ReaderLayout from '@/components/reader/ReaderLayout';
 import TocSidebar from '@/components/reader/TocSidebar';
-import ReaderContent, { ReaderMainContent } from '@/components/reader/ReaderContent';
+import ReaderContent from '@/components/reader/ReaderContent';
 import EnhancerWrapper from '@/components/reader/EnhancerWrapper';
 import { ReaderProvider, useReader } from '@/contexts/ReaderContext';
 import useBookLoader from '@/hooks/useBookLoader';
@@ -10,15 +11,7 @@ import useBookLoader from '@/hooks/useBookLoader';
 const ReaderPage = () => {
   const params = useParams();
   const navigate = useNavigate();
-  const { book, toc, updateBook } = useBookLoader(params.bookId, navigate);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    if (book) {
-      setIsLoading(false);
-    }
-  }, [book]);
-
+  
   return (
     <ReaderProvider>
       <ReaderContent />
@@ -29,7 +22,7 @@ const ReaderPage = () => {
 const Reader = () => {
   const { bookId, chapterId } = useParams();
   const navigate = useNavigate();
-  const { book, toc, updateBook, storageAvailable } = useBookLoader(bookId, navigate);
+  const { book, toc, updateBook, storageAvailable, storageType, setStorageType } = useBookLoader(bookId, navigate);
   
   return (
     <ReaderProvider>
@@ -39,6 +32,8 @@ const Reader = () => {
         chapterId={chapterId} 
         updateBook={updateBook}
         storageAvailable={storageAvailable}
+        storageType={storageType}
+        setStorageType={setStorageType}
       />
       
       <ReaderUI />
@@ -47,12 +42,21 @@ const Reader = () => {
 };
 
 // Component to initialize the reader context
-const ReaderInitializer = ({ book, toc, chapterId, updateBook, storageAvailable }) => {
+const ReaderInitializer = ({ 
+  book, 
+  toc, 
+  chapterId, 
+  updateBook, 
+  storageAvailable,
+  storageType,
+  setStorageType
+}) => {
   const { 
     setBook, 
     setToc, 
     setActiveChapter,
     setStorageAvailable,
+    setStorageType,
     syncWithServer
   } = useReader();
   
@@ -84,10 +88,14 @@ const ReaderInitializer = ({ book, toc, chapterId, updateBook, storageAvailable 
     }
   }, [toc, setToc]);
   
-  // Set storage availability in context
+  // Set storage availability and type in context
   useEffect(() => {
     setStorageAvailable(storageAvailable);
   }, [storageAvailable, setStorageAvailable]);
+  
+  useEffect(() => {
+    setStorageType(storageType);
+  }, [storageType, setStorageType]);
   
   return null;
 };

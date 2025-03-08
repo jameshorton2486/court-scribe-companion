@@ -3,6 +3,7 @@ import { createContext, useContext, useState, ReactNode, useEffect } from 'react
 import { Book } from '@/components/ebook-uploader/EbookUploader';
 
 type SyncStatus = 'synchronized' | 'synchronizing' | 'unsynchronized' | 'error';
+type StorageType = 'localStorage' | 'sessionStorage';
 
 interface ReaderContextType {
   book: Book | null;
@@ -14,6 +15,7 @@ interface ReaderContextType {
   showExportDialog: boolean;
   storageAvailable: boolean;
   syncStatus: SyncStatus;
+  storageType: StorageType;
   setBook: (book: Book | null) => void;
   setToc: (toc: TocItem[]) => void;
   setIsDarkTheme: (isDark: boolean) => void;
@@ -22,6 +24,7 @@ interface ReaderContextType {
   setShowEnhancer: (show: boolean) => void;
   setShowExportDialog: (show: boolean) => void;
   setStorageAvailable: (available: boolean) => void;
+  setStorageType: (type: StorageType) => void;
   toggleTheme: () => void;
   syncWithServer: () => Promise<boolean>;
 }
@@ -46,6 +49,7 @@ export const ReaderProvider = ({ children }: { children: ReactNode }) => {
   const [storageAvailable, setStorageAvailable] = useState(true);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('synchronized');
   const [lastSyncTime, setLastSyncTime] = useState<number | null>(null);
+  const [storageType, setStorageType] = useState<StorageType>('localStorage');
 
   // Track changes for synchronization
   useEffect(() => {
@@ -98,6 +102,7 @@ export const ReaderProvider = ({ children }: { children: ReactNode }) => {
         showExportDialog,
         storageAvailable,
         syncStatus,
+        storageType,
         setBook,
         setToc,
         setIsDarkTheme,
@@ -106,6 +111,7 @@ export const ReaderProvider = ({ children }: { children: ReactNode }) => {
         setShowEnhancer,
         setShowExportDialog,
         setStorageAvailable,
+        setStorageType,
         toggleTheme,
         syncWithServer
       }}

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { NavigateFunction } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -150,6 +149,22 @@ const isLocalStorageAvailable = (): boolean => {
 };
 
 /**
+ * Check if sessionStorage is available
+ * @returns boolean indicating if sessionStorage is available and working
+ */
+const isSessionStorageAvailable = (): boolean => {
+  try {
+    // Try to set and get a test item
+    sessionStorage.setItem(STORAGE_TEST_KEY, 'test');
+    const testValue = sessionStorage.getItem(STORAGE_TEST_KEY);
+    sessionStorage.removeItem(STORAGE_TEST_KEY);
+    return testValue === 'test';
+  } catch (e) {
+    return false;
+  }
+};
+
+/**
  * Check if there's enough storage space
  * @param dataToSave Data to check size against available space
  * @returns boolean indicating if there's enough space
@@ -168,103 +183,123 @@ const hasEnoughStorageSpace = (dataToSave: string): boolean => {
   }
 }
 
-// Session storage fallback if localStorage isn't available
-const getSavedBooks = (): Book[] => {
-  // First check if localStorage is available
-  if (isLocalStorageAvailable()) {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+// Get books from specified storage
+const getSavedBooks = (storageType: 'localStorage' | 'sessionStorage' = 'localStorage'): Book[] => {
+  // Try primary requested storage first
+  const primaryStorage = storageType === 'localStorage' ? localStorage : sessionStorage;
+  
+  try {
+    if ((storageType === 'localStorage' && isLocalStorageAvailable()) || 
+        (storageType === 'sessionStorage' && isSessionStorageAvailable())) {
+      const saved = primaryStorage.getItem(STORAGE_KEY);
       if (saved) {
         return JSON.parse(saved);
       }
-    } catch (e) {
-      console.error('Error parsing saved books from localStorage:', e);
-      // If there's an error with localStorage, try sessionStorage as fallback
-    }
-  }
-  
-  // Fallback to sessionStorage
-  try {
-    const saved = sessionStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      return JSON.parse(saved);
     }
   } catch (e) {
-    console.error('Error parsing saved books from sessionStorage:', e);
+    console.error(`Error parsing saved books from ${storageType}:`, e);
+  }
+  
+  // If requested storage fails, try the other one as fallback
+  const fallbackStorage = storageType === 'localStorage' ? sessionStorage : localStorage;
+  const fallbackType = storageType === 'localStorage' ? 'sessionStorage' : 'localStorage';
+  
+  try {
+    if ((fallbackType === 'localStorage' && isLocalStorageAvailable()) || 
+        (fallbackType === 'sessionStorage' && isSessionStorageAvailable())) {
+      const saved = fallbackStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        toast.info('Using fallback storage', {
+          description: `Books were loaded from ${fallbackType} instead of ${storageType}.`
+        });
+        return JSON.parse(saved);
+      }
+    }
+  } catch (e) {
+    console.error(`Error parsing saved books from fallback ${fallbackType}:`, e);
   }
   
   // If all attempts fail, return empty array
   return [];
 };
 
-const saveBooksToStorage = (books: Book[]): boolean => {
+const saveBooksToStorage = (books: Book[], storageType: 'localStorage' | 'sessionStorage' = 'localStorage'): boolean => {
   const booksJson = JSON.stringify(books);
   
-  // Try localStorage first if available
-  if (isLocalStorageAvailable()) {
+  // Try requested storage type first
+  if ((storageType === 'localStorage' && isLocalStorageAvailable()) || 
+      (storageType === 'sessionStorage' && isSessionStorageAvailable())) {
     try {
-      // Check if we have enough storage space
-      if (hasEnoughStorageSpace(booksJson)) {
-        localStorage.setItem(STORAGE_KEY, booksJson);
-        return true;
+      const storage = storageType === 'localStorage' ? localStorage : sessionStorage;
+      
+      // If localStorage, check space
+      if (storageType === 'localStorage' && !hasEnoughStorageSpace(booksJson)) {
+        console.warn('Not enough localStorage space, will try sessionStorage');
       } else {
-        console.warn('Not enough localStorage space, falling back to sessionStorage');
-        // Not enough space, try sessionStorage
-        try {
-          sessionStorage.setItem(STORAGE_KEY, booksJson);
-          toast.warning("Limited storage", {
-            description: "Your book was saved to session storage due to size limitations. It will be lost when you close the browser."
+        storage.setItem(STORAGE_KEY, booksJson);
+        
+        if (storageType === 'sessionStorage') {
+          toast.warning("Using temporary storage", {
+            description: "Your books are saved to session storage. They will be lost when you close the browser.",
+            duration: 5000
           });
-          return true;
-        } catch (e) {
-          console.error('Error saving to sessionStorage:', e);
-          return false;
         }
+        
+        return true;
       }
     } catch (e) {
-      console.error('Error saving to localStorage:', e);
-      // Try sessionStorage as fallback
-      try {
-        sessionStorage.setItem(STORAGE_KEY, booksJson);
-        toast.warning("Using temporary storage", {
-          description: "Your book was saved to session storage. It will be lost when you close the browser."
-        });
-        return true;
-      } catch (e) {
-        console.error('Error saving to sessionStorage:', e);
-        return false;
-      }
+      console.error(`Error saving to ${storageType}:`, e);
     }
-  } else {
-    // localStorage not available, try sessionStorage
+  }
+  
+  // Try fallback storage if primary failed
+  const fallbackType = storageType === 'localStorage' ? 'sessionStorage' : 'localStorage';
+  
+  if ((fallbackType === 'localStorage' && isLocalStorageAvailable()) || 
+      (fallbackType === 'sessionStorage' && isSessionStorageAvailable())) {
     try {
-      sessionStorage.setItem(STORAGE_KEY, booksJson);
-      toast.warning("Using temporary storage", {
-        description: "Your browser doesn't support persistent storage. Your book will be lost when you close the browser."
+      const fallbackStorage = fallbackType === 'localStorage' ? localStorage : sessionStorage;
+      fallbackStorage.setItem(STORAGE_KEY, booksJson);
+      
+      toast.warning(`Using ${fallbackType}`, {
+        description: `Your book was saved to ${fallbackType} because ${storageType} was not available.`,
+        duration: 5000
       });
       return true;
     } catch (e) {
-      console.error('Error saving to sessionStorage:', e);
-      toast.error("Storage unavailable", {
-        description: "Your browser doesn't support storage features. Changes won't be saved."
-      });
-      return false;
+      console.error(`Error saving to fallback ${fallbackType}:`, e);
     }
   }
+  
+  // All attempts failed
+  toast.error("Storage unavailable", {
+    description: "Your browser doesn't support storage features. Changes won't be saved."
+  });
+  return false;
 };
 
 const useBookLoader = (bookId: string | undefined, navigate: NavigateFunction) => {
   const [book, setBook] = useState<Book | null>(null);
   const [toc, setToc] = useState<TocItem[]>([]);
   const [storageAvailable, setStorageAvailable] = useState<boolean>(true);
+  const [storageType, setStorageType] = useState<'localStorage' | 'sessionStorage'>('localStorage');
 
   // Check storage availability once on mount
   useEffect(() => {
-    const available = isLocalStorageAvailable() || 
-      (function() { try { return !!sessionStorage; } catch(e) { return false; } })();
-    setStorageAvailable(available);
-      
-    if (!available) {
+    const localAvailable = isLocalStorageAvailable();
+    const sessionAvailable = isSessionStorageAvailable();
+    const anyStorageAvailable = localAvailable || sessionAvailable;
+    
+    setStorageAvailable(anyStorageAvailable);
+    
+    // If localStorage isn't available but sessionStorage is, switch to that
+    if (!localAvailable && sessionAvailable) {
+      setStorageType('sessionStorage');
+      toast.warning("Using session storage", {
+        description: "Local storage is unavailable. Your books will only be saved for the current session.",
+        duration: 5000
+      });
+    } else if (!anyStorageAvailable) {
       toast.warning("Storage unavailable", {
         description: "Your browser has limited or no storage capabilities. Your books won't be saved between sessions."
       });
@@ -279,7 +314,7 @@ const useBookLoader = (bookId: string | undefined, navigate: NavigateFunction) =
       setToc(generateToc(sampleBook.chapters));
     } else if (bookId) {
       // Try to load from storage
-      const savedBooks = getSavedBooks();
+      const savedBooks = getSavedBooks(storageType);
       const foundBook = savedBooks.find(b => b.id === bookId);
       
       if (foundBook) {
@@ -292,7 +327,7 @@ const useBookLoader = (bookId: string | undefined, navigate: NavigateFunction) =
         navigate('/');
       }
     }
-  }, [bookId, navigate]);
+  }, [bookId, navigate, storageType]);
 
   // Function to update a book in storage
   const updateBook = (updatedBook: Book) => {
@@ -309,7 +344,7 @@ const useBookLoader = (bookId: string | undefined, navigate: NavigateFunction) =
 
     // Save to storage (skip sample book)
     if (updatedBook.id !== 'court-scribe-companion') {
-      const savedBooks = getSavedBooks();
+      const savedBooks = getSavedBooks(storageType);
       const updatedBooks = savedBooks.map(b => 
         b.id === updatedBook.id ? updatedBook : b
       );
@@ -319,7 +354,7 @@ const useBookLoader = (bookId: string | undefined, navigate: NavigateFunction) =
         updatedBooks.push(updatedBook);
       }
       
-      const saveSuccessful = saveBooksToStorage(updatedBooks);
+      const saveSuccessful = saveBooksToStorage(updatedBooks, storageType);
       
       if (!saveSuccessful) {
         toast.error("Save failed", {
@@ -329,7 +364,7 @@ const useBookLoader = (bookId: string | undefined, navigate: NavigateFunction) =
     }
   };
 
-  return { book, toc, updateBook, storageAvailable };
+  return { book, toc, updateBook, storageAvailable, storageType, setStorageType };
 };
 
 export default useBookLoader;
