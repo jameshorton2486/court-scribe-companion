@@ -1,10 +1,15 @@
-
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Book } from '@/components/ebook-uploader/EbookUploader';
 import { toast } from 'sonner';
 
 type SyncStatus = 'synchronized' | 'synchronizing' | 'unsynchronized' | 'error';
 type StorageType = 'localStorage' | 'sessionStorage';
+
+interface BookValidationSchema {
+  id: string;
+  title: string;
+  chapters: { id: string; title: string; content: string }[];
+}
 
 interface ReaderContextType {
   book: Book | null;
@@ -39,15 +44,24 @@ interface TocItem {
   page?: number;
 }
 
+const generateAccessToken = (): string => {
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+};
+
 const ReaderContext = createContext<ReaderContextType | undefined>(undefined);
 
-// Storage key for books
 const STORAGE_KEY = 'court-reporter-ebooks';
+const TOKEN_KEY = 'court-reporter-access-token';
 
-// Get books from specified storage
 const getSavedBooks = (storageType: StorageType = 'localStorage'): Book[] => {
   try {
     const storage = storageType === 'localStorage' ? localStorage : sessionStorage;
+    
+    const token = storage.getItem(TOKEN_KEY);
+    if (!token) {
+      storage.setItem(TOKEN_KEY, generateAccessToken());
+    }
+    
     const saved = storage.getItem(STORAGE_KEY);
     return saved ? JSON.parse(saved) : [];
   } catch (error) {
@@ -56,11 +70,60 @@ const getSavedBooks = (storageType: StorageType = 'localStorage'): Book[] => {
   }
 };
 
-// Save books to storage
+const validateBook = (book: any): boolean => {
+  if (!book || typeof book !== 'object') return false;
+  if (typeof book.id !== 'string' || !book.id) return false;
+  if (typeof book.title !== 'string' || !book.title) return false;
+  
+  if (!Array.isArray(book.chapters)) return false;
+  
+  for (const chapter of book.chapters) {
+    if (!chapter || typeof chapter !== 'object') return false;
+    if (typeof chapter.id !== 'string' || !chapter.id) return false;
+    if (typeof chapter.title !== 'string') return false;
+    
+    if (chapter.content && typeof chapter.content !== 'string') return false;
+  }
+  
+  return true;
+};
+
+const sanitizeHtml = (html: string): string => {
+  let sanitized = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  sanitized = sanitized.replace(/on\w+="[^"]*"/gi, '');
+  return sanitized;
+};
+
 const saveBooksToStorage = (books: Book[], storageType: StorageType = 'localStorage'): boolean => {
   try {
     const storage = storageType === 'localStorage' ? localStorage : sessionStorage;
-    storage.setItem(STORAGE_KEY, JSON.stringify(books));
+    
+    const token = storage.getItem(TOKEN_KEY);
+    if (!token) {
+      console.error('Unauthorized save attempt: no access token');
+      return false;
+    }
+    
+    const validatedBooks = books.map(book => {
+      if (book.id === 'court-scribe-companion') return book;
+      
+      if (!validateBook(book)) {
+        console.error('Invalid book structure:', book);
+        throw new Error('Invalid book structure');
+      }
+      
+      const sanitizedChapters = book.chapters.map(chapter => ({
+        ...chapter,
+        content: chapter.content ? sanitizeHtml(chapter.content) : ''
+      }));
+      
+      return {
+        ...book,
+        chapters: sanitizedChapters
+      };
+    });
+    
+    storage.setItem(STORAGE_KEY, JSON.stringify(validatedBooks));
     return true;
   } catch (error) {
     console.error(`Error saving to ${storageType}:`, error);
@@ -81,10 +144,8 @@ export const ReaderProvider = ({ children }: { children: ReactNode }) => {
   const [lastSyncTime, setLastSyncTime] = useState<number | null>(null);
   const [storageType, setStorageType] = useState<StorageType>('localStorage');
 
-  // Track changes for synchronization
   useEffect(() => {
     if (book && book.id !== 'court-scribe-companion') {
-      // Only mark as unsynchronized if the book was previously loaded and changed
       if (lastSyncTime !== null) {
         setSyncStatus('unsynchronized');
       }
@@ -96,18 +157,14 @@ export const ReaderProvider = ({ children }: { children: ReactNode }) => {
     document.documentElement.classList.toggle('dark');
   };
 
-  // Function to synchronize data with the server
   const syncWithServer = async (): Promise<boolean> => {
     if (!book || book.id === 'court-scribe-companion') {
-      // No need to sync sample book
       return true;
     }
 
     try {
       setSyncStatus('synchronizing');
       
-      // This would be where an actual API call would happen
-      // For now, we'll simulate a successful sync
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       setSyncStatus('synchronized');
@@ -120,14 +177,15 @@ export const ReaderProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Export all books to a backup file
   const exportBooks = async (): Promise<Book[]> => {
     try {
-      // Get all books from storage
       const allBooks = getSavedBooks(storageType);
       
-      // If the current book is modified but not saved, include its latest version
       if (book && book.id !== 'court-scribe-companion') {
+        if (!validateBook(book)) {
+          throw new Error('Current book has invalid structure');
+        }
+        
         const bookIndex = allBooks.findIndex(b => b.id === book.id);
         if (bookIndex >= 0) {
           allBooks[bookIndex] = book;
@@ -143,41 +201,47 @@ export const ReaderProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Import books from a backup file
   const importBooks = async (importedBooks: Book[]): Promise<number> => {
     try {
       if (!Array.isArray(importedBooks) || importedBooks.length === 0) {
         throw new Error('No valid books found in the import data');
       }
       
-      // Validate books structure
-      const validBooks = importedBooks.filter(b => 
-        b && typeof b === 'object' && 
-        b.id && typeof b.id === 'string' &&
-        b.title && typeof b.title === 'string' &&
-        Array.isArray(b.chapters)
-      );
+      const validBooks = importedBooks.filter(b => {
+        const isValid = validateBook(b);
+        
+        if (!isValid) {
+          console.warn('Skipping invalid book during import:', b);
+        }
+        
+        return isValid;
+      });
       
       if (validBooks.length === 0) {
         throw new Error('No valid books found in the import data');
       }
       
-      // Get existing books
       const existingBooks = getSavedBooks(storageType);
       
-      // Merge books, replacing existing ones with the same ID
       const mergedBooks = [...existingBooks];
       
       for (const importedBook of validBooks) {
+        const sanitizedBook = {
+          ...importedBook,
+          chapters: importedBook.chapters.map(chapter => ({
+            ...chapter,
+            content: chapter.content ? sanitizeHtml(chapter.content) : ''
+          }))
+        };
+        
         const existingIndex = mergedBooks.findIndex(b => b.id === importedBook.id);
         if (existingIndex >= 0) {
-          mergedBooks[existingIndex] = importedBook;
+          mergedBooks[existingIndex] = sanitizedBook;
         } else {
-          mergedBooks.push(importedBook);
+          mergedBooks.push(sanitizedBook);
         }
       }
       
-      // Save merged books
       const saveSuccess = saveBooksToStorage(mergedBooks, storageType);
       
       if (!saveSuccess) {

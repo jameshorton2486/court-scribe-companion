@@ -55,7 +55,7 @@ const StoragePreferences = () => {
             </div>
           </div>
 
-          <RadioGroup value={selectedStorage} onValueChange={setSelectedStorage}>
+          <RadioGroup value={selectedStorage} onValueChange={(value: 'localStorage' | 'sessionStorage') => setSelectedStorage(value)}>
             <div className="flex items-center space-x-2 rounded-md border p-3">
               <RadioGroupItem value="localStorage" id="localStorage" disabled={!storageAvailable} />
               <Label htmlFor="localStorage" className="flex flex-col cursor-pointer flex-1">
