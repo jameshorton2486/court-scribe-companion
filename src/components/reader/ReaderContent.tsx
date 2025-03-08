@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import ChapterContent from '@/components/reader/ChapterContent';
 import ChapterNavigation from '@/components/reader/ChapterNavigation';
+import SyncStatus from '@/components/reader/SyncStatus';
 import { toast } from 'sonner';
 import { useReader } from '@/contexts/ReaderContext';
 import { cn } from '@/lib/utils';
@@ -77,9 +78,12 @@ export const ReaderMainContent: React.FC = () => {
         <div className="animate-blur-in">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-semibold">{currentChapter.title}</h1>
-            <Button onClick={() => setShowEnhancer(true)} variant="outline" size="sm">
-              Enhance Book
-            </Button>
+            <div className="flex items-center space-x-2">
+              {book.id !== 'court-scribe-companion' && <SyncStatus />}
+              <Button onClick={() => setShowEnhancer(true)} variant="outline" size="sm">
+                Enhance Book
+              </Button>
+            </div>
           </div>
           
           <ChapterContent content={currentChapter.content} />

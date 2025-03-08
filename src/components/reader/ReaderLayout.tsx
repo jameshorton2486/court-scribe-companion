@@ -21,7 +21,8 @@ const ReaderLayout: React.FC<ReaderLayoutProps> = ({ children }) => {
     book, 
     showExportDialog, 
     setShowExportDialog,
-    storageAvailable
+    storageAvailable,
+    syncStatus
   } = useReader();
 
   const exportButton = (
@@ -48,13 +49,23 @@ const ReaderLayout: React.FC<ReaderLayoutProps> = ({ children }) => {
       
       <div className="container mx-auto pt-24">
         {!storageAvailable && (
-          <Alert variant="warning" className="mb-4">
+          <Alert variant="destructive" className="mb-4">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
               Limited or no storage available. Changes may not be saved between sessions.
             </AlertDescription>
           </Alert>
         )}
+        
+        {syncStatus === 'unsynchronized' && (
+          <Alert className="mb-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Changes have not been synchronized with the server. Some modifications may be lost.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {children}
       </div>
 

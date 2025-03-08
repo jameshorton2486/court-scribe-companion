@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ReaderLayout from '@/components/reader/ReaderLayout';
@@ -53,7 +52,8 @@ const ReaderInitializer = ({ book, toc, chapterId, updateBook, storageAvailable 
     setBook, 
     setToc, 
     setActiveChapter,
-    setStorageAvailable
+    setStorageAvailable,
+    syncWithServer
   } = useReader();
   
   useEffect(() => {
@@ -70,8 +70,13 @@ const ReaderInitializer = ({ book, toc, chapterId, updateBook, storageAvailable 
           
         setActiveChapter(validChapterId);
       }
+      
+      // Initial sync check if it's not the sample book
+      if (book.id !== 'court-scribe-companion') {
+        syncWithServer();
+      }
     }
-  }, [book, chapterId, setBook, setActiveChapter]);
+  }, [book, chapterId, setBook, setActiveChapter, syncWithServer]);
   
   useEffect(() => {
     if (toc && toc.length > 0) {
@@ -89,7 +94,7 @@ const ReaderInitializer = ({ book, toc, chapterId, updateBook, storageAvailable 
 
 // UI component
 const ReaderUI = () => {
-  const { showEnhancer, book } = useReader();
+  const { showEnhancer } = useReader();
   
   if (showEnhancer) {
     return <EnhancerWrapper onBookEnhanced={(updatedBook) => {}} />;

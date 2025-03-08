@@ -1,6 +1,8 @@
 
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Book } from '@/components/ebook-uploader/EbookUploader';
+
+type SyncStatus = 'synchronized' | 'synchronizing' | 'unsynchronized' | 'error';
 
 interface ReaderContextType {
   book: Book | null;
@@ -11,6 +13,7 @@ interface ReaderContextType {
   showEnhancer: boolean;
   showExportDialog: boolean;
   storageAvailable: boolean;
+  syncStatus: SyncStatus;
   setBook: (book: Book | null) => void;
   setToc: (toc: TocItem[]) => void;
   setIsDarkTheme: (isDark: boolean) => void;
@@ -20,6 +23,7 @@ interface ReaderContextType {
   setShowExportDialog: (show: boolean) => void;
   setStorageAvailable: (available: boolean) => void;
   toggleTheme: () => void;
+  syncWithServer: () => Promise<boolean>;
 }
 
 interface TocItem {
@@ -40,10 +44,46 @@ export const ReaderProvider = ({ children }: { children: ReactNode }) => {
   const [showEnhancer, setShowEnhancer] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [storageAvailable, setStorageAvailable] = useState(true);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('synchronized');
+  const [lastSyncTime, setLastSyncTime] = useState<number | null>(null);
+
+  // Track changes for synchronization
+  useEffect(() => {
+    if (book && book.id !== 'court-scribe-companion') {
+      // Only mark as unsynchronized if the book was previously loaded and changed
+      if (lastSyncTime !== null) {
+        setSyncStatus('unsynchronized');
+      }
+    }
+  }, [book, lastSyncTime]);
 
   const toggleTheme = () => {
     setIsDarkTheme(!isDarkTheme);
     document.documentElement.classList.toggle('dark');
+  };
+
+  // Function to synchronize data with the server
+  const syncWithServer = async (): Promise<boolean> => {
+    if (!book || book.id === 'court-scribe-companion') {
+      // No need to sync sample book
+      return true;
+    }
+
+    try {
+      setSyncStatus('synchronizing');
+      
+      // This would be where an actual API call would happen
+      // For now, we'll simulate a successful sync
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      setSyncStatus('synchronized');
+      setLastSyncTime(Date.now());
+      return true;
+    } catch (error) {
+      console.error('Synchronization failed:', error);
+      setSyncStatus('error');
+      return false;
+    }
   };
 
   return (
@@ -57,6 +97,7 @@ export const ReaderProvider = ({ children }: { children: ReactNode }) => {
         showEnhancer,
         showExportDialog,
         storageAvailable,
+        syncStatus,
         setBook,
         setToc,
         setIsDarkTheme,
@@ -65,7 +106,8 @@ export const ReaderProvider = ({ children }: { children: ReactNode }) => {
         setShowEnhancer,
         setShowExportDialog,
         setStorageAvailable,
-        toggleTheme
+        toggleTheme,
+        syncWithServer
       }}
     >
       {children}
