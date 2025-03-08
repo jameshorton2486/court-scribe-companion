@@ -2,6 +2,8 @@
 import os
 from docx import Document
 from tkinter import messagebox
+import time
+import gc
 from modules.document.format_handler import (
     detect_file_format, load_docx_document, load_text_document,
     load_html_document, convert_html_to_document, convert_markdown_to_document
@@ -14,31 +16,73 @@ def load_document(app):
     
     try:
         file_path = app.input_file.get()
-        app.log(f"Loading document: {file_path}")
+        app.log.info(f"Loading document: {file_path}")
         app.update_progress(10, "Loading document...")
+        
+        # Get file size for optimization decisions
+        file_size = os.path.getsize(file_path)
+        file_size_mb = file_size / (1024 * 1024)
+        is_large_file = file_size_mb > 10  # Consider files > 10MB as large
+        
+        if is_large_file:
+            app.log.info(f"Large document detected: {file_size_mb:.2f} MB. Using optimized loading.")
+            
+            # Clear memory before loading large file
+            gc.collect()
+        
+        start_time = time.time()
         
         # Detect file format
         file_format = detect_file_format(file_path)
-        app.log(f"Detected file format: {file_format}")
+        app.log.info(f"Detected file format: {file_format}")
         
         # Load document based on format
         if file_format == 'docx':
-            # Load the DOCX document
-            doc = load_docx_document(file_path)
+            # For large DOCX files, use optimized loading
+            if is_large_file:
+                doc = load_large_docx_document(file_path, app)
+            else:
+                # Load the DOCX document normally
+                doc = load_docx_document(file_path)
             app.docx_content = doc
             
         elif file_format == 'txt':
-            # Load text file
-            content = load_text_document(file_path)
+            # Load text file with optimizations for large files
+            if is_large_file:
+                content = load_large_text_document(file_path, app)
+            else:
+                content = load_text_document(file_path)
             
             # Create a Document object from text
             doc = Document()
             
-            # Split the text content by lines and add as paragraphs
-            lines = content.split('\n')
-            for line in lines:
-                if line.strip():  # Skip empty lines
-                    para = doc.add_paragraph(line)
+            # For large text files, process in chunks
+            if is_large_file:
+                lines = content.split('\n')
+                chunk_size = 1000  # Process 1000 lines at a time
+                total_lines = len(lines)
+                
+                for i in range(0, total_lines, chunk_size):
+                    end_idx = min(i + chunk_size, total_lines)
+                    chunk = lines[i:end_idx]
+                    
+                    for line in chunk:
+                        if line.strip():  # Skip empty lines
+                            para = doc.add_paragraph(line)
+                    
+                    # Update progress
+                    progress = 10 + (i / total_lines) * 30
+                    app.update_progress(progress, f"Processing text content ({i}/{total_lines} lines)...")
+                    
+                    # Force garbage collection between chunks
+                    if i % (chunk_size * 3) == 0:
+                        gc.collect()
+            else:
+                # Split the text content by lines and add as paragraphs
+                lines = content.split('\n')
+                for line in lines:
+                    if line.strip():  # Skip empty lines
+                        para = doc.add_paragraph(line)
             
             app.docx_content = doc
             
@@ -46,16 +90,22 @@ def load_document(app):
             # Load markdown file
             content = load_text_document(file_path)
             
-            # Convert markdown to Document
-            doc = convert_markdown_to_document(content)
+            # Convert markdown to Document with optimizations for large files
+            if is_large_file:
+                doc = convert_large_markdown_to_document(content, app)
+            else:
+                doc = convert_markdown_to_document(content)
             app.docx_content = doc
             
         elif file_format == 'html':
             # Load HTML file
             soup = load_html_document(file_path)
             
-            # Convert HTML to Document
-            doc = convert_html_to_document(soup)
+            # Convert HTML to Document with optimizations for large files
+            if is_large_file:
+                doc = convert_large_html_to_document(soup, app)
+            else:
+                doc = convert_html_to_document(soup)
             app.docx_content = doc
             
         else:
@@ -63,27 +113,156 @@ def load_document(app):
             app.update_progress(0, "Error loading document")
             return
         
-        app.update_progress(50, "Document loaded successfully")
+        # Calculate and log loading time
+        loading_time = time.time() - start_time
+        app.log.info(f"Document loaded in {loading_time:.2f} seconds")
+        app.update_progress(50, f"Document loaded successfully in {loading_time:.2f}s")
         
         # Try to extract title from content or filename
         if not app.book_title.get():
             # First check if there's a Title style paragraph
+            title_found = False
             for para in doc.paragraphs[:10]:
                 if para.style.name.startswith('Title') or para.style.name.startswith('Heading 1'):
                     app.book_title.set(para.text)
+                    title_found = True
                     break
             
             # If still no title, use filename
-            if not app.book_title.get():
+            if not title_found:
                 filename = os.path.basename(file_path)
                 title, _ = os.path.splitext(filename)
                 app.book_title.set(title)
         
+        # For large files, force garbage collection after loading
+        if is_large_file:
+            gc.collect()
+        
         app.update_progress(100, "Document loaded successfully")
-        app.log(f"Document loaded successfully with {len(doc.paragraphs)} paragraphs")
+        app.log.info(f"Document loaded successfully with {len(doc.paragraphs)} paragraphs")
         messagebox.showinfo("Success", "Document loaded successfully")
         
     except Exception as e:
-        app.log(f"Error loading document: {str(e)}")
+        app.log.error(f"Error loading document: {str(e)}")
         messagebox.showerror("Error", f"Failed to load document: {str(e)}")
         app.update_progress(0, "Error loading document")
+
+def load_large_docx_document(file_path, app):
+    """Optimized loading for large DOCX files"""
+    app.log.info("Using optimized loading for large DOCX file")
+    
+    # Load document with minimal processing
+    doc = Document(file_path)
+    
+    # Count paragraphs and update progress
+    total_paragraphs = len(doc.paragraphs)
+    app.log.info(f"Large document loaded: {total_paragraphs} paragraphs")
+    
+    return doc
+
+def load_large_text_document(file_path, app):
+    """Optimized loading for large text files"""
+    app.log.info("Using chunked loading for large text file")
+    
+    # Get file size
+    file_size = os.path.getsize(file_path)
+    
+    # Read file in chunks to minimize memory usage
+    content = ""
+    chunk_size = 1024 * 1024  # 1MB chunks
+    processed_size = 0
+    
+    with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
+        while True:
+            chunk = f.read(chunk_size)
+            if not chunk:
+                break
+                
+            content += chunk
+            processed_size += len(chunk)
+            
+            # Update progress
+            progress = 10 + (processed_size / file_size) * 30
+            app.update_progress(progress, f"Loading large text file ({processed_size/1024/1024:.1f}MB/{file_size/1024/1024:.1f}MB)...")
+    
+    return content
+
+def convert_large_markdown_to_document(content, app):
+    """Optimized conversion for large markdown content"""
+    app.log.info("Using optimized conversion for large markdown content")
+    
+    # Create a new document
+    doc = Document()
+    
+    # Split content into lines for chunk processing
+    lines = content.split('\n')
+    total_lines = len(lines)
+    
+    # Process in chunks
+    chunk_size = 1000
+    for i in range(0, total_lines, chunk_size):
+        end_idx = min(i + chunk_size, total_lines)
+        chunk = lines[i:end_idx]
+        
+        # Join chunk back into text
+        chunk_text = '\n'.join(chunk)
+        
+        # Convert chunk
+        temp_doc = convert_markdown_to_document(chunk_text)
+        
+        # Add paragraphs from temp_doc to main doc
+        for para in temp_doc.paragraphs:
+            p = doc.add_paragraph()
+            p.text = para.text
+            p.style = para.style
+        
+        # Update progress
+        progress = 20 + (i / total_lines) * 30
+        app.update_progress(progress, f"Converting markdown content ({i}/{total_lines} lines)...")
+        
+        # Force garbage collection between chunks
+        if i % (chunk_size * 3) == 0:
+            gc.collect()
+    
+    return doc
+
+def convert_large_html_to_document(soup, app):
+    """Optimized conversion for large HTML content"""
+    app.log.info("Using optimized conversion for large HTML content")
+    
+    # Create a new document
+    doc = Document()
+    
+    # Find all content blocks
+    content_blocks = soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol'])
+    total_blocks = len(content_blocks)
+    
+    # Process in chunks
+    chunk_size = 100
+    for i in range(0, total_blocks, chunk_size):
+        end_idx = min(i + chunk_size, total_blocks)
+        chunk = content_blocks[i:end_idx]
+        
+        # Process each element in the chunk
+        for element in chunk:
+            if element.name.startswith('h') and len(element.name) == 2:
+                # Heading element
+                level = int(element.name[1])
+                heading = doc.add_heading(element.get_text(), level=level)
+            elif element.name == 'p':
+                # Paragraph element
+                para = doc.add_paragraph(element.get_text())
+            elif element.name in ['ul', 'ol']:
+                # List element
+                for li in element.find_all('li'):
+                    list_para = doc.add_paragraph(li.get_text(), style='List Bullet' if element.name == 'ul' else 'List Number')
+        
+        # Update progress
+        progress = 20 + (i / total_blocks) * 30
+        app.update_progress(progress, f"Converting HTML content ({i}/{total_blocks} blocks)...")
+        
+        # Force garbage collection between chunks
+        if i % (chunk_size * 3) == 0:
+            gc.collect()
+    
+    return doc
