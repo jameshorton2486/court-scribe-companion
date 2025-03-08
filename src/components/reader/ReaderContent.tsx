@@ -8,6 +8,8 @@ import SyncStatus from '@/components/reader/SyncStatus';
 import { toast } from 'sonner';
 import { useReader } from '@/contexts/ReaderContext';
 import { cn } from '@/lib/utils';
+import { BookOpen, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export const ReaderMainContent: React.FC = () => {
   const navigate = useNavigate();
@@ -16,16 +18,35 @@ export const ReaderMainContent: React.FC = () => {
     activeChapter, 
     tocVisible, 
     setActiveChapter, 
-    setShowEnhancer 
+    setShowEnhancer,
+    error
   } = useReader();
 
+  // Show error state if there's an error loading the book
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] p-4">
+        <AlertCircle className="h-16 w-16 text-destructive mb-4" />
+        <h2 className="text-2xl font-medium mb-2">Error Loading Book</h2>
+        <p className="text-muted-foreground mb-6 text-center max-w-md">
+          {error instanceof Error ? error.message : 'There was a problem loading the book'}
+        </p>
+        <Button onClick={() => navigate('/')} variant="default">
+          Return to Home
+        </Button>
+      </div>
+    );
+  }
+
+  // Loading state when book is being fetched
   if (!book) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-2xl font-medium mb-2">Loading...</h2>
-          <p className="text-muted-foreground">If the book doesn't load, it might not exist.</p>
+      <div className="flex flex-col items-center justify-center min-h-[50vh]">
+        <div className="animate-pulse mb-4">
+          <BookOpen size={48} className="opacity-30" />
         </div>
+        <h2 className="text-2xl font-medium mb-2">Loading...</h2>
+        <p className="text-muted-foreground">If the book doesn't load, it might not exist.</p>
       </div>
     );
   }
@@ -34,37 +55,51 @@ export const ReaderMainContent: React.FC = () => {
   const currentChapter = book.chapters[currentChapterIndex];
 
   const handlePrevChapter = () => {
-    if (currentChapterIndex > 0) {
-      setActiveChapter(book.chapters[currentChapterIndex - 1].id);
-      window.scrollTo(0, 0);
-    }
-  };
-
-  const handleNextChapter = () => {
-    if (currentChapterIndex < book.chapters.length - 1) {
-      setActiveChapter(book.chapters[currentChapterIndex + 1].id);
-      window.scrollTo(0, 0);
-    } else {
-      toast("You've reached the end of the book", {
-        description: "That's all the content for now.",
-        icon: "📚",
+    try {
+      if (currentChapterIndex > 0) {
+        setActiveChapter(book.chapters[currentChapterIndex - 1].id);
+        window.scrollTo(0, 0);
+      }
+    } catch (err) {
+      console.error('Error navigating to previous chapter:', err);
+      toast.error('Navigation error', {
+        description: 'Failed to navigate to the previous chapter'
       });
     }
   };
 
+  const handleNextChapter = () => {
+    try {
+      if (currentChapterIndex < book.chapters.length - 1) {
+        setActiveChapter(book.chapters[currentChapterIndex + 1].id);
+        window.scrollTo(0, 0);
+      } else {
+        toast("You've reached the end of the book", {
+          description: "That's all the content for now.",
+          icon: "📚",
+        });
+      }
+    } catch (err) {
+      console.error('Error navigating to next chapter:', err);
+      toast.error('Navigation error', {
+        description: 'Failed to navigate to the next chapter'
+      });
+    }
+  };
+
+  // If the specified chapter doesn't exist
   if (!currentChapter) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-2xl font-medium mb-2">Chapter not found</h2>
-          <p className="text-muted-foreground mb-4">The requested chapter could not be found.</p>
-          <button 
-            onClick={() => setActiveChapter(book.chapters[0].id)}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
-          >
-            Go to first chapter
-          </button>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-[50vh] p-4">
+        <AlertCircle className="h-16 w-16 text-amber-500 mb-4" />
+        <h2 className="text-2xl font-medium mb-2">Chapter Not Found</h2>
+        <p className="text-muted-foreground mb-6">The requested chapter could not be found.</p>
+        <Button 
+          onClick={() => setActiveChapter(book.chapters[0].id)}
+          variant="default"
+        >
+          Go to first chapter
+        </Button>
       </div>
     );
   }
@@ -76,9 +111,9 @@ export const ReaderMainContent: React.FC = () => {
     )}>
       <div className="reader-page">
         <div className="animate-blur-in">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-semibold">{currentChapter.title}</h1>
-            <div className="flex items-center space-x-2">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+            <h1 className="text-2xl sm:text-3xl font-semibold">{currentChapter.title}</h1>
+            <div className="flex flex-wrap items-center gap-2">
               {book.id !== 'court-scribe-companion' && <SyncStatus />}
               <Button onClick={() => setShowEnhancer(true)} variant="outline" size="sm">
                 Enhance Book

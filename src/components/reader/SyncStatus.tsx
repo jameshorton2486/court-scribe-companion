@@ -6,6 +6,12 @@ import { Cloud, CloudOff, RefreshCw, AlertCircle, Shield, ShieldAlert } from 'lu
 import { toast } from 'sonner';
 import BackupRestoreDialog from './BackupRestoreDialog';
 import StoragePreferences from './StoragePreferences';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const SyncStatus = () => {
   const { syncStatus, syncWithServer, storageType } = useReader();
@@ -15,18 +21,31 @@ const SyncStatus = () => {
   const handleSync = async () => {
     if (isSyncing) return;
     
-    setIsSyncing(true);
-    const success = await syncWithServer();
-    setIsSyncing(false);
-    
-    if (success) {
-      toast.success('Synchronization complete', {
-        description: 'Your book data has been synchronized with the server.'
+    try {
+      setIsSyncing(true);
+      const success = await syncWithServer();
+      
+      if (success) {
+        toast.success('Synchronization complete', {
+          description: 'Your book data has been synchronized with the server.'
+        });
+      } else {
+        // More detailed error feedback
+        toast.error('Synchronization failed', {
+          description: 'There was an error synchronizing your data. Please check your connection and try again.',
+          action: {
+            label: 'Retry',
+            onClick: () => handleSync(),
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Sync error:', error);
+      toast.error('Synchronization error', {
+        description: error instanceof Error ? error.message : 'An unexpected error occurred during synchronization',
       });
-    } else {
-      toast.error('Synchronization failed', {
-        description: 'There was an error synchronizing your data. Please try again later.'
-      });
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -66,27 +85,42 @@ const SyncStatus = () => {
     }
   };
 
+  // Responsive layout for different screen sizes
   return (
-    <div className="flex items-center space-x-2">
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        className="px-2"
-        onClick={toggleSecurityInfo}
-        title={securityTooltip}
-      >
-        {securityIcon}
-      </Button>
-      <StoragePreferences />
-      <BackupRestoreDialog />
+    <div className="flex flex-wrap items-center gap-2">
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="px-2"
+              onClick={toggleSecurityInfo}
+            >
+              {securityIcon}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{securityTooltip}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+      
+      <div className="flex items-center gap-2">
+        <StoragePreferences />
+        <BackupRestoreDialog />
+      </div>
+      
       <Button
         variant={buttonVariant}
         size="sm"
         onClick={handleSync}
         disabled={syncStatus === 'synchronizing' || isSyncing}
+        className="whitespace-nowrap"
       >
         {icon}
-        {label}
+        <span className="hidden sm:inline">{label}</span>
+        <span className="sm:hidden">{syncStatus === 'unsynchronized' ? 'Sync' : ''}</span>
       </Button>
     </div>
   );
