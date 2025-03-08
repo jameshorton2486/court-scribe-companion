@@ -1,31 +1,24 @@
 
 import '@testing-library/jest-dom';
+import { expect, afterEach, vi } from 'vitest';
+import { cleanup } from '@testing-library/react';
 
-// Mock window.matchMedia which is used by some components but not available in JSDOM
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: vi.fn().mockImplementation(query => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
+// Automatically cleanup after each test
+afterEach(() => {
+  cleanup();
 });
 
-// Mock IntersectionObserver
-class IntersectionObserverMock {
-  observe = vi.fn();
-  unobserve = vi.fn();
-  disconnect = vi.fn();
-}
-
-Object.defineProperty(window, 'IntersectionObserver', {
-  writable: true,
-  value: IntersectionObserverMock,
+// Mock localStorage
+vi.stubGlobal('localStorage', {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+  length: 0,
+  key: vi.fn(),
 });
 
-// Add additional global mocks here
+// Mock window.alert and window.confirm
+vi.stubGlobal('alert', vi.fn());
+vi.stubGlobal('confirm', vi.fn(() => true));
+vi.stubGlobal('scrollTo', vi.fn());

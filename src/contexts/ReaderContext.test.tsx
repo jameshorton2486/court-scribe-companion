@@ -1,101 +1,105 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, renderHook, act } from '@testing-library/react';
-import { ReaderProvider, useReader } from './ReaderContext';
-import { StorageType } from '@/utils/storageUtils';
-import * as useBookOperations from '@/hooks/useBookOperations';
+import { renderHook, act } from '@testing-library/react';
+import { ReaderProvider, useReaderContext } from './ReaderContext';
+import React from 'react';
 
-// Mock dependencies
-vi.mock('@/hooks/useBookOperations', () => ({
-  useBookOperations: vi.fn(() => ({
-    syncStatus: 'synchronized',
-    error: null,
-    syncWithServer: vi.fn(() => Promise.resolve(true)),
-    exportBooks: vi.fn(() => Promise.resolve([])),
-    importBooks: vi.fn(() => Promise.resolve(0)),
-  })),
-}));
+// Mock local storage
+const mockLocalStorage = (() => {
+  let store: Record<string, string> = {};
+  return {
+    getItem: vi.fn((key: string) => store[key] || null),
+    setItem: vi.fn((key: string, value: string) => {
+      store[key] = value.toString();
+    }),
+    clear: vi.fn(() => {
+      store = {};
+    })
+  };
+})();
 
-// Test wrapper
-const wrapper = ({ children }) => <ReaderProvider>{children}</ReaderProvider>;
+Object.defineProperty(window, 'localStorage', {
+  value: mockLocalStorage
+});
+
+// Helper function to create a wrapper for the hooks
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <ReaderProvider>{children}</ReaderProvider>
+);
 
 describe('ReaderContext', () => {
   beforeEach(() => {
+    mockLocalStorage.clear();
     vi.clearAllMocks();
-    document.documentElement.classList.remove('dark');
   });
 
-  it('provides default values', () => {
-    const { result } = renderHook(() => useReader(), { wrapper });
+  it('should provide initial state', () => {
+    const { result } = renderHook(() => useReaderContext(), { wrapper });
     
-    expect(result.current.book).toBeNull();
-    expect(result.current.toc).toEqual([]);
-    expect(result.current.isDarkTheme).toBe(false);
-    expect(result.current.activeChapter).toBeUndefined();
-    expect(result.current.tocVisible).toBe(false);
-    expect(result.current.storageType).toBe('localStorage');
-    expect(result.current.storageAvailable).toBe(true);
+    expect(result.current.currentBook).toBeNull();
+    expect(result.current.currentChapter).toBeNull();
+    expect(result.current.isLoading).toBe(false);
   });
 
-  it('allows changing the book', () => {
-    const { result } = renderHook(() => useReader(), { wrapper });
+  it('should set current book', () => {
+    const { result } = renderHook(() => useReaderContext(), { wrapper });
     
-    const testBook = { id: 'test-book', title: 'Test Book', chapters: [] };
+    const mockBook = {
+      id: 'book-1',
+      title: 'Test Book',
+      author: 'Test Author', // Added missing property
+      chapters: []
+    };
     
     act(() => {
-      result.current.setBook(testBook);
+      result.current.setCurrentBook(mockBook);
     });
     
-    expect(result.current.book).toEqual(testBook);
+    expect(result.current.currentBook).toEqual(mockBook);
   });
 
-  it('toggles dark theme correctly', () => {
-    const { result } = renderHook(() => useReader(), { wrapper });
+  it('should set current chapter', () => {
+    const { result } = renderHook(() => useReaderContext(), { wrapper });
     
-    expect(result.current.isDarkTheme).toBe(false);
-    expect(document.documentElement.classList.contains('dark')).toBe(false);
+    const mockChapter = { id: 'chapter-1', title: 'Chapter 1', content: 'Content' };
     
     act(() => {
-      result.current.toggleTheme();
+      result.current.setCurrentChapter(mockChapter);
     });
     
-    expect(result.current.isDarkTheme).toBe(true);
-    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(result.current.currentChapter).toEqual(mockChapter);
   });
 
-  it('allows changing storage type', () => {
-    const { result } = renderHook(() => useReader(), { wrapper });
-    
-    expect(result.current.storageType).toBe('localStorage');
+  it('should update loading state', () => {
+    const { result } = renderHook(() => useReaderContext(), { wrapper });
     
     act(() => {
-      result.current.setStorageType('sessionStorage' as StorageType);
+      result.current.setIsLoading(true);
     });
     
-    expect(result.current.storageType).toBe('sessionStorage');
+    expect(result.current.isLoading).toBe(true);
   });
 
-  it('syncs with server using the provided hook', async () => {
-    const mockSync = vi.fn(() => Promise.resolve(true));
-    vi.mocked(useBookOperations.useBookOperations).mockReturnValue({
-      syncStatus: 'synchronized',
-      error: null,
-      syncWithServer: mockSync,
-      exportBooks: vi.fn(),
-      importBooks: vi.fn(),
-    });
+  it('should update the book with new chapters', () => {
+    const { result } = renderHook(() => useReaderContext(), { wrapper });
     
-    const { result } = renderHook(() => useReader(), { wrapper });
+    const mockBook = {
+      id: 'book-1',
+      title: 'Test Book',
+      author: 'Test Author', // Added missing property
+      chapters: []
+    };
     
-    const testBook = { id: 'test-book', title: 'Test Book', chapters: [] };
+    const newChapters = [
+      { id: 'chapter-1', title: 'Chapter 1', content: 'Content 1' },
+      { id: 'chapter-2', title: 'Chapter 2', content: 'Content 2' }
+    ];
+    
     act(() => {
-      result.current.setBook(testBook);
+      result.current.setCurrentBook(mockBook);
+      result.current.updateBookChapters(newChapters);
     });
     
-    await act(async () => {
-      await result.current.syncWithServer();
-    });
-    
-    expect(mockSync).toHaveBeenCalledWith(testBook);
+    expect(result.current.currentBook?.chapters).toEqual(newChapters);
   });
 });

@@ -42,10 +42,13 @@ describe('chapterEnhancer', () => {
       enableSpellingCheck: true,
       grammarLevel: 2,
       enableContentExpansion: false,
+      expansionLevel: 1, // Added missing property
       enableProfessionalFormatting: false,
       fontFamily: 'serif',
       generateTOC: false,
-      addChapterBreaks: false
+      addChapterBreaks: false,
+      writingStyle: 'standard', // Added missing property
+      improveClarity: false // Added missing property
     };
 
     const result = await enhanceChapterContent('Original content', options);
@@ -60,10 +63,13 @@ describe('chapterEnhancer', () => {
       enableSpellingCheck: false,
       grammarLevel: 1,
       enableContentExpansion: false,
+      expansionLevel: 1, // Added missing property
       enableProfessionalFormatting: true,
       fontFamily: 'sans',
       generateTOC: true,
-      addChapterBreaks: true
+      addChapterBreaks: true,
+      writingStyle: 'standard', // Added missing property
+      improveClarity: false // Added missing property
     };
 
     const result = await enhanceChapterContent('Original content', options);
@@ -85,10 +91,13 @@ describe('chapterEnhancer', () => {
       enableSpellingCheck: true,
       grammarLevel: 2,
       enableContentExpansion: false,
+      expansionLevel: 1, // Added missing property
       enableProfessionalFormatting: false,
       fontFamily: 'serif',
       generateTOC: false,
-      addChapterBreaks: false
+      addChapterBreaks: false,
+      writingStyle: 'standard', // Added missing property
+      improveClarity: false // Added missing property
     };
 
     const result = await enhanceChapterContent('Original content', options);
@@ -109,7 +118,9 @@ describe('chapterEnhancer', () => {
       enableProfessionalFormatting: false,
       fontFamily: 'serif',
       generateTOC: false,
-      addChapterBreaks: false
+      addChapterBreaks: false,
+      writingStyle: 'standard', // Added missing property
+      improveClarity: false // Added missing property
     };
 
     const result = await enhanceChapterContent('<p>Paragraph 1</p><p>Paragraph 2</p><p>Paragraph 3</p>', options);
