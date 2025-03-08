@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Book } from '@/components/ebook-uploader/EbookUploader';
 import { TocItem } from '@/components/TableOfContents';
 import { isLocalStorageAvailable, isSessionStorageAvailable } from '@/utils/storageChecks';
-import { getSavedBooks, saveBooksToStorage } from '@/utils/bookStorage';
+import { getSavedBooks, saveBooksToStorage, StorageType } from '@/utils/storageUtils';
 import { sampleBook, generateToc } from '@/hooks/useSampleBook';
 
 const useBookLoader = (bookId: string | undefined, navigate: NavigateFunction) => {

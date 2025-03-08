@@ -120,3 +120,139 @@ export const isGlossaryContent = (text: string): boolean => {
   
   return containsRomanNumerals || containsNumberedTerms;
 };
+
+/**
+ * Extracts all glossary terms from chapter content for highlighting
+ * 
+ * @param content - Chapter HTML content to analyze
+ * @param glossaryTerms - List of all available glossary terms
+ * @returns Array of terms found in the content
+ */
+export const extractGlossaryTermsFromContent = (
+  content: string,
+  glossaryTerms: GlossaryTerm[]
+): GlossaryTerm[] => {
+  if (!content || !glossaryTerms || glossaryTerms.length === 0) {
+    return [];
+  }
+  
+  // Remove HTML tags to get plain text
+  const plainContent = content.replace(/<[^>]+>/g, ' ').toLowerCase();
+  
+  // Find terms that appear in the content
+  return glossaryTerms.filter(term => {
+    // Look for whole word matches (with word boundaries)
+    const termRegex = new RegExp(`\\b${term.term.toLowerCase()}\\b`, 'i');
+    return termRegex.test(plainContent);
+  });
+};
+
+/**
+ * Creates a highlighted HTML version of the content with glossary terms marked
+ * 
+ * @param content - HTML content to process
+ * @param termsToHighlight - Glossary terms to highlight in the content
+ * @returns HTML content with glossary terms highlighted
+ */
+export const highlightGlossaryTerms = (
+  content: string,
+  termsToHighlight: GlossaryTerm[]
+): string => {
+  if (!content || !termsToHighlight || termsToHighlight.length === 0) {
+    return content;
+  }
+  
+  let highlightedContent = content;
+  
+  // Sort terms by length (longest first) to avoid nested highlights
+  const sortedTerms = [...termsToHighlight].sort(
+    (a, b) => b.term.length - a.term.length
+  );
+  
+  // Process the content as HTML, only replacing text nodes
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = highlightedContent;
+  
+  // Function to process text nodes
+  const processNode = (node: Node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      let text = node.textContent || '';
+      let textLower = text.toLowerCase();
+      let outputHtml = '';
+      let lastIndex = 0;
+      
+      // Look for each term in the text
+      sortedTerms.forEach(term => {
+        const termLower = term.term.toLowerCase();
+        let index = textLower.indexOf(termLower, lastIndex);
+        
+        while (index !== -1) {
+          // Check if it's a whole word
+          const beforeChar = index === 0 ? ' ' : textLower.charAt(index - 1);
+          const afterChar = index + termLower.length >= textLower.length 
+            ? ' ' 
+            : textLower.charAt(index + termLower.length);
+          const isWholeWord = /\W/.test(beforeChar) && /\W/.test(afterChar);
+          
+          if (isWholeWord) {
+            // Add text before the term
+            outputHtml += text.substring(lastIndex, index);
+            
+            // Add highlighted term
+            const actualTerm = text.substring(index, index + term.term.length);
+            outputHtml += `<span class="glossary-term" data-term-id="${term.id}">${actualTerm}</span>`;
+            
+            lastIndex = index + term.term.length;
+          }
+          
+          // Look for next occurrence
+          index = textLower.indexOf(termLower, index + 1);
+        }
+      });
+      
+      // Add remaining text
+      outputHtml += text.substring(lastIndex);
+      
+      // Replace the node if changes were made
+      if (outputHtml !== text) {
+        const tempSpan = document.createElement('span');
+        tempSpan.innerHTML = outputHtml;
+        
+        const fragment = document.createDocumentFragment();
+        while (tempSpan.firstChild) {
+          fragment.appendChild(tempSpan.firstChild);
+        }
+        
+        const parent = node.parentNode;
+        if (parent) {
+          parent.replaceChild(fragment, node);
+          return true;
+        }
+      }
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      // Don't process script, style, or already processed terms
+      const element = node as Element;
+      if (['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(element.tagName) ||
+          element.classList.contains('glossary-term')) {
+        return false;
+      }
+      
+      // Process child nodes
+      const childNodes = [...node.childNodes];
+      let modified = false;
+      
+      for (const child of childNodes) {
+        modified = processNode(child) || modified;
+      }
+      
+      return modified;
+    }
+    
+    return false;
+  };
+  
+  // Process all nodes
+  processNode(tempDiv);
+  
+  return tempDiv.innerHTML;
+};
