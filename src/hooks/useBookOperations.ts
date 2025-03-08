@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Book } from '@/components/ebook-uploader/EbookUploader';
 import { validateBook } from '@/utils/validationUtils';
 import { getSavedBooks, saveBooksToStorage, StorageType } from '@/utils/storageUtils';
+import { handleError, safeOperation } from '@/utils/errorHandlingUtils';
 
 export type SyncStatus = 'synchronized' | 'synchronizing' | 'unsynchronized' | 'error';
 
@@ -25,15 +26,17 @@ export function useBookOperations() {
       setLastSyncTime(Date.now());
       return true;
     } catch (error) {
-      console.error('Synchronization failed:', error);
+      const appError = handleError(error, 'Synchronization', true);
       setSyncStatus('error');
-      setError(error instanceof Error ? error : new Error(String(error)));
+      setError(appError.originalError instanceof Error ? 
+               appError.originalError : 
+               new Error(appError.message));
       return false;
     }
   };
 
   const exportBooks = async (book: Book | null, storageType: StorageType): Promise<Book[]> => {
-    try {
+    return safeOperation(async () => {
       const allBooks = getSavedBooks(storageType);
       
       if (book && book.id !== 'court-scribe-companion') {
@@ -50,14 +53,11 @@ export function useBookOperations() {
       }
       
       return allBooks;
-    } catch (error) {
-      console.error('Export error:', error);
-      throw new Error('Failed to export books: ' + (error instanceof Error ? error.message : String(error)));
-    }
+    }, 'Book export', 'Failed to export books') as Promise<Book[]>;
   };
 
   const importBooks = async (importedBooks: Book[], storageType: StorageType): Promise<number> => {
-    try {
+    return safeOperation(async () => {
       if (!Array.isArray(importedBooks) || importedBooks.length === 0) {
         throw new Error('No valid books found in the import data');
       }
@@ -96,10 +96,7 @@ export function useBookOperations() {
       }
       
       return validBooks.length;
-    } catch (error) {
-      console.error('Import error:', error);
-      throw new Error('Failed to import books: ' + (error instanceof Error ? error.message : String(error)));
-    }
+    }, 'Book import', 'Failed to import books') as Promise<number>;
   };
 
   return {

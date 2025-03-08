@@ -5,6 +5,7 @@ import { ChapterProcessingError } from '@/components/ebook-uploader/processors/E
 import { EnhancementOptions } from './types/enhancementTypes';
 import { enhanceChapterContent } from './processors/chapterEnhancer';
 import { safeApiCall } from './utils/enhancementUtils';
+import { safeOperation, executeWithTiming } from '@/utils/errorHandlingUtils';
 
 /**
  * Enhances a book by processing selected chapters with specified enhancement options
@@ -23,70 +24,69 @@ export const enhanceBook = async (
   selectedChapterIds: string[],
   options: EnhancementOptions
 ): Promise<Book> => {
-  try {
+  return safeOperation(async () => {
     const enhancedBook = { ...book };
     const enhancedChapters = [...book.chapters];
     const enhancementErrors: ChapterProcessingError[] = [];
     
-    const startTime = performance.now();
-    
-    for (let i = 0; i < enhancedChapters.length; i++) {
-      const chapter = enhancedChapters[i];
-      
-      if (!selectedChapterIds.includes(chapter.id)) {
-        continue;
-      }
-      
-      console.info(`Enhancing chapter: ${chapter.title}`);
-      
-      const result = await safeApiCall(
-        () => enhanceChapterContent(chapter.content, options),
-        `Failed to enhance chapter: ${chapter.title}`
-      );
-      
-      if (result) {
-        enhancedChapters[i] = {
-          ...chapter,
-          content: result.content,
-          processingErrors: result.errors
-        };
+    const enhancementResult = await executeWithTiming(async () => {
+      for (let i = 0; i < enhancedChapters.length; i++) {
+        const chapter = enhancedChapters[i];
         
-        if (result.errors && result.errors.length > 0) {
-          enhancementErrors.push(...result.errors);
+        if (!selectedChapterIds.includes(chapter.id)) {
+          continue;
         }
         
-        if (result.warnings && result.warnings.length > 0) {
-          console.warn(`Warnings for chapter "${chapter.title}":`, result.warnings);
-        }
+        console.info(`Enhancing chapter: ${chapter.title}`);
         
-        toast.success(`Enhanced chapter: ${chapter.title}`, {
-          description: result.processingTime ? 
-            `Processed in ${(result.processingTime / 1000).toFixed(1)}s` : undefined
-        });
-      } else {
-        enhancementErrors.push({
-          message: `Failed to enhance chapter: ${chapter.title}`,
-          code: 'ENHANCEMENT_FAILED'
-        });
+        const result = await safeApiCall(
+          () => enhanceChapterContent(chapter.content, options),
+          `Failed to enhance chapter: ${chapter.title}`
+        );
+        
+        if (result) {
+          enhancedChapters[i] = {
+            ...chapter,
+            content: result.content,
+            processingErrors: result.errors
+          };
+          
+          if (result.errors && result.errors.length > 0) {
+            enhancementErrors.push(...result.errors);
+          }
+          
+          if (result.warnings && result.warnings.length > 0) {
+            console.warn(`Warnings for chapter "${chapter.title}":`, result.warnings);
+          }
+          
+          toast.success(`Enhanced chapter: ${chapter.title}`, {
+            description: result.processingTime ? 
+              `Processed in ${(result.processingTime / 1000).toFixed(1)}s` : undefined
+          });
+        } else {
+          enhancementErrors.push({
+            message: `Failed to enhance chapter: ${chapter.title}`,
+            code: 'ENHANCEMENT_FAILED'
+          });
+        }
       }
+      
+      return { enhancedChapters, enhancementErrors };
+    }, 'Book enhancement');
+    
+    if (enhancementResult) {
+      enhancedBook.chapters = enhancementResult.result.enhancedChapters;
+      
+      if (enhancementResult.result.enhancementErrors.length > 0) {
+        enhancedBook.processingErrors = enhancementResult.result.enhancementErrors;
+      }
+      
+      console.info(`Enhanced book in ${(enhancementResult.executionTime / 1000).toFixed(2)}s`);
+      return enhancedBook;
+    } else {
+      throw new Error('Book enhancement failed');
     }
-    
-    const totalTime = performance.now() - startTime;
-    console.info(`Enhanced book in ${(totalTime / 1000).toFixed(2)}s`);
-    
-    enhancedBook.chapters = enhancedChapters;
-    if (enhancementErrors.length > 0) {
-      enhancedBook.processingErrors = enhancementErrors;
-    }
-    
-    return enhancedBook;
-  } catch (error) {
-    console.error('Error enhancing book:', error);
-    toast.error('Failed to enhance book', {
-      description: 'There was a problem enhancing your book.'
-    });
-    throw error;
-  }
+  }, 'Book enhancement', 'Failed to enhance book') as Promise<Book>;
 };
 
 // Export the types

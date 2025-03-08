@@ -4,6 +4,7 @@ import { EnhancementOptions, EnhancementResult } from '../types/enhancementTypes
 import { applyGrammarCorrections } from './grammarProcessor';
 import { applyProfessionalFormatting } from './formattingProcessor';
 import { trackProcessingTime } from '../utils/enhancementUtils';
+import { handleError } from '@/utils/errorHandlingUtils';
 
 /**
  * Enhances chapter content based on specified enhancement options
@@ -74,14 +75,14 @@ export const enhanceChapterContent = async (
       warnings: [] // In a real implementation, warnings would be populated
     };
   } catch (error) {
-    console.error('Error enhancing chapter content:', error);
+    const appError = handleError(error, 'Chapter enhancement');
     
     return {
       content: chapterContent, // Return original content on error
       errors: [{
         message: 'Failed to enhance chapter content',
         code: 'ENHANCEMENT_FAILED',
-        details: error instanceof Error ? error.message : String(error)
+        details: appError.details || String(appError.message)
       }]
     };
   }
