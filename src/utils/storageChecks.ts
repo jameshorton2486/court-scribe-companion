@@ -2,8 +2,11 @@
 const STORAGE_TEST_KEY = 'court-reporter-storage-test';
 
 /**
- * Check if localStorage is available
- * @returns boolean indicating if localStorage is available and working
+ * Checks if localStorage is available and functioning
+ * 
+ * Tests localStorage by attempting to write, read, and remove a test value.
+ * 
+ * @returns Boolean indicating if localStorage is available and working
  */
 export const isLocalStorageAvailable = (): boolean => {
   try {
@@ -18,8 +21,11 @@ export const isLocalStorageAvailable = (): boolean => {
 };
 
 /**
- * Check if sessionStorage is available
- * @returns boolean indicating if sessionStorage is available and working
+ * Checks if sessionStorage is available and functioning
+ * 
+ * Tests sessionStorage by attempting to write, read, and remove a test value.
+ * 
+ * @returns Boolean indicating if sessionStorage is available and working
  */
 export const isSessionStorageAvailable = (): boolean => {
   try {
@@ -34,9 +40,12 @@ export const isSessionStorageAvailable = (): boolean => {
 };
 
 /**
- * Check if there's enough storage space
- * @param dataToSave Data to check size against available space
- * @returns boolean indicating if there's enough space
+ * Checks if there's enough storage space for the data to be saved
+ * 
+ * Estimates the size of the data and compares it against a conservative limit.
+ * 
+ * @param dataToSave - String data to check size against available space
+ * @returns Boolean indicating if there's enough space
  */
 export const hasEnoughStorageSpace = (dataToSave: string): boolean => {
   try {

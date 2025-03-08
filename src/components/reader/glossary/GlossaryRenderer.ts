@@ -1,6 +1,15 @@
 
 import { FormattedGlossary } from './GlossaryTypes';
 
+/**
+ * Renders a structured glossary object as HTML content
+ * 
+ * This function transforms the glossary data structure into HTML markup
+ * with proper hierarchy and styling for categories, subcategories, and terms.
+ * 
+ * @param glossary - Structured glossary object
+ * @returns HTML string representation of the glossary
+ */
 export function renderGlossaryToHtml(glossary: FormattedGlossary): string {
   let html = '<div class="glossary-container">';
   

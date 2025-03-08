@@ -5,6 +5,20 @@ import { applyGrammarCorrections } from './grammarProcessor';
 import { applyProfessionalFormatting } from './formattingProcessor';
 import { trackProcessingTime } from '../utils/enhancementUtils';
 
+/**
+ * Enhances chapter content based on specified enhancement options
+ * 
+ * This function processes chapter content by applying various enhancements:
+ * - Grammar and spelling corrections
+ * - Content expansion
+ * - Professional formatting
+ * 
+ * The process is carefully monitored for errors and performance metrics.
+ * 
+ * @param chapterContent - The original chapter content to enhance
+ * @param options - Configuration options for the enhancement process
+ * @returns Enhanced content with processing metadata
+ */
 export const enhanceChapterContent = async (
   chapterContent: string, 
   options: EnhancementOptions

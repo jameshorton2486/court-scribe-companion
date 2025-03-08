@@ -1,6 +1,17 @@
 
 import { GlossaryTerm, FormattedGlossary } from './GlossaryTypes';
 
+/**
+ * Parses raw glossary content text into a structured format
+ * 
+ * This function processes plain text content that follows a specific format:
+ * - Roman numerals for main categories (I., II., etc.)
+ * - Letters for subcategories (A., B., etc.)
+ * - Numbers for terms (1., 2., etc.)
+ * 
+ * @param content - Raw glossary text content
+ * @returns Structured glossary object with categories, subcategories, and terms
+ */
 export function parseGlossaryContent(content: string): FormattedGlossary {
   const lines = content.split('\n');
   const formattedGlossary: FormattedGlossary = {};
@@ -96,7 +107,12 @@ export function parseGlossaryContent(content: string): FormattedGlossary {
   return formattedGlossary;
 }
 
-// Check if content appears to be a glossary
+/**
+ * Determines if content appears to be a glossary based on formatting patterns
+ * 
+ * @param text - Text content to analyze
+ * @returns Boolean indicating if the content resembles a glossary
+ */
 export const isGlossaryContent = (text: string): boolean => {
   // Look for patterns like roman numerals and numbered lists
   const containsRomanNumerals = /^[IVX]+\.\s+/m.test(text);

@@ -3,16 +3,31 @@ import { Book } from '@/components/ebook-uploader/EbookUploader';
 import { toast } from 'sonner';
 import { validateBook, sanitizeHtml } from '@/utils/validationUtils';
 
+/**
+ * Types of browser storage that can be used
+ */
 export type StorageType = 'localStorage' | 'sessionStorage';
 
+// Storage keys
 const STORAGE_KEY = 'court-reporter-ebooks';
 const TOKEN_KEY = 'court-reporter-access-token';
 const STORAGE_TEST_KEY = 'court-reporter-storage-test';
 
+/**
+ * Generates a unique access token for storage authorization
+ * 
+ * @returns Random string token
+ */
 export const generateAccessToken = (): string => {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 };
 
+/**
+ * Retrieves saved books from browser storage
+ * 
+ * @param storageType - Which storage type to use (localStorage or sessionStorage)
+ * @returns Array of saved book objects
+ */
 export const getSavedBooks = (storageType: StorageType = 'localStorage'): Book[] => {
   try {
     const storage = storageType === 'localStorage' ? localStorage : sessionStorage;
@@ -30,6 +45,13 @@ export const getSavedBooks = (storageType: StorageType = 'localStorage'): Book[]
   }
 };
 
+/**
+ * Saves books to browser storage with validation and sanitization
+ * 
+ * @param books - Array of book objects to save
+ * @param storageType - Which storage type to use (localStorage or sessionStorage)
+ * @returns Boolean indicating success or failure
+ */
 export const saveBooksToStorage = (books: Book[], storageType: StorageType = 'localStorage'): boolean => {
   try {
     const storage = storageType === 'localStorage' ? localStorage : sessionStorage;

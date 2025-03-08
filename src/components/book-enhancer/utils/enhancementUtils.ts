@@ -1,6 +1,12 @@
 
 import { toast } from 'sonner';
 
+/**
+ * Tracks the processing time of an asynchronous operation
+ * 
+ * @param operation - The async operation to execute and time
+ * @returns Object containing the operation result and processing time in ms
+ */
 export const trackProcessingTime = async <T>(
   operation: () => Promise<T>
 ): Promise<{result: T, processingTime: number}> => {
@@ -10,6 +16,13 @@ export const trackProcessingTime = async <T>(
   return { result, processingTime };
 };
 
+/**
+ * Executes an API call with proper error handling and user feedback
+ * 
+ * @param apiCall - The API call function to execute
+ * @param errorMessage - Error message to display if the call fails
+ * @returns The API call result or null on failure
+ */
 export const safeApiCall = async <T>(
   apiCall: () => Promise<T>,
   errorMessage: string

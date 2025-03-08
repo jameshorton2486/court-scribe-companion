@@ -1,4 +1,14 @@
 
+/**
+ * Applies professional formatting to book content
+ * 
+ * This function enhances the HTML content by adding appropriate CSS classes
+ * for typography, spacing, and layout according to the specified options.
+ * 
+ * @param content - The HTML content to format
+ * @param options - Formatting options including font family and structure settings
+ * @returns Formatted HTML content with applied styling
+ */
 export const applyProfessionalFormatting = (
   content: string, 
   options: { 

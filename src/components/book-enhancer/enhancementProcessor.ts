@@ -6,6 +6,18 @@ import { EnhancementOptions } from './types/enhancementTypes';
 import { enhanceChapterContent } from './processors/chapterEnhancer';
 import { safeApiCall } from './utils/enhancementUtils';
 
+/**
+ * Enhances a book by processing selected chapters with specified enhancement options
+ * 
+ * This function coordinates the enhancement of multiple chapters within a book,
+ * applying the configured enhancement options to each selected chapter.
+ * It handles errors gracefully and provides user feedback throughout the process.
+ * 
+ * @param book - The book object containing chapters to enhance
+ * @param selectedChapterIds - IDs of chapters to process
+ * @param options - Enhancement configuration options
+ * @returns Enhanced book with processed chapters
+ */
 export const enhanceBook = async (
   book: Book,
   selectedChapterIds: string[],
