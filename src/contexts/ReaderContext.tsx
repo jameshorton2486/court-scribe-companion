@@ -22,6 +22,7 @@ interface ReaderContextType {
   storageAvailable: boolean;
   syncStatus: SyncStatus;
   storageType: StorageType;
+  error: Error | null;
   setBook: (book: Book | null) => void;
   setToc: (toc: TocItem[]) => void;
   setIsDarkTheme: (isDark: boolean) => void;
@@ -143,6 +144,7 @@ export const ReaderProvider = ({ children }: { children: ReactNode }) => {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('synchronized');
   const [lastSyncTime, setLastSyncTime] = useState<number | null>(null);
   const [storageType, setStorageType] = useState<StorageType>('localStorage');
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     if (book && book.id !== 'court-scribe-companion') {
@@ -173,6 +175,7 @@ export const ReaderProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Synchronization failed:', error);
       setSyncStatus('error');
+      setError(error);
       return false;
     }
   };
@@ -268,6 +271,7 @@ export const ReaderProvider = ({ children }: { children: ReactNode }) => {
         storageAvailable,
         syncStatus,
         storageType,
+        error,
         setBook,
         setToc,
         setIsDarkTheme,
