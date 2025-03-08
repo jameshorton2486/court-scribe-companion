@@ -1,6 +1,7 @@
 
 import { Book } from '@/components/ebook-uploader/EbookUploader';
 import { toast } from 'sonner';
+import { validateBook, sanitizeHtml } from '@/utils/validationUtils';
 
 export type StorageType = 'localStorage' | 'sessionStorage';
 
