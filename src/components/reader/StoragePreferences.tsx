@@ -13,13 +13,13 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { HardDrive, Database, Info } from 'lucide-react';
+import { HardDrive, Database, Info, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 const StoragePreferences = () => {
   const { storageType, setStorageType, storageAvailable } = useReader();
   const [open, setOpen] = useState(false);
-  const [selectedStorage, setSelectedStorage] = useState(storageType);
+  const [selectedStorage, setSelectedStorage] = useState<'localStorage' | 'sessionStorage'>(storageType);
 
   const handleSave = () => {
     setStorageType(selectedStorage);
@@ -82,7 +82,7 @@ const StoragePreferences = () => {
           {!storageAvailable && (
             <div className="bg-destructive/10 p-3 rounded-md">
               <div className="flex items-start gap-2">
-                <AlertCircle size={18} className="text-destructive mt-0.5" />
+                <AlertTriangle size={18} className="text-destructive mt-0.5" />
                 <p className="text-sm text-destructive">
                   Persistent storage is unavailable in your browser. This could be due to private browsing mode or storage limitations.
                 </p>

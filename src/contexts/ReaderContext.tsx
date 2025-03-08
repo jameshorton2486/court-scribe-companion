@@ -1,6 +1,7 @@
 
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Book } from '@/components/ebook-uploader/EbookUploader';
+import { toast } from 'sonner';
 
 type SyncStatus = 'synchronized' | 'synchronizing' | 'unsynchronized' | 'error';
 type StorageType = 'localStorage' | 'sessionStorage';
@@ -27,6 +28,8 @@ interface ReaderContextType {
   setStorageType: (type: StorageType) => void;
   toggleTheme: () => void;
   syncWithServer: () => Promise<boolean>;
+  exportBooks: () => Promise<Book[]>;
+  importBooks: (books: Book[]) => Promise<number>;
 }
 
 interface TocItem {
@@ -37,6 +40,33 @@ interface TocItem {
 }
 
 const ReaderContext = createContext<ReaderContextType | undefined>(undefined);
+
+// Storage key for books
+const STORAGE_KEY = 'court-reporter-ebooks';
+
+// Get books from specified storage
+const getSavedBooks = (storageType: StorageType = 'localStorage'): Book[] => {
+  try {
+    const storage = storageType === 'localStorage' ? localStorage : sessionStorage;
+    const saved = storage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch (error) {
+    console.error(`Error reading from ${storageType}:`, error);
+    return [];
+  }
+};
+
+// Save books to storage
+const saveBooksToStorage = (books: Book[], storageType: StorageType = 'localStorage'): boolean => {
+  try {
+    const storage = storageType === 'localStorage' ? localStorage : sessionStorage;
+    storage.setItem(STORAGE_KEY, JSON.stringify(books));
+    return true;
+  } catch (error) {
+    console.error(`Error saving to ${storageType}:`, error);
+    return false;
+  }
+};
 
 export const ReaderProvider = ({ children }: { children: ReactNode }) => {
   const [book, setBook] = useState<Book | null>(null);
@@ -90,6 +120,77 @@ export const ReaderProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Export all books to a backup file
+  const exportBooks = async (): Promise<Book[]> => {
+    try {
+      // Get all books from storage
+      const allBooks = getSavedBooks(storageType);
+      
+      // If the current book is modified but not saved, include its latest version
+      if (book && book.id !== 'court-scribe-companion') {
+        const bookIndex = allBooks.findIndex(b => b.id === book.id);
+        if (bookIndex >= 0) {
+          allBooks[bookIndex] = book;
+        } else {
+          allBooks.push(book);
+        }
+      }
+      
+      return allBooks;
+    } catch (error) {
+      console.error('Export error:', error);
+      throw new Error('Failed to export books: ' + (error instanceof Error ? error.message : String(error)));
+    }
+  };
+
+  // Import books from a backup file
+  const importBooks = async (importedBooks: Book[]): Promise<number> => {
+    try {
+      if (!Array.isArray(importedBooks) || importedBooks.length === 0) {
+        throw new Error('No valid books found in the import data');
+      }
+      
+      // Validate books structure
+      const validBooks = importedBooks.filter(b => 
+        b && typeof b === 'object' && 
+        b.id && typeof b.id === 'string' &&
+        b.title && typeof b.title === 'string' &&
+        Array.isArray(b.chapters)
+      );
+      
+      if (validBooks.length === 0) {
+        throw new Error('No valid books found in the import data');
+      }
+      
+      // Get existing books
+      const existingBooks = getSavedBooks(storageType);
+      
+      // Merge books, replacing existing ones with the same ID
+      const mergedBooks = [...existingBooks];
+      
+      for (const importedBook of validBooks) {
+        const existingIndex = mergedBooks.findIndex(b => b.id === importedBook.id);
+        if (existingIndex >= 0) {
+          mergedBooks[existingIndex] = importedBook;
+        } else {
+          mergedBooks.push(importedBook);
+        }
+      }
+      
+      // Save merged books
+      const saveSuccess = saveBooksToStorage(mergedBooks, storageType);
+      
+      if (!saveSuccess) {
+        throw new Error('Failed to save imported books to storage');
+      }
+      
+      return validBooks.length;
+    } catch (error) {
+      console.error('Import error:', error);
+      throw new Error('Failed to import books: ' + (error instanceof Error ? error.message : String(error)));
+    }
+  };
+
   return (
     <ReaderContext.Provider
       value={{
@@ -113,7 +214,9 @@ export const ReaderProvider = ({ children }: { children: ReactNode }) => {
         setStorageAvailable,
         setStorageType,
         toggleTheme,
-        syncWithServer
+        syncWithServer,
+        exportBooks,
+        importBooks
       }}
     >
       {children}

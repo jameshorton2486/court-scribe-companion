@@ -4,6 +4,8 @@ import { useReader } from '@/contexts/ReaderContext';
 import { Button } from '@/components/ui/button';
 import { Cloud, CloudOff, RefreshCw, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import BackupRestoreDialog from './BackupRestoreDialog';
+import StoragePreferences from './StoragePreferences';
 
 const SyncStatus = () => {
   const { syncStatus, syncWithServer } = useReader();
@@ -46,16 +48,19 @@ const SyncStatus = () => {
   }
 
   return (
-    <Button
-      variant={buttonVariant}
-      size="sm"
-      onClick={handleSync}
-      disabled={syncStatus === 'synchronizing' || isSyncing}
-      className="ml-2"
-    >
-      {icon}
-      {label}
-    </Button>
+    <div className="flex items-center space-x-2">
+      <StoragePreferences />
+      <BackupRestoreDialog />
+      <Button
+        variant={buttonVariant}
+        size="sm"
+        onClick={handleSync}
+        disabled={syncStatus === 'synchronizing' || isSyncing}
+      >
+        {icon}
+        {label}
+      </Button>
+    </div>
   );
 };
 

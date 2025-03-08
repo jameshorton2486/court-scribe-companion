@@ -22,7 +22,7 @@ const ReaderPage = () => {
 const Reader = () => {
   const { bookId, chapterId } = useParams();
   const navigate = useNavigate();
-  const { book, toc, updateBook, storageAvailable, storageType, setStorageType } = useBookLoader(bookId, navigate);
+  const { book, toc, updateBook, storageAvailable, storageType, setStorageType: setLoaderStorageType } = useBookLoader(bookId, navigate);
   
   return (
     <ReaderProvider>
@@ -33,7 +33,7 @@ const Reader = () => {
         updateBook={updateBook}
         storageAvailable={storageAvailable}
         storageType={storageType}
-        setStorageType={setStorageType}
+        setStorageType={setLoaderStorageType}
       />
       
       <ReaderUI />
@@ -56,7 +56,7 @@ const ReaderInitializer = ({
     setToc, 
     setActiveChapter,
     setStorageAvailable,
-    setStorageType,
+    setStorageType: setContextStorageType,
     syncWithServer
   } = useReader();
   
@@ -94,8 +94,8 @@ const ReaderInitializer = ({
   }, [storageAvailable, setStorageAvailable]);
   
   useEffect(() => {
-    setStorageType(storageType);
-  }, [storageType, setStorageType]);
+    setContextStorageType(storageType);
+  }, [storageType, setContextStorageType]);
   
   return null;
 };
