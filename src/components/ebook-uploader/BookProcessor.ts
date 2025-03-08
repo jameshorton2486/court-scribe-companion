@@ -1,10 +1,17 @@
 
 import { toast } from 'sonner';
 
+export type ChapterProcessingError = {
+  message: string;
+  code: string;
+  details?: string;
+};
+
 export type Chapter = {
   id: string;
   title: string;
   content: string;
+  processingErrors?: ChapterProcessingError[];
 };
 
 export type Book = {
@@ -12,6 +19,23 @@ export type Book = {
   title: string;
   author: string;
   chapters: Chapter[];
+  processingErrors?: ChapterProcessingError[];
+};
+
+// Error handling helper function
+const handleProcessingError = (error: unknown): ChapterProcessingError => {
+  if (error instanceof Error) {
+    return {
+      message: error.message,
+      code: 'PROCESSING_ERROR',
+      details: error.stack
+    };
+  }
+  return {
+    message: 'Unknown error occurred',
+    code: 'UNKNOWN_ERROR',
+    details: String(error)
+  };
 };
 
 export const processBookContent = (
@@ -21,6 +45,11 @@ export const processBookContent = (
 ): Book | null => {
   if (!title.trim()) {
     toast.error("Please enter a title for your ebook");
+    return null;
+  }
+
+  if (!content.trim()) {
+    toast.error("Please enter content for your ebook");
     return null;
   }
 
@@ -36,6 +65,13 @@ export const processBookContent = (
     let currentChapterTitle = '';
     let currentChapterContent = '';
     let chapterCount = 0;
+    
+    // Validate content structure before processing
+    const hasHeadings = contentLines.some(line => line.match(/^#+\s+(.*?)$/));
+    
+    if (!hasHeadings) {
+      console.warn("No chapter headings found in content, creating a single chapter");
+    }
     
     contentLines.forEach(line => {
       const chapterMatch = line.match(/^#+\s+(.*?)$/);
@@ -71,6 +107,7 @@ export const processBookContent = (
     
     // If no chapters were found, create a single chapter
     if (chapters.length === 0) {
+      console.info("Creating a single chapter from content without headings");
       chapters.push({
         id: 'ch0',
         title: title,
@@ -78,6 +115,9 @@ export const processBookContent = (
       });
     }
 
+    // Log successful processing
+    console.info(`Processed book with ${chapters.length} chapters`);
+    
     return {
       id,
       title,
@@ -86,9 +126,55 @@ export const processBookContent = (
     };
   } catch (error) {
     console.error("Error processing content:", error);
+    
+    // Create a structured error object
+    const processingError = handleProcessingError(error);
+    
+    // Show user-friendly error toast
     toast.error("Error processing content", {
-      description: "There was a problem converting your content to an e-book format."
+      description: processingError.message
     });
+    
+    // Return null to indicate processing failure
     return null;
   }
+};
+
+// Function to validate book structure
+export const validateBook = (book: Book): ChapterProcessingError[] => {
+  const errors: ChapterProcessingError[] = [];
+  
+  // Check basic book properties
+  if (!book.title) {
+    errors.push({
+      code: 'MISSING_TITLE',
+      message: 'Book title is missing'
+    });
+  }
+  
+  if (!book.chapters || book.chapters.length === 0) {
+    errors.push({
+      code: 'NO_CHAPTERS',
+      message: 'Book has no chapters'
+    });
+  }
+  
+  // Validate each chapter
+  book.chapters.forEach((chapter, index) => {
+    if (!chapter.title) {
+      errors.push({
+        code: 'CHAPTER_MISSING_TITLE',
+        message: `Chapter ${index + 1} is missing a title`
+      });
+    }
+    
+    if (!chapter.content || chapter.content.trim().length < 10) {
+      errors.push({
+        code: 'CHAPTER_EMPTY_CONTENT',
+        message: `Chapter "${chapter.title || index + 1}" has insufficient content`
+      });
+    }
+  });
+  
+  return errors;
 };
