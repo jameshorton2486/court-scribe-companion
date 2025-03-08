@@ -131,43 +131,154 @@ const generateToc = (chapters: any[]): TocItem[] => {
 };
 
 const STORAGE_KEY = 'court-reporter-ebooks';
+const STORAGE_TEST_KEY = 'court-reporter-storage-test';
 
+/**
+ * Check if localStorage is available
+ * @returns boolean indicating if localStorage is available and working
+ */
+const isLocalStorageAvailable = (): boolean => {
+  try {
+    // Try to set and get a test item
+    localStorage.setItem(STORAGE_TEST_KEY, 'test');
+    const testValue = localStorage.getItem(STORAGE_TEST_KEY);
+    localStorage.removeItem(STORAGE_TEST_KEY);
+    return testValue === 'test';
+  } catch (e) {
+    return false;
+  }
+};
+
+/**
+ * Check if there's enough storage space
+ * @param dataToSave Data to check size against available space
+ * @returns boolean indicating if there's enough space
+ */
+const hasEnoughStorageSpace = (dataToSave: string): boolean => {
+  try {
+    // Estimate the size of the data in bytes
+    const dataSize = new Blob([dataToSave]).size;
+    // Typical localStorage limit is 5-10MB, we'll be conservative and check against 4MB
+    const MAX_SAFE_STORAGE = 4 * 1024 * 1024; // 4MB in bytes
+    
+    return dataSize < MAX_SAFE_STORAGE;
+  } catch (e) {
+    console.warn('Error checking storage space:', e);
+    return false;
+  }
+}
+
+// Session storage fallback if localStorage isn't available
 const getSavedBooks = (): Book[] => {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved) {
+  // First check if localStorage is available
+  if (isLocalStorageAvailable()) {
     try {
-      return JSON.parse(saved);
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        return JSON.parse(saved);
+      }
     } catch (e) {
-      console.error('Error parsing saved books:', e);
-      return [];
+      console.error('Error parsing saved books from localStorage:', e);
+      // If there's an error with localStorage, try sessionStorage as fallback
     }
   }
+  
+  // Fallback to sessionStorage
+  try {
+    const saved = sessionStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (e) {
+    console.error('Error parsing saved books from sessionStorage:', e);
+  }
+  
+  // If all attempts fail, return empty array
   return [];
 };
 
-const saveBooksToStorage = (books: Book[]): void => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
-  } catch (e) {
-    console.error('Error saving books to localStorage:', e);
-    toast.error("Failed to save book", {
-      description: "There was an error saving your book to local storage."
-    });
+const saveBooksToStorage = (books: Book[]): boolean => {
+  const booksJson = JSON.stringify(books);
+  
+  // Try localStorage first if available
+  if (isLocalStorageAvailable()) {
+    try {
+      // Check if we have enough storage space
+      if (hasEnoughStorageSpace(booksJson)) {
+        localStorage.setItem(STORAGE_KEY, booksJson);
+        return true;
+      } else {
+        console.warn('Not enough localStorage space, falling back to sessionStorage');
+        // Not enough space, try sessionStorage
+        try {
+          sessionStorage.setItem(STORAGE_KEY, booksJson);
+          toast.warning("Limited storage", {
+            description: "Your book was saved to session storage due to size limitations. It will be lost when you close the browser."
+          });
+          return true;
+        } catch (e) {
+          console.error('Error saving to sessionStorage:', e);
+          return false;
+        }
+      }
+    } catch (e) {
+      console.error('Error saving to localStorage:', e);
+      // Try sessionStorage as fallback
+      try {
+        sessionStorage.setItem(STORAGE_KEY, booksJson);
+        toast.warning("Using temporary storage", {
+          description: "Your book was saved to session storage. It will be lost when you close the browser."
+        });
+        return true;
+      } catch (e) {
+        console.error('Error saving to sessionStorage:', e);
+        return false;
+      }
+    }
+  } else {
+    // localStorage not available, try sessionStorage
+    try {
+      sessionStorage.setItem(STORAGE_KEY, booksJson);
+      toast.warning("Using temporary storage", {
+        description: "Your browser doesn't support persistent storage. Your book will be lost when you close the browser."
+      });
+      return true;
+    } catch (e) {
+      console.error('Error saving to sessionStorage:', e);
+      toast.error("Storage unavailable", {
+        description: "Your browser doesn't support storage features. Changes won't be saved."
+      });
+      return false;
+    }
   }
 };
 
 const useBookLoader = (bookId: string | undefined, navigate: NavigateFunction) => {
   const [book, setBook] = useState<Book | null>(null);
   const [toc, setToc] = useState<TocItem[]>([]);
+  const [storageAvailable, setStorageAvailable] = useState<boolean>(true);
 
-  // Load the book from localStorage
+  // Check storage availability once on mount
+  useEffect(() => {
+    const available = isLocalStorageAvailable() || 
+      (function() { try { return !!sessionStorage; } catch(e) { return false; } })();
+    setStorageAvailable(available);
+      
+    if (!available) {
+      toast.warning("Storage unavailable", {
+        description: "Your browser has limited or no storage capabilities. Your books won't be saved between sessions."
+      });
+    }
+  }, []);
+
+  // Load the book from storage
   useEffect(() => {
     if (bookId === 'court-scribe-companion') {
       // Load the sample book if requested by ID
       setBook(sampleBook);
       setToc(generateToc(sampleBook.chapters));
     } else if (bookId) {
-      // Try to load from localStorage
+      // Try to load from storage
       const savedBooks = getSavedBooks();
       const foundBook = savedBooks.find(b => b.id === bookId);
       
@@ -208,11 +319,17 @@ const useBookLoader = (bookId: string | undefined, navigate: NavigateFunction) =
         updatedBooks.push(updatedBook);
       }
       
-      saveBooksToStorage(updatedBooks);
+      const saveSuccessful = saveBooksToStorage(updatedBooks);
+      
+      if (!saveSuccessful) {
+        toast.error("Save failed", {
+          description: "Your book changes couldn't be saved due to browser storage limitations."
+        });
+      }
     }
   };
 
-  return { book, toc, updateBook };
+  return { book, toc, updateBook, storageAvailable };
 };
 
 export default useBookLoader;

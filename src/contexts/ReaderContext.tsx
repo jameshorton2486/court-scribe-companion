@@ -10,6 +10,7 @@ interface ReaderContextType {
   tocVisible: boolean;
   showEnhancer: boolean;
   showExportDialog: boolean;
+  storageAvailable: boolean;
   setBook: (book: Book | null) => void;
   setToc: (toc: TocItem[]) => void;
   setIsDarkTheme: (isDark: boolean) => void;
@@ -17,6 +18,7 @@ interface ReaderContextType {
   setTocVisible: (visible: boolean) => void;
   setShowEnhancer: (show: boolean) => void;
   setShowExportDialog: (show: boolean) => void;
+  setStorageAvailable: (available: boolean) => void;
   toggleTheme: () => void;
 }
 
@@ -37,6 +39,7 @@ export const ReaderProvider = ({ children }: { children: ReactNode }) => {
   const [tocVisible, setTocVisible] = useState(false);
   const [showEnhancer, setShowEnhancer] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [storageAvailable, setStorageAvailable] = useState(true);
 
   const toggleTheme = () => {
     setIsDarkTheme(!isDarkTheme);
@@ -53,6 +56,7 @@ export const ReaderProvider = ({ children }: { children: ReactNode }) => {
         tocVisible,
         showEnhancer,
         showExportDialog,
+        storageAvailable,
         setBook,
         setToc,
         setIsDarkTheme,
@@ -60,6 +64,7 @@ export const ReaderProvider = ({ children }: { children: ReactNode }) => {
         setTocVisible,
         setShowEnhancer,
         setShowExportDialog,
+        setStorageAvailable,
         toggleTheme
       }}
     >

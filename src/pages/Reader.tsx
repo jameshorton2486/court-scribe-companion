@@ -30,7 +30,7 @@ const ReaderPage = () => {
 const Reader = () => {
   const { bookId, chapterId } = useParams();
   const navigate = useNavigate();
-  const { book, toc, updateBook } = useBookLoader(bookId, navigate);
+  const { book, toc, updateBook, storageAvailable } = useBookLoader(bookId, navigate);
   
   return (
     <ReaderProvider>
@@ -39,6 +39,7 @@ const Reader = () => {
         toc={toc} 
         chapterId={chapterId} 
         updateBook={updateBook}
+        storageAvailable={storageAvailable}
       />
       
       <ReaderUI />
@@ -47,11 +48,12 @@ const Reader = () => {
 };
 
 // Component to initialize the reader context
-const ReaderInitializer = ({ book, toc, chapterId, updateBook }) => {
+const ReaderInitializer = ({ book, toc, chapterId, updateBook, storageAvailable }) => {
   const { 
     setBook, 
     setToc, 
     setActiveChapter,
+    setStorageAvailable
   } = useReader();
   
   useEffect(() => {
@@ -76,6 +78,11 @@ const ReaderInitializer = ({ book, toc, chapterId, updateBook }) => {
       setToc(toc);
     }
   }, [toc, setToc]);
+  
+  // Set storage availability in context
+  useEffect(() => {
+    setStorageAvailable(storageAvailable);
+  }, [storageAvailable, setStorageAvailable]);
   
   return null;
 };
