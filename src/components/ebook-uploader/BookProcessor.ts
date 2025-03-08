@@ -1,11 +1,8 @@
 
 import { toast } from 'sonner';
-
-export type ChapterProcessingError = {
-  message: string;
-  code: string;
-  details?: string;
-};
+import { ChapterProcessingError, handleProcessingError } from './processors/ErrorHandler';
+import { processWithTiming, processLargeContent } from './processors/PerformanceMonitor';
+import { validateBook as validateBookStructure } from './processors/BookValidator';
 
 export type Chapter = {
   id: string;
@@ -20,74 +17,6 @@ export type Book = {
   author: string;
   chapters: Chapter[];
   processingErrors?: ChapterProcessingError[];
-};
-
-// Error handling helper function
-const handleProcessingError = (error: unknown): ChapterProcessingError => {
-  if (error instanceof Error) {
-    return {
-      message: error.message,
-      code: 'PROCESSING_ERROR',
-      details: error.stack
-    };
-  }
-  return {
-    message: 'Unknown error occurred',
-    code: 'UNKNOWN_ERROR',
-    details: String(error)
-  };
-};
-
-// Performance monitoring
-const processWithTiming = <T>(
-  operation: () => T,
-  operationName: string
-): T => {
-  const startTime = performance.now();
-  
-  try {
-    const result = operation();
-    const endTime = performance.now();
-    const processingTime = endTime - startTime;
-    
-    if (processingTime > 500) {
-      console.info(`Performance: ${operationName} took ${processingTime.toFixed(2)}ms`);
-    }
-    
-    return result;
-  } catch (error) {
-    const endTime = performance.now();
-    console.error(`Error in ${operationName} after ${(endTime - startTime).toFixed(2)}ms:`, error);
-    throw error;
-  }
-};
-
-// Helper to process content in chunks for large documents
-const processLargeContent = (
-  content: string,
-  chunkSize: number = 10000,
-  processor: (chunk: string) => string
-): string => {
-  // For small content, process directly
-  if (content.length < chunkSize) {
-    return processor(content);
-  }
-  
-  console.info(`Processing large content in chunks (${content.length} chars)`);
-  
-  // For larger content, process in chunks
-  const chunks = [];
-  for (let i = 0; i < content.length; i += chunkSize) {
-    const chunk = content.substring(i, Math.min(i + chunkSize, content.length));
-    chunks.push(processor(chunk));
-    
-    // Report progress for very large documents
-    if (i > 0 && i % (chunkSize * 10) === 0) {
-      console.info(`Processed ${i} of ${content.length} characters (${Math.round(i/content.length*100)}%)`);
-    }
-  }
-  
-  return chunks.join('');
 };
 
 export const processBookContent = (
@@ -263,57 +192,5 @@ export const processBookContent = (
   }
 };
 
-// Function to validate book structure
-export const validateBook = (book: Book): ChapterProcessingError[] => {
-  return processWithTiming(() => {
-    const errors: ChapterProcessingError[] = [];
-    
-    // Check basic book properties
-    if (!book.title) {
-      errors.push({
-        code: 'MISSING_TITLE',
-        message: 'Book title is missing'
-      });
-    }
-    
-    if (!book.chapters || book.chapters.length === 0) {
-      errors.push({
-        code: 'NO_CHAPTERS',
-        message: 'Book has no chapters'
-      });
-    }
-    
-    // Detect large books for optimization
-    const isLargeBook = book.chapters && book.chapters.length > 20;
-    
-    // Validate each chapter
-    book.chapters.forEach((chapter, index) => {
-      if (!chapter.title) {
-        errors.push({
-          code: 'CHAPTER_MISSING_TITLE',
-          message: `Chapter ${index + 1} is missing a title`
-        });
-      }
-      
-      // For large books, only do basic content validation
-      if (isLargeBook) {
-        if (!chapter.content) {
-          errors.push({
-            code: 'CHAPTER_EMPTY_CONTENT',
-            message: `Chapter "${chapter.title || index + 1}" has no content`
-          });
-        }
-      } else {
-        // More thorough validation for regular-sized books
-        if (!chapter.content || chapter.content.trim().length < 10) {
-          errors.push({
-            code: 'CHAPTER_EMPTY_CONTENT',
-            message: `Chapter "${chapter.title || index + 1}" has insufficient content`
-          });
-        }
-      }
-    });
-    
-    return errors;
-  }, "book validation");
-};
+// Re-export validateBook from the validator module
+export const validateBook = validateBookStructure;
