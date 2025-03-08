@@ -1,6 +1,7 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import GlossaryFormatter from './GlossaryFormatter';
+import { sanitizeHtml } from '@/utils/validationUtils';
 
 interface ChapterContentProps {
   content: string;
@@ -15,11 +16,23 @@ const ChapterContent: React.FC<ChapterContentProps> = ({ content }) => {
     return containsRomanNumerals || containsNumberedTerms;
   };
   
-  if (isGlossaryContent(content)) {
-    return <GlossaryFormatter content={content} />;
+  // Sanitize HTML content to prevent XSS
+  const sanitizedContent = useMemo(() => {
+    if (!content) return '';
+    return sanitizeHtml(content);
+  }, [content]);
+  
+  // Handle specific content types
+  if (isGlossaryContent(sanitizedContent)) {
+    return <GlossaryFormatter content={sanitizedContent} />;
   }
   
-  return <div className="prose prose-lg dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: content }} />;
+  return (
+    <div 
+      className="prose prose-lg dark:prose-invert max-w-none" 
+      dangerouslySetInnerHTML={{ __html: sanitizedContent }} 
+    />
+  );
 };
 
 export default ChapterContent;

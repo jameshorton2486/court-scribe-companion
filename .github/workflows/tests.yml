@@ -1,5 +1,5 @@
 
-name: Run Tests
+name: Run Tests and Security Scans
 
 on:
   push:
@@ -20,10 +20,16 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        pip install pytest pytest-cov
+        pip install pytest pytest-cov safety bandit
     - name: Test with pytest
       run: |
         pytest --cov=modules tests/ || exit 0
+    - name: Run security scan with bandit
+      run: |
+        bandit -r modules/ -ll -ii || exit 0
+    - name: Check dependencies for security vulnerabilities
+      run: |
+        safety check || exit 0
 
   typescript-tests:
     runs-on: ubuntu-latest
@@ -38,3 +44,6 @@ jobs:
       run: npm ci
     - name: Run tests
       run: npm test || exit 0
+    - name: Run security scan
+      run: |
+        npx audit-ci --moderate || exit 0

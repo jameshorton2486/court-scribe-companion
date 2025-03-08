@@ -4,6 +4,7 @@ from docx import Document
 from tkinter import messagebox
 import time
 import gc
+import psutil
 from modules.document.format_handler import (
     detect_file_format, load_docx_document, load_text_document,
     load_html_document, convert_html_to_document, convert_markdown_to_document
@@ -24,8 +25,13 @@ def load_document(app):
         file_size_mb = file_size / (1024 * 1024)
         is_large_file = file_size_mb > 10  # Consider files > 10MB as large
         
+        # Get available system memory
+        available_memory_mb = psutil.virtual_memory().available / (1024 * 1024)
+        memory_critical = available_memory_mb < 500  # Critical if < 500MB available
+        
         if is_large_file:
             app.log.info(f"Large document detected: {file_size_mb:.2f} MB. Using optimized loading.")
+            app.log.info(f"Available memory: {available_memory_mb:.2f} MB")
             
             # Clear memory before loading large file
             gc.collect()
@@ -36,11 +42,19 @@ def load_document(app):
         file_format = detect_file_format(file_path)
         app.log.info(f"Detected file format: {file_format}")
         
+        # Set chunk sizes based on available memory
+        if memory_critical:
+            text_chunk_size = 500  # Smaller chunks for low memory
+            docx_chunk_size = 50
+        else:
+            text_chunk_size = 1000  # Larger chunks for normal memory
+            docx_chunk_size = 200
+        
         # Load document based on format
         if file_format == 'docx':
             # For large DOCX files, use optimized loading
             if is_large_file:
-                doc = load_large_docx_document(file_path, app)
+                doc = load_large_docx_document(file_path, app, docx_chunk_size)
             else:
                 # Load the DOCX document normally
                 doc = load_docx_document(file_path)
@@ -49,7 +63,7 @@ def load_document(app):
         elif file_format == 'txt':
             # Load text file with optimizations for large files
             if is_large_file:
-                content = load_large_text_document(file_path, app)
+                content = load_large_text_document(file_path, app, text_chunk_size)
             else:
                 content = load_text_document(file_path)
             
@@ -59,7 +73,7 @@ def load_document(app):
             # For large text files, process in chunks
             if is_large_file:
                 lines = content.split('\n')
-                chunk_size = 1000  # Process 1000 lines at a time
+                chunk_size = text_chunk_size
                 total_lines = len(lines)
                 
                 for i in range(0, total_lines, chunk_size):
@@ -68,7 +82,7 @@ def load_document(app):
                     
                     for line in chunk:
                         if line.strip():  # Skip empty lines
-                            para = doc.add_paragraph(line)
+                            doc.add_paragraph(line)
                     
                     # Update progress
                     progress = 10 + (i / total_lines) * 30
@@ -82,7 +96,7 @@ def load_document(app):
                 lines = content.split('\n')
                 for line in lines:
                     if line.strip():  # Skip empty lines
-                        para = doc.add_paragraph(line)
+                        doc.add_paragraph(line)
             
             app.docx_content = doc
             
@@ -92,7 +106,7 @@ def load_document(app):
             
             # Convert markdown to Document with optimizations for large files
             if is_large_file:
-                doc = convert_large_markdown_to_document(content, app)
+                doc = convert_large_markdown_to_document(content, app, text_chunk_size)
             else:
                 doc = convert_markdown_to_document(content)
             app.docx_content = doc
@@ -103,7 +117,7 @@ def load_document(app):
             
             # Convert HTML to Document with optimizations for large files
             if is_large_file:
-                doc = convert_large_html_to_document(soup, app)
+                doc = convert_large_html_to_document(soup, app, text_chunk_size)
             else:
                 doc = convert_html_to_document(soup)
             app.docx_content = doc
@@ -122,7 +136,7 @@ def load_document(app):
         if not app.book_title.get():
             # First check if there's a Title style paragraph
             title_found = False
-            for para in doc.paragraphs[:10]:
+            for para in doc.paragraphs[:10]:  # Only check first 10 paragraphs for efficiency
                 if para.style.name.startswith('Title') or para.style.name.startswith('Heading 1'):
                     app.book_title.set(para.text)
                     title_found = True
@@ -142,12 +156,16 @@ def load_document(app):
         app.log.info(f"Document loaded successfully with {len(doc.paragraphs)} paragraphs")
         messagebox.showinfo("Success", "Document loaded successfully")
         
+    except MemoryError:
+        app.log.error("Memory error while loading document. The file may be too large.")
+        messagebox.showerror("Memory Error", "Not enough memory to load this document. Try closing other applications or use a smaller file.")
+        app.update_progress(0, "Memory error loading document")
     except Exception as e:
         app.log.error(f"Error loading document: {str(e)}")
         messagebox.showerror("Error", f"Failed to load document: {str(e)}")
         app.update_progress(0, "Error loading document")
 
-def load_large_docx_document(file_path, app):
+def load_large_docx_document(file_path, app, chunk_size=200):
     """Optimized loading for large DOCX files"""
     app.log.info("Using optimized loading for large DOCX file")
     
@@ -160,7 +178,7 @@ def load_large_docx_document(file_path, app):
     
     return doc
 
-def load_large_text_document(file_path, app):
+def load_large_text_document(file_path, app, chunk_size=1000):
     """Optimized loading for large text files"""
     app.log.info("Using chunked loading for large text file")
     
@@ -169,12 +187,12 @@ def load_large_text_document(file_path, app):
     
     # Read file in chunks to minimize memory usage
     content = ""
-    chunk_size = 1024 * 1024  # 1MB chunks
+    read_chunk_size = 1024 * 1024  # 1MB chunks for reading
     processed_size = 0
     
     with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
         while True:
-            chunk = f.read(chunk_size)
+            chunk = f.read(read_chunk_size)
             if not chunk:
                 break
                 
@@ -184,10 +202,13 @@ def load_large_text_document(file_path, app):
             # Update progress
             progress = 10 + (processed_size / file_size) * 30
             app.update_progress(progress, f"Loading large text file ({processed_size/1024/1024:.1f}MB/{file_size/1024/1024:.1f}MB)...")
+            
+            # Periodically yield to UI to prevent freezing
+            app.update()
     
     return content
 
-def convert_large_markdown_to_document(content, app):
+def convert_large_markdown_to_document(content, app, chunk_size=1000):
     """Optimized conversion for large markdown content"""
     app.log.info("Using optimized conversion for large markdown content")
     
@@ -199,7 +220,6 @@ def convert_large_markdown_to_document(content, app):
     total_lines = len(lines)
     
     # Process in chunks
-    chunk_size = 1000
     for i in range(0, total_lines, chunk_size):
         end_idx = min(i + chunk_size, total_lines)
         chunk = lines[i:end_idx]
@@ -220,13 +240,16 @@ def convert_large_markdown_to_document(content, app):
         progress = 20 + (i / total_lines) * 30
         app.update_progress(progress, f"Converting markdown content ({i}/{total_lines} lines)...")
         
+        # Periodically yield to UI to prevent freezing
+        app.update()
+        
         # Force garbage collection between chunks
         if i % (chunk_size * 3) == 0:
             gc.collect()
     
     return doc
 
-def convert_large_html_to_document(soup, app):
+def convert_large_html_to_document(soup, app, chunk_size=100):
     """Optimized conversion for large HTML content"""
     app.log.info("Using optimized conversion for large HTML content")
     
@@ -238,7 +261,6 @@ def convert_large_html_to_document(soup, app):
     total_blocks = len(content_blocks)
     
     # Process in chunks
-    chunk_size = 100
     for i in range(0, total_blocks, chunk_size):
         end_idx = min(i + chunk_size, total_blocks)
         chunk = content_blocks[i:end_idx]
@@ -248,18 +270,21 @@ def convert_large_html_to_document(soup, app):
             if element.name.startswith('h') and len(element.name) == 2:
                 # Heading element
                 level = int(element.name[1])
-                heading = doc.add_heading(element.get_text(), level=level)
+                doc.add_heading(element.get_text(), level=level)
             elif element.name == 'p':
                 # Paragraph element
-                para = doc.add_paragraph(element.get_text())
+                doc.add_paragraph(element.get_text())
             elif element.name in ['ul', 'ol']:
                 # List element
                 for li in element.find_all('li'):
-                    list_para = doc.add_paragraph(li.get_text(), style='List Bullet' if element.name == 'ul' else 'List Number')
+                    doc.add_paragraph(li.get_text(), style='List Bullet' if element.name == 'ul' else 'List Number')
         
         # Update progress
         progress = 20 + (i / total_blocks) * 30
         app.update_progress(progress, f"Converting HTML content ({i}/{total_blocks} blocks)...")
+        
+        # Periodically yield to UI to prevent freezing
+        app.update()
         
         # Force garbage collection between chunks
         if i % (chunk_size * 3) == 0:

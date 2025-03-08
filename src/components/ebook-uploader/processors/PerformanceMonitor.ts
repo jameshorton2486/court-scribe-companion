@@ -50,3 +50,66 @@ export const processLargeContent = (
   
   return chunks.join('');
 };
+
+// Load large content in chunks with async support
+export const processLargeContentAsync = async (
+  content: string,
+  chunkSize: number = 10000,
+  processor: (chunk: string) => Promise<string>,
+  progressCallback?: (percent: number) => void
+): Promise<string> => {
+  // For small content, process directly
+  if (content.length < chunkSize) {
+    return await processor(content);
+  }
+  
+  console.info(`Processing large content asynchronously in chunks (${content.length} chars)`);
+  
+  // For larger content, process in chunks
+  const chunks = [];
+  for (let i = 0; i < content.length; i += chunkSize) {
+    const chunk = content.substring(i, Math.min(i + chunkSize, content.length));
+    chunks.push(await processor(chunk));
+    
+    // Report progress
+    const percentComplete = Math.round((i + chunkSize) / content.length * 100);
+    if (progressCallback) {
+      progressCallback(Math.min(percentComplete, 100));
+    }
+    
+    // Allow UI thread to breathe between chunks
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
+  
+  return chunks.join('');
+};
+
+// Memory-efficient way to process an array of items with progress tracking
+export const processBatchesAsync = async <T, R>(
+  items: T[],
+  batchSize: number,
+  processor: (batch: T[]) => Promise<R[]>,
+  progressCallback?: (percent: number) => void
+): Promise<R[]> => {
+  if (items.length === 0) return [];
+  
+  const results: R[] = [];
+  const totalItems = items.length;
+  
+  for (let i = 0; i < totalItems; i += batchSize) {
+    const batch = items.slice(i, i + batchSize);
+    const batchResults = await processor(batch);
+    results.push(...batchResults);
+    
+    // Report progress
+    if (progressCallback) {
+      const percentComplete = Math.round((i + batchSize) / totalItems * 100);
+      progressCallback(Math.min(percentComplete, 100));
+    }
+    
+    // Allow UI thread to breathe between batches
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
+  
+  return results;
+};

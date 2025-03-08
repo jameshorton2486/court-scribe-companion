@@ -14,42 +14,75 @@ export interface AppError {
   details?: string;
   /** Optional original error object */
   originalError?: unknown;
+  /** Optional timestamp when the error occurred */
+  timestamp?: number;
+  /** Optional component or context where the error occurred */
+  context?: string;
+}
+
+/**
+ * Enum of standard error codes for the application
+ */
+export enum ErrorCode {
+  VALIDATION_ERROR = 'VALIDATION_ERROR',
+  NETWORK_ERROR = 'NETWORK_ERROR',
+  STORAGE_ERROR = 'STORAGE_ERROR',
+  PROCESSING_ERROR = 'PROCESSING_ERROR',
+  SECURITY_ERROR = 'SECURITY_ERROR',
+  PERMISSION_ERROR = 'PERMISSION_ERROR',
+  NOT_FOUND = 'NOT_FOUND',
+  TIMEOUT = 'TIMEOUT',
+  UNKNOWN_ERROR = 'UNKNOWN_ERROR'
 }
 
 /**
  * Creates a standardized error object from any error type
  * 
  * @param error - The original error object or message
- * @param defaultMessage - Fallback message if error doesn't provide one
+ * @param context - Context description for better error tracking
  * @param errorCode - Error code for categorization
  * @returns Structured AppError object
  */
 export const createAppError = (
   error: unknown, 
-  defaultMessage = 'An unexpected error occurred',
-  errorCode = 'UNKNOWN_ERROR'
+  context = 'Operation',
+  errorCode = ErrorCode.UNKNOWN_ERROR
 ): AppError => {
+  // Sanitize any potential harmful content in error messages
+  const sanitizeErrorMessage = (msg: string): string => {
+    return msg
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .substring(0, 500); // Limit length of error messages
+  };
+
   if (error instanceof Error) {
     return {
-      message: error.message || defaultMessage,
+      message: sanitizeErrorMessage(error.message) || 'An unexpected error occurred',
       code: errorCode,
-      details: error.stack,
-      originalError: error
+      details: error.stack ? sanitizeErrorMessage(error.stack) : undefined,
+      originalError: error,
+      timestamp: Date.now(),
+      context
     };
   }
   
   if (typeof error === 'string') {
     return {
-      message: error,
-      code: errorCode
+      message: sanitizeErrorMessage(error),
+      code: errorCode,
+      timestamp: Date.now(),
+      context
     };
   }
   
   return {
-    message: defaultMessage,
+    message: 'An unexpected error occurred',
     code: errorCode,
-    details: error ? String(error) : undefined,
-    originalError: error
+    details: error ? sanitizeErrorMessage(String(error)) : undefined,
+    originalError: error,
+    timestamp: Date.now(),
+    context
   };
 };
 
@@ -78,16 +111,42 @@ export const handleError = (
   context = 'Operation',
   notifyUser = true
 ): AppError => {
-  const appError = createAppError(error);
+  // Determine appropriate error code based on error type
+  let errorCode = ErrorCode.UNKNOWN_ERROR;
+  
+  if (error instanceof Error) {
+    if (error.name === 'ValidationError') {
+      errorCode = ErrorCode.VALIDATION_ERROR;
+    } else if (error.name === 'NetworkError' || error.message.includes('network')) {
+      errorCode = ErrorCode.NETWORK_ERROR;
+    } else if (error.message.includes('storage') || error.message.includes('localStorage')) {
+      errorCode = ErrorCode.STORAGE_ERROR;
+    } else if (error.message.includes('timeout') || error.message.includes('timed out')) {
+      errorCode = ErrorCode.TIMEOUT;
+    }
+  }
+  
+  const appError = createAppError(error, context, errorCode);
   
   // Log error with context
-  console.error(`${context} error:`, appError.originalError || appError.message);
+  console.error(`${context} error [${appError.code}]:`, appError.originalError || appError.message);
   
   // Notify user if requested
   if (notifyUser) {
-    toast.error(`${context} failed`, {
-      description: appError.message || 'Please try again'
-    });
+    // Use different toast types based on error severity
+    if (errorCode === ErrorCode.VALIDATION_ERROR) {
+      toast.warning(`${context} validation error`, {
+        description: appError.message || 'Please check your inputs'
+      });
+    } else if (errorCode === ErrorCode.SECURITY_ERROR) {
+      toast.error(`Security warning`, {
+        description: 'A security issue was detected. Please contact support.'
+      });
+    } else {
+      toast.error(`${context} failed`, {
+        description: appError.message || 'Please try again'
+      });
+    }
   }
   
   return appError;
@@ -137,4 +196,86 @@ export const executeWithTiming = async <T>(
     handleError(error, operationName);
     return null;
   }
+};
+
+/**
+ * Debounces a function to improve performance
+ * 
+ * @param func - Function to debounce
+ * @param wait - Time to wait in milliseconds
+ * @returns Debounced function
+ */
+export function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  
+  return function(...args: Parameters<T>): void {
+    const later = () => {
+      timeout = null;
+      func(...args);
+    };
+    
+    if (timeout !== null) {
+      clearTimeout(timeout);
+    }
+    timeout = setTimeout(later, wait);
+  };
+}
+
+/**
+ * Throttles a function to improve performance
+ * 
+ * @param func - Function to throttle
+ * @param limit - Time limit in milliseconds
+ * @returns Throttled function
+ */
+export function throttle<T extends (...args: any[]) => any>(
+  func: T,
+  limit: number
+): (...args: Parameters<T>) => void {
+  let inThrottle = false;
+  
+  return function(...args: Parameters<T>): void {
+    if (!inThrottle) {
+      func(...args);
+      inThrottle = true;
+      setTimeout(() => {
+        inThrottle = false;
+      }, limit);
+    }
+  };
+}
+
+/**
+ * Retries an async operation with exponential backoff
+ * 
+ * @param operation - Async function to retry
+ * @param maxRetries - Maximum number of retry attempts
+ * @param baseDelay - Base delay in milliseconds
+ * @returns Result of the operation or throws the last error
+ */
+export const retryWithBackoff = async <T>(
+  operation: () => Promise<T>,
+  maxRetries = 3,
+  baseDelay = 300
+): Promise<T> => {
+  let lastError: unknown;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      console.warn(`Operation failed (attempt ${attempt + 1}/${maxRetries + 1})`, error);
+      lastError = error;
+      
+      if (attempt < maxRetries) {
+        const delay = baseDelay * Math.pow(2, attempt);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  throw lastError;
 };
