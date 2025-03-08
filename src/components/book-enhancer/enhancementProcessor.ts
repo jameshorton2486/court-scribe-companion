@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 import { Book, Chapter, ChapterProcessingError } from '@/components/ebook-uploader/BookProcessor';
 
@@ -62,6 +63,95 @@ const safeApiCall = async <T>(
   }
 };
 
+// Grammar and punctuation correction
+const applyGrammarCorrections = (text: string, grammarLevel: number): string => {
+  // Basic fixes (always applied)
+  let correctedText = text
+    .replace(/\s\s+/g, ' ')                          // Fix multiple spaces
+    .replace(/\bi\b/g, 'I')                          // Capitalize "i"
+    .replace(/([.!?])\s*(\w)/g, (_, p, w) => `${p} ${w.toUpperCase()}`) // Capitalize after sentence
+    .replace(/\b(i'm|i'll|i've|i'd)\b/gi, match => match[0].toUpperCase() + match.slice(1)) // Fix I contractions
+    .replace(/(\w)\s+([,.!?:;])/g, '$1$2')           // Fix space before punctuation
+    .replace(/([,.!?:;])\s*/g, '$1 ')                // Ensure space after punctuation
+    .replace(/\s+\./g, '.')                          // Fix space before period
+    .replace(/\.\./g, '.')                           // Fix double periods
+    .replace(/\s*\n\s*/g, '\n')                      // Fix spacing around new lines
+    .replace(/([.!?])\s+([a-z])/g, (_, p, l) => `${p} ${l.toUpperCase()}`) // Capitalize after periods
+    .replace(/"\s*(.+?)\s*"/g, '"$1"')               // Fix spacing in quotes
+    .replace(/"\s*(.+?)\s*"/g, '"$1"')               // Fix spacing in quotes
+    .replace(/'\s*(.+?)\s*'/g, "'$1'");              // Fix spacing in single quotes
+  
+  // Medium level fixes
+  if (grammarLevel >= 2) {
+    correctedText = correctedText
+      .replace(/\b(dont|cant|wont|didnt|isnt|arent|wouldnt|couldnt|shouldnt|hasnt|havent|doesnt)\b/gi, 
+        match => match.slice(0, -1) + "'" + match.slice(-1)) // Add apostrophes
+      .replace(/\byou're\b/gi, "you're")
+      .replace(/\bthey're\b/gi, "they're")
+      .replace(/\bthere's\b/gi, "there's")
+      .replace(/\bit's\b/gi, "it's")
+      .replace(/\bwe're\b/gi, "we're")
+      .replace(/([^.!?:;])\s+\n\s+/g, '$1.\n')       // Add periods before line breaks if missing
+      .replace(/ - /g, " — ")                         // Convert hyphens to em dashes
+      .replace(/(\w)'(\w)/g, "$1'$2");               // Fix apostrophes in contractions
+  }
+  
+  // Thorough fixes (advanced grammar)
+  if (grammarLevel >= 3) {
+    correctedText = correctedText
+      .replace(/\b(could of|should of|would of|must of)\b/gi, match => 
+        match.replace(' of', ' have'))                // Fix "could of" to "could have"
+      .replace(/\b(less)\s+(\w+s)\b/gi, "fewer $2")   // "less books" to "fewer books"
+      .replace(/\b(amount)\s+of\s+(\w+s)\b/gi, "number of $2") // "amount of people" to "number of people"
+      .replace(/\bas\s+such\b/gi, "therefore")        // Improve formal language
+      .replace(/\bin order to\b/gi, "to")             // More concise
+      .replace(/\b(very|really|extremely)\s+(\w+)\b/gi, "$2") // Remove intensifiers for cleaner prose
+      .replace(/\bnot only\.\.\.\s*but also\b/gi, "both...and"); // Fix correlative conjunctions
+  }
+  
+  return correctedText;
+};
+
+// Professional text formatting
+const applyProfessionalFormatting = (
+  content: string, 
+  options: { 
+    fontFamily: string, 
+    generateTOC: boolean, 
+    addChapterBreaks: boolean 
+  }
+): string => {
+  let formattedContent = content;
+  
+  // Add CSS class for font family
+  const fontClass = `font-${options.fontFamily}`;
+  
+  // Add professional styling classes
+  formattedContent = formattedContent
+    .replace(/<h1/g, `<h1 class="text-4xl font-bold mb-8 mt-10 ${fontClass}"`)
+    .replace(/<h2/g, `<h2 class="text-3xl font-semibold mb-6 mt-8 ${fontClass}"`)
+    .replace(/<h3/g, `<h3 class="text-2xl font-medium mb-4 mt-6 ${fontClass}"`)
+    .replace(/<h4/g, `<h4 class="text-xl font-medium mb-3 mt-5 ${fontClass}"`)
+    .replace(/<p>/g, `<p class="mb-4 leading-relaxed ${fontClass}">`)
+    .replace(/<ul>/g, `<ul class="list-disc pl-6 mb-4 ${fontClass}">`)
+    .replace(/<ol>/g, `<ol class="list-decimal pl-6 mb-4 ${fontClass}">`)
+    .replace(/<blockquote>/g, `<blockquote class="border-l-4 border-gray-300 pl-4 italic my-4 ${fontClass}">`);
+  
+  // Add TOC markers if requested
+  if (options.generateTOC) {
+    formattedContent = formattedContent
+      .replace(/<h([1-3]) id="([^"]+)"([^>]*)>/g, 
+        (_, level, id, attrs) => `<h${level} id="${id}"${attrs} data-toc-item="true" data-toc-level="${level}">`);
+  }
+  
+  // Add page breaks for chapters if requested
+  if (options.addChapterBreaks) {
+    formattedContent = `<div class="page-break-before"></div>${formattedContent}`;
+  }
+  
+  return formattedContent;
+};
+
 // Replace this function with actual API calls when connected to a backend
 const enhanceChapterContent = async (
   chapterContent: string, 
@@ -75,18 +165,14 @@ const enhanceChapterContent = async (
       let content = chapterContent;
       const warnings: string[] = [];
       
-      // Simulate grammar and spelling correction
+      // Apply grammar and spelling correction
       if (options.enableGrammarCheck || options.enableSpellingCheck) {
         if (options.enableGrammarCheck && options.grammarLevel > 3) {
           warnings.push('High grammar level may alter the original voice significantly');
         }
         
-        // Simple simulation of grammar/spelling fixes
-        content = content
-          .replace(/\s\s+/g, ' ')  // Fix multiple spaces
-          .replace(/\bi\b/g, 'I')  // Capitalize "i"
-          .replace(/\bthier\b/g, 'their')  // Fix common misspelling
-          .replace(/\byoru\b/g, 'your');   // Fix common misspelling
+        // Apply grammar corrections
+        content = applyGrammarCorrections(content, options.grammarLevel);
       }
       
       // Simulate content expansion
@@ -109,26 +195,13 @@ const enhanceChapterContent = async (
         }
       }
       
-      // Simulate formatting changes
+      // Apply professional formatting
       if (options.enableProfessionalFormatting) {
-        // Add professional styling classes
-        content = content
-          .replace(/<h1/g, '<h1 class="text-3xl font-bold mb-6 mt-8"')
-          .replace(/<h2/g, '<h2 class="text-2xl font-semibold mb-4 mt-6"')
-          .replace(/<h3/g, '<h3 class="text-xl font-medium mb-3 mt-5"');
-        
-        // Add TOC markers if requested
-        if (options.generateTOC) {
-          content = content.replace(
-            /<h2 id="([^"]+)"([^>]*)>/g, 
-            '<h2 id="$1"$2 data-toc-item="true">'
-          );
-        }
-        
-        // Add page breaks for chapters if requested
-        if (options.addChapterBreaks) {
-          content = `<div class="page-break-before"></div>${content}`;
-        }
+        content = applyProfessionalFormatting(content, {
+          fontFamily: options.fontFamily,
+          generateTOC: options.generateTOC,
+          addChapterBreaks: options.addChapterBreaks
+        });
       }
       
       // Simulate a delay for processing
