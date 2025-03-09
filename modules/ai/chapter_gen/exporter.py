@@ -1,4 +1,11 @@
 
+"""
+Chapter Export Module
+
+This module handles the export of AI-generated chapters to various formats,
+primarily focusing on Microsoft Word (DOCX) output.
+"""
+
 import os
 import re
 from docx import Document
@@ -7,7 +14,24 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 import io
 from tkinter import messagebox
 
+
 def save_generated_chapter(app):
+    """
+    Save a generated chapter to a Word document file.
+    
+    This function takes the currently selected chapter from the application,
+    formats it appropriately with headings, paragraphs, and any associated
+    images, and saves it as a Word document in the specified output directory.
+    
+    Args:
+        app: The application instance containing chapter data and UI elements
+        
+    Returns:
+        None
+        
+    Raises:
+        Various exceptions related to file access or document creation issues
+    """
     if not app.chapters:
         messagebox.showerror("Error", "No chapters available.")
         return

@@ -1,4 +1,11 @@
 
+"""
+UI Builder Module
+
+This module handles the creation and layout of the application's
+graphical user interface components.
+"""
+
 import tkinter as tk
 from tkinter import ttk, scrolledtext
 from modules.ui.file_tab import create_file_tab
@@ -6,7 +13,16 @@ from modules.ui.ai_tab import create_ai_tab
 from modules.ui.chapter_tab import create_chapter_tab
 
 def create_main_ui(app):
-    """Create the main UI components for the BookProcessor application"""
+    """
+    Create the main UI components for the BookProcessor application
+    
+    This function sets up the main application window, creates tabs for
+    different functionality areas, and configures shared UI elements
+    like the log display and progress indicators.
+    
+    Args:
+        app: The application instance to configure UI for
+    """
     # Main frame with notebook (tabs)
     main_frame = ttk.Frame(app.root, padding=10)
     main_frame.pack(fill=tk.BOTH, expand=True)
