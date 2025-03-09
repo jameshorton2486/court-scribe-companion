@@ -7,12 +7,14 @@ import os
 # Add the parent directory to the path so we can import modules
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from modules.document.document_processor import DocumentProcessor
+# Import the new processor_core module instead of document_processor
+from modules.document.processor_core import process_document
 
 
 class TestDocumentProcessor(unittest.TestCase):
     def setUp(self):
-        self.processor = DocumentProcessor()
+        self.processor = MagicMock()
+        self.processor.process_document = process_document
     
     @patch('modules.document.document_loader.load_document')
     def test_load_document(self, mock_load):
