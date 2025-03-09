@@ -1,5 +1,6 @@
 
 import io
+import os
 import requests
 from PIL import Image, ImageTk
 import matplotlib.pyplot as plt
