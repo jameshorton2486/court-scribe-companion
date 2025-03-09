@@ -6,6 +6,8 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly security scans
 
 jobs:
   python-tests:
@@ -26,7 +28,7 @@ jobs:
         pytest --cov=modules tests/ || exit 0
     - name: Run security scan with bandit
       run: |
-        bandit -r modules/ -ll -ii || exit 0
+        bandit -r modules/ -ll -ii -c bandit.yaml || exit 0
     - name: Check dependencies for security vulnerabilities
       run: |
         safety check -i 42194 -i 44715 -i 44716 -i 51457 || exit 0
@@ -55,9 +57,21 @@ jobs:
     - name: Run security scan
       run: |
         npx audit-ci --moderate || exit 0
+        npx eslint . --ext .ts,.tsx || exit 0
     - name: Run TypeScript type checking
       run: |
         npm run typecheck || exit 0
     - name: Run ESLint
       run: |
         npm run lint || exit 0
+        
+  dependency-review:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: 'Checkout Repository'
+        uses: actions/checkout@v3
+      - name: 'Dependency Review'
+        uses: actions/dependency-review-action@v3
+        with:
+          fail-on-severity: moderate

@@ -11,6 +11,18 @@ interface BookValidationSchema {
 }
 
 /**
+ * Regular expressions for validations
+ */
+const PATTERNS = {
+  EMAIL: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+  URL: /^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_+.~#?&/=]*)$/,
+  FILENAME: /^[a-zA-Z0-9_\-][a-zA-Z0-9_\-\.]*$/,
+  SECURE_ID: /^[a-zA-Z0-9\-]{8,}$/,
+  PATH_TRAVERSAL: /\.\.|\/\.|\.\//, 
+  STRONG_PASSWORD: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
+};
+
+/**
  * Validates that a book object has the correct structure and required properties
  * 
  * @param book - The book object to validate
@@ -66,6 +78,13 @@ export const sanitizeHtml = (html: string): string => {
   // Sanitize URLs in links and images to prevent javascript: protocol attacks
   sanitized = sanitized.replace(/\bhref\s*=\s*["']?javascript:/gi, 'href="unsafe:');
   sanitized = sanitized.replace(/\bsrc\s*=\s*["']?javascript:/gi, 'src="unsafe:');
+  
+  // Remove object and embed tags
+  sanitized = sanitized.replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '');
+  sanitized = sanitized.replace(/<embed\b[^<]*(?:(?!<\/embed>)<[^<]*)*<\/embed>/gi, '');
+  
+  // Remove data: URLs which can be used for XSS
+  sanitized = sanitized.replace(/\bsrc\s*=\s*["']?data:/gi, 'src="unsafe:');
   
   return sanitized;
 };
@@ -132,3 +151,131 @@ export const validateFile = (
   return { valid: true };
 };
 
+/**
+ * Validates a URL string to ensure it's properly formatted and secure
+ * 
+ * @param url - URL string to validate
+ * @param requireHttps - Whether to require HTTPS protocol
+ * @returns Validation result with optional error message
+ */
+export const validateUrl = (
+  url: string,
+  requireHttps: boolean = true
+): { valid: boolean; message?: string } => {
+  if (!url) {
+    return { valid: false, message: 'URL cannot be empty' };
+  }
+  
+  if (!PATTERNS.URL.test(url)) {
+    return { valid: false, message: 'Invalid URL format' };
+  }
+  
+  if (requireHttps && !url.startsWith('https://')) {
+    return { valid: false, message: 'URL must use HTTPS for security' };
+  }
+  
+  return { valid: true };
+};
+
+/**
+ * Validates email address format
+ * 
+ * @param email - Email address to validate
+ * @returns Validation result with optional error message
+ */
+export const validateEmail = (email: string): { valid: boolean; message?: string } => {
+  if (!email) {
+    return { valid: false, message: 'Email cannot be empty' };
+  }
+  
+  if (!PATTERNS.EMAIL.test(email)) {
+    return { valid: false, message: 'Invalid email format' };
+  }
+  
+  return { valid: true };
+};
+
+/**
+ * Validates password strength
+ * 
+ * @param password - Password to validate
+ * @returns Validation result with optional error message
+ */
+export const validatePasswordStrength = (password: string): { valid: boolean; message?: string } => {
+  if (!password) {
+    return { valid: false, message: 'Password cannot be empty' };
+  }
+  
+  if (password.length < 8) {
+    return { valid: false, message: 'Password must be at least 8 characters long' };
+  }
+  
+  if (!PATTERNS.STRONG_PASSWORD.test(password)) {
+    return { 
+      valid: false, 
+      message: 'Password must include at least one uppercase letter, one lowercase letter, one number, and one special character' 
+    };
+  }
+  
+  return { valid: true };
+};
+
+/**
+ * Validates and sanitizes a filename to prevent path traversal and injection attacks
+ * 
+ * @param filename - Filename to validate and sanitize
+ * @returns Sanitized filename
+ */
+export const sanitizeFilename = (filename: string): string => {
+  if (!filename) return '';
+  
+  // Remove path traversal elements
+  let sanitized = filename;
+  if (PATTERNS.PATH_TRAVERSAL.test(sanitized)) {
+    // Extract just the filename from any path
+    const parts = sanitized.split(/[/\\]/);
+    sanitized = parts[parts.length - 1];
+  }
+  
+  // Ensure the filename matches safe pattern
+  if (!PATTERNS.FILENAME.test(sanitized)) {
+    sanitized = sanitized.replace(/[^a-zA-Z0-9_\-\.]/g, '_');
+  }
+  
+  return sanitized;
+};
+
+/**
+ * Generates a unique ID for use in the application
+ * 
+ * @returns Unique ID string
+ */
+export const generateUniqueId = (): string => {
+  return crypto.randomUUID ? 
+    crypto.randomUUID() : 
+    'id-' + Math.random().toString(36).substring(2, 11);
+};
+
+/**
+ * Validates JSON data against expected schema
+ * 
+ * @param data - JSON data to validate
+ * @param requiredProps - Array of required property names
+ * @returns Validation result with optional error message
+ */
+export const validateJsonSchema = (
+  data: any, 
+  requiredProps: string[]
+): { valid: boolean; message?: string } => {
+  if (!data || typeof data !== 'object') {
+    return { valid: false, message: 'Invalid data format, expected an object' };
+  }
+  
+  for (const prop of requiredProps) {
+    if (!(prop in data)) {
+      return { valid: false, message: `Missing required property: ${prop}` };
+    }
+  }
+  
+  return { valid: true };
+};

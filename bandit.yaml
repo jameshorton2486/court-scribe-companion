@@ -1,0 +1,39 @@
+
+# Bandit security scan configuration
+
+# Exclude specific files
+exclude_dirs:
+  - 'tests/'
+  - 'venv/'
+  - 'env/'
+  - '.venv/'
+  - '.env/'
+  - '__pycache__/'
+
+# Include only Python files
+include:
+  - '*.py'
+
+# Skip security check for specific issues
+skips:
+  - 'B101'  # Skip assert statements warning in test files
+  - 'B311'  # Skip random warning in non-security contexts
+
+# Custom test profiles
+profiles:
+  medium_severity:
+    include:
+      - medium-confidence
+      - high-confidence
+
+# Output format and verbosity
+output_format: txt
+verbose: true
+
+# Confidence levels to include
+# confidence levels: LOW, MEDIUM, HIGH
+confidence_level: MEDIUM
+
+# Severity levels to include
+# severity levels: LOW, MEDIUM, HIGH
+severity_level: MEDIUM

@@ -1,5 +1,5 @@
 
-name: TypeScript Linting
+name: TypeScript Linting and Security
 
 on:
   push:
@@ -29,3 +29,29 @@ jobs:
       run: npm run lint || exit 0
     - name: Type check
       run: npm run typecheck || exit 0
+    - name: Format check
+      run: npx prettier --check "src/**/*.{ts,tsx}" || exit 0
+    - name: Security audit
+      run: npm audit --production || exit 0
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+        cache: 'npm'
+    - name: Install dependencies
+      run: npm ci
+    - name: Run security checks
+      run: |
+        npx audit-ci --moderate || exit 0
+    - name: Static Application Security Testing
+      run: |
+        npx eslint . --ext .ts,.tsx --config eslint.config.js || exit 0
+    - name: Check for secrets in code
+      uses: gitleaks/gitleaks-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
