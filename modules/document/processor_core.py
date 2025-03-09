@@ -11,6 +11,7 @@ import tkinter as tk
 from tkinter import messagebox
 import time
 import gc
+from modules.utils.error_handler import ErrorHandler
 
 def process_document(app):
     """
@@ -19,17 +20,22 @@ def process_document(app):
     Args:
         app: The application instance containing UI elements and data
     """
-    if not app.docx_content:
-        messagebox.showerror("Error", "Please load a document first")
-        return
-    
-    # If batch processing is enabled, process all files
-    if app.batch_process.get() and len(app.input_files) > 1:
-        from modules.document.batch_processor import _batch_process_documents
-        threading.Thread(target=_batch_process_documents, args=(app,), daemon=True).start()
-    else:
-        # Process single document
-        threading.Thread(target=_process_document_thread, args=(app,), daemon=True).start()
+    # Validate input
+    try:
+        ErrorHandler.validate_input(app.docx_content, "Please load a document first")
+        
+        # If batch processing is enabled, process all files
+        if app.batch_process.get() and len(app.input_files) > 1:
+            from modules.document.batch_processor import _batch_process_documents
+            threading.Thread(target=_batch_process_documents, args=(app,), daemon=True).start()
+        else:
+            # Process single document
+            threading.Thread(target=_process_document_thread, args=(app,), daemon=True).start()
+    except ValueError as e:
+        # Input validation errors are already handled by the ErrorHandler
+        pass
+    except Exception as e:
+        ErrorHandler.handle_processing_error(app, e, "document processing setup")
 
 def _process_document_thread(app, show_message=True):
     """
@@ -111,7 +117,4 @@ def _process_document_thread(app, show_message=True):
         gc.collect()
         
     except Exception as e:
-        app.log.error(f"Error processing document: {str(e)}")
-        app.update_progress(0, "Error processing document")
-        if show_message:
-            messagebox.showerror("Error", f"Failed to process document: {str(e)}")
+        ErrorHandler.handle_processing_error(app, e, "document processing", show_message)

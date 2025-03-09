@@ -7,7 +7,7 @@ threading, and user feedback mechanisms.
 """
 
 from tkinter import messagebox
-
+from modules.utils.error_handler import ErrorHandler
 
 class OperationHandler:
     """
@@ -41,27 +41,31 @@ class OperationHandler:
         Returns:
             Thread handle for the background operation
         """
-        # Check if we have files in the list
-        if not self.app.input_files:
-            self.app.log.warning("Attempted to load document with no input files")
-            messagebox.showerror("Error", "Please add at least one input file")
-            return
+        try:
+            # Check if we have files in the list
+            ErrorHandler.validate_input(self.app.input_files, "Please add at least one input file")
+                
+            # Get the selected file from the listbox or use the first one if none selected
+            selected = self.app.file_listbox.curselection()
+            if selected:
+                file_index = selected[0]
+                self.app.input_file.set(self.app.input_files[file_index])
+            else:
+                self.app.input_file.set(self.app.input_files[0])
             
-        # Get the selected file from the listbox or use the first one if none selected
-        selected = self.app.file_listbox.curselection()
-        if selected:
-            file_index = selected[0]
-            self.app.input_file.set(self.app.input_files[file_index])
-        else:
-            self.app.input_file.set(self.app.input_files[0])
-        
-        self.app.log.info(f"Loading document: {self.app.input_file.get()}")
-        self.operation_results['load_document'] = None
-        
-        # Import here to avoid circular imports
-        from modules.document.document_loader import load_document
-        thread = self.app.background_processor.run_with_progress(load_document, self.app)
-        return thread
+            self.app.log.info(f"Loading document: {self.app.input_file.get()}")
+            self.operation_results['load_document'] = None
+            
+            # Import here to avoid circular imports
+            from modules.document.document_loader import load_document
+            thread = self.app.background_processor.run_with_progress(load_document, self.app)
+            return thread
+        except ValueError:
+            # Already handled by ErrorHandler
+            return None
+        except Exception as e:
+            ErrorHandler.handle_processing_error(self.app, e, "load document")
+            return None
     
     def process_document(self):
         """
@@ -73,18 +77,26 @@ class OperationHandler:
         Returns:
             Thread handle for the background operation
         """
-        if not hasattr(self.app, 'docx_content') or not self.app.docx_content:
-            self.app.log.warning("Attempted to process document before loading")
-            messagebox.showerror("Error", "Please load a document first")
-            return
+        try:
+            # Check if document is loaded
+            ErrorHandler.validate_input(
+                hasattr(self.app, 'docx_content') and self.app.docx_content,
+                "Please load a document first"
+            )
+                
+            self.app.log.info("Processing document...")
+            self.operation_results['process_document'] = None
             
-        self.app.log.info("Processing document...")
-        self.operation_results['process_document'] = None
-        
-        # Import here to avoid circular imports
-        from modules.document.document_processor import process_document
-        thread = self.app.background_processor.run_with_progress(process_document, self.app)
-        return thread
+            # Import here to avoid circular imports
+            from modules.document.document_processor import process_document
+            thread = self.app.background_processor.run_with_progress(process_document, self.app)
+            return thread
+        except ValueError:
+            # Already handled by ErrorHandler
+            return None
+        except Exception as e:
+            ErrorHandler.handle_processing_error(self.app, e, "process document")
+            return None
     
     def save_all_chapters(self):
         """
@@ -96,18 +108,26 @@ class OperationHandler:
         Returns:
             Thread handle for the background operation
         """
-        if not hasattr(self.app, 'chapters') or not self.app.chapters:
-            self.app.log.warning("Attempted to save chapters with no chapters available")
-            messagebox.showerror("Error", "No chapters available to save. Please process a document first.")
-            return
+        try:
+            # Verify chapters exist
+            ErrorHandler.validate_input(
+                hasattr(self.app, 'chapters') and self.app.chapters,
+                "No chapters available to save. Please process a document first."
+            )
+                
+            self.app.log.info("Saving all chapters...")
+            self.operation_results['save_chapters'] = None
             
-        self.app.log.info("Saving all chapters...")
-        self.operation_results['save_chapters'] = None
-        
-        # Import here to avoid circular imports
-        from modules.document.chapter_processor import save_all_chapters
-        thread = self.app.background_processor.run_with_progress(save_all_chapters, self.app)
-        return thread
+            # Import here to avoid circular imports
+            from modules.document.chapter_processor import save_all_chapters
+            thread = self.app.background_processor.run_with_progress(save_all_chapters, self.app)
+            return thread
+        except ValueError:
+            # Already handled by ErrorHandler
+            return None
+        except Exception as e:
+            ErrorHandler.handle_processing_error(self.app, e, "save chapters")
+            return None
     
     def generate_complete_book(self):
         """
@@ -119,18 +139,26 @@ class OperationHandler:
         Returns:
             Thread handle for the background operation
         """
-        if not hasattr(self.app, 'chapters') or not self.app.chapters:
-            self.app.log.warning("Attempted to generate book with no chapters available")
-            messagebox.showerror("Error", "No chapters available. Please process a document first.")
-            return
+        try:
+            # Verify chapters exist
+            ErrorHandler.validate_input(
+                hasattr(self.app, 'chapters') and self.app.chapters,
+                "No chapters available. Please process a document first."
+            )
+                
+            self.app.log.info("Generating complete book...")
+            self.operation_results['generate_book'] = None
             
-        self.app.log.info("Generating complete book...")
-        self.operation_results['generate_book'] = None
-        
-        # Import here to avoid circular imports
-        from modules.document.chapter_processor import generate_complete_book
-        thread = self.app.background_processor.run_with_progress(generate_complete_book, self.app)
-        return thread
+            # Import here to avoid circular imports
+            from modules.document.chapter_processor import generate_complete_book
+            thread = self.app.background_processor.run_with_progress(generate_complete_book, self.app)
+            return thread
+        except ValueError:
+            # Already handled by ErrorHandler
+            return None
+        except Exception as e:
+            ErrorHandler.handle_processing_error(self.app, e, "generate book")
+            return None
     
     def batch_process_all(self):
         """
@@ -142,18 +170,26 @@ class OperationHandler:
         Returns:
             Thread handle for the background operation
         """
-        if not self.app.input_files:
-            self.app.log.warning("Attempted batch processing with no input files")
-            messagebox.showerror("Error", "Please add at least one input file")
-            return
+        try:
+            # Verify input files exist
+            ErrorHandler.validate_input(
+                self.app.input_files,
+                "Please add at least one input file"
+            )
+                
+            self.app.log.info(f"Starting batch processing of {len(self.app.input_files)} files...")
+            self.operation_results['batch_process'] = None
             
-        self.app.log.info(f"Starting batch processing of {len(self.app.input_files)} files...")
-        self.operation_results['batch_process'] = None
-        
-        # Import here to avoid circular imports
-        from modules.ui.file_actions import batch_process_all
-        thread = self.app.background_processor.run_with_progress(batch_process_all, self.app)
-        return thread
+            # Import here to avoid circular imports
+            from modules.ui.file_actions import batch_process_all
+            thread = self.app.background_processor.run_with_progress(batch_process_all, self.app)
+            return thread
+        except ValueError:
+            # Already handled by ErrorHandler
+            return None
+        except Exception as e:
+            ErrorHandler.handle_processing_error(self.app, e, "batch process")
+            return None
         
     def get_operation_result(self, operation_name):
         """

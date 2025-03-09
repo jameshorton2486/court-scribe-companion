@@ -33,6 +33,7 @@ vi.mock('@/hooks/useSampleBook', () => ({
   sampleBook: { 
     id: 'court-scribe-companion',
     title: 'Sample Book',
+    author: 'Sample Author',
     chapters: [{ id: 'chapter-1', title: 'Chapter 1', content: 'Sample content' }]
   },
   generateToc: vi.fn().mockReturnValue([{ id: 'chapter-1', title: 'Chapter 1', level: 1 }])
@@ -63,6 +64,7 @@ describe('useBookLoader', () => {
     const mockBook = {
       id: 'test-book',
       title: 'Test Book',
+      author: 'Test Author',
       chapters: [{ id: 'test-chapter', title: 'Test Chapter', content: 'Test content' }]
     };
     
@@ -107,6 +109,7 @@ describe('useBookLoader', () => {
     const mockBook = {
       id: 'test-book',
       title: 'Test Book',
+      author: 'Test Author',
       chapters: [{ id: 'test-chapter', title: 'Test Chapter', content: 'Test content' }]
     };
     
@@ -129,6 +132,7 @@ describe('useBookLoader', () => {
     const mockBook = {
       id: 'test-book',
       title: 'Test Book',
+      author: 'Test Author',
       chapters: [{ id: 'test-chapter', title: 'Test Chapter', content: 'Test content' }]
     };
     

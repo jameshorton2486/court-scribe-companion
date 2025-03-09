@@ -30,6 +30,7 @@ export const enhanceBook = async (
     const enhancementErrors: ChapterProcessingError[] = [];
     
     const enhancementResult = await executeWithTiming(async () => {
+      // Process each chapter
       for (let i = 0; i < enhancedChapters.length; i++) {
         const chapter = enhancedChapters[i];
         
@@ -74,6 +75,7 @@ export const enhanceBook = async (
       return { enhancedChapters, enhancementErrors };
     }, 'Book enhancement');
     
+    // Check if enhancement was successful
     if (enhancementResult) {
       enhancedBook.chapters = enhancementResult.result.enhancedChapters;
       
