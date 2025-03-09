@@ -4,6 +4,7 @@ import requests
 from PIL import Image, ImageTk
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
+import openai
 
 def generate_chapter_visual(app, chapter):
     """Generate visual content (image or diagram) for a chapter."""
@@ -25,7 +26,19 @@ def generate_image(app, chapter):
     image_prompt = f"Create an image representing the key concepts in this chapter about {chapter['title']}."
     
     try:
-        image_response = openai.images.generate(
+        # First try to get API key from environment variables
+        api_key = os.environ.get('OPENAI_API_KEY')
+        
+        # If not in environment, use the one from the application
+        if not api_key:
+            api_key = app.openai_api_key.get()
+            if not api_key:
+                raise ValueError("No OpenAI API key found")
+        
+        # Setup OpenAI client
+        client = openai.OpenAI(api_key=api_key)
+        
+        image_response = client.images.generate(
             model="dall-e-3",
             prompt=image_prompt,
             size="1024x1024",
@@ -40,8 +53,8 @@ def generate_image(app, chapter):
         img_response = requests.get(image_url)
         img = Image.open(io.BytesIO(img_response.content))
         
-        # Resize for display
-        img = img.resize((400, 400), Image.LANCZOS)
+        # Resize for display using Lanczos resampling (renamed in Pillow 10.0.0+)
+        img = img.resize((400, 400), Image.Resampling.LANCZOS)
         photo = ImageTk.PhotoImage(img)
         app.image_label.config(image=photo)
         app.image_label.image = photo  # Keep a reference
@@ -81,7 +94,8 @@ def generate_diagram(app, chapter):
         # Convert to PhotoImage for display
         buf.seek(0)
         img = Image.open(buf)
-        img = img.resize((500, 400), Image.LANCZOS)
+        # Use the updated resampling constant for Pillow 10+
+        img = img.resize((500, 400), Image.Resampling.LANCZOS)
         photo = ImageTk.PhotoImage(img)
         app.image_label.config(image=photo)
         app.image_label.image = photo  # Keep a reference
