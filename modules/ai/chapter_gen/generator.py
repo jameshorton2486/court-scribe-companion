@@ -9,6 +9,7 @@ import requests
 from PIL import Image, ImageTk
 from tkinter import messagebox
 from modules.ai.chapter_gen.visuals import generate_chapter_visual
+from modules.ai.openai.api_client import get_api_key, validate_api_key
 
 def generate_chapter_content(app):
     if not app.chapters:
@@ -25,14 +26,16 @@ def generate_chapter_content(app):
         return
     
     # First try to get API key from environment variables
-    api_key = os.environ.get('OPENAI_API_KEY')
-    
-    # If not in environment, use the one from the application
+    api_key = get_api_key(app)
     if not api_key:
-        api_key = app.openai_api_key.get()
-        if not api_key:
-            messagebox.showerror("Error", "No OpenAI API key found. Please set the OPENAI_API_KEY environment variable or enter it in the application.")
-            return
+        messagebox.showerror("Error", "No OpenAI API key found. Please set the OPENAI_API_KEY environment variable or enter it in the application.")
+        return
+    
+    # Basic validation before making the API call
+    if not validate_api_key(api_key):
+        app.log("Invalid OpenAI API key format")
+        messagebox.showerror("Error", "The API key appears to be invalid. OpenAI API keys typically start with 'sk-'.")
+        return
     
     # Start chapter generation in a separate thread
     threading.Thread(target=_generate_chapter_thread, args=(app, api_key), daemon=True).start()
@@ -94,6 +97,22 @@ def _generate_chapter_thread(app, api_key):
         app.log("Chapter content generated successfully")
         messagebox.showinfo("Success", "Chapter content generated successfully")
         
+    except openai.AuthenticationError as e:
+        app.log(f"OpenAI authentication error: {str(e)}")
+        app.update_progress(0, "Chapter generation failed: Authentication error")
+        messagebox.showerror("Authentication Error", f"Invalid API key or not authorized: {str(e)}")
+    except openai.RateLimitError as e:
+        app.log(f"OpenAI rate limit error: {str(e)}")
+        app.update_progress(0, "Chapter generation failed: Rate limit exceeded")
+        messagebox.showerror("Rate Limit Error", f"OpenAI API rate limit exceeded. Please try again later: {str(e)}")
+    except openai.APIError as e:
+        app.log(f"OpenAI API error: {str(e)}")
+        app.update_progress(0, "Chapter generation failed: API error")
+        messagebox.showerror("API Error", f"OpenAI API error: {str(e)}")
+    except openai.APIConnectionError as e:
+        app.log(f"OpenAI connection error: {str(e)}")
+        app.update_progress(0, "Chapter generation failed: Connection error")
+        messagebox.showerror("Connection Error", f"Failed to connect to OpenAI API: {str(e)}")
     except Exception as e:
         app.log(f"Error generating chapter content: {str(e)}")
         app.update_progress(0, "Error in content generation")

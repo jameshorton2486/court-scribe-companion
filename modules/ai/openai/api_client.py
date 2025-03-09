@@ -22,6 +22,17 @@ def get_api_key(app):
     
     return api_key
 
+def validate_api_key(api_key):
+    """Validate that the API key has the correct format."""
+    if not api_key:
+        return False
+        
+    # Basic validation - most OpenAI keys start with 'sk-' and have a minimum length
+    if not api_key.startswith('sk-') or len(api_key) < 20:
+        return False
+        
+    return True
+
 def test_openai_connection(app):
     """Test connection to OpenAI API with improved error handling."""
     app.update_progress(10, "Testing OpenAI connection...")
@@ -31,7 +42,14 @@ def test_openai_connection(app):
     if not api_key:
         messagebox.showerror("Error", "No OpenAI API key found. Please set the OPENAI_API_KEY environment variable or enter it in the application.")
         app.update_progress(0, "OpenAI connection failed: No API key")
-        return
+        return False
+    
+    # Basic validation before making the API call
+    if not validate_api_key(api_key):
+        app.log("Invalid OpenAI API key format")
+        messagebox.showerror("Error", "The API key appears to be invalid. OpenAI API keys typically start with 'sk-'.")
+        app.update_progress(0, "OpenAI connection failed: Invalid API key format")
+        return False
     
     try:
         # Set up the client
@@ -55,7 +73,12 @@ def test_openai_connection(app):
         app.update_progress(100, "OpenAI connection successful")
         messagebox.showinfo("Success", "Successfully connected to OpenAI API using " + 
                           ("environment variable" if os.environ.get('OPENAI_API_KEY') else "application input"))
+        return True
         
+    except openai.AuthenticationError as e:
+        app.log(f"OpenAI authentication error: {str(e)}")
+        app.update_progress(0, "OpenAI connection failed: Authentication error")
+        messagebox.showerror("Authentication Error", f"Invalid API key or not authorized: {str(e)}")
     except openai.RateLimitError as e:
         app.log(f"OpenAI rate limit error: {str(e)}")
         app.update_progress(0, "OpenAI connection failed: Rate limit exceeded")
@@ -72,3 +95,5 @@ def test_openai_connection(app):
         app.log(f"OpenAI connection error: {str(e)}")
         app.update_progress(0, "OpenAI connection failed")
         messagebox.showerror("Error", f"Failed to connect to OpenAI: {str(e)}")
+    
+    return False

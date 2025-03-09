@@ -4,6 +4,7 @@ import os
 import requests
 from PIL import Image, ImageTk
 import openai
+from modules.ai.openai.api_client import get_api_key, validate_api_key
 
 def generate_image(app, chapter):
     """Generate an image for the chapter using OpenAI's DALL-E."""
@@ -14,13 +15,15 @@ def generate_image(app, chapter):
     
     try:
         # First try to get API key from environment variables
-        api_key = os.environ.get('OPENAI_API_KEY')
-        
-        # If not in environment, use the one from the application
+        api_key = get_api_key(app)
         if not api_key:
-            api_key = app.openai_api_key.get()
-            if not api_key:
-                raise ValueError("No OpenAI API key found")
+            app.log("No OpenAI API key found")
+            return None
+        
+        # Basic validation before making the API call
+        if not validate_api_key(api_key):
+            app.log("Invalid OpenAI API key format")
+            return None
         
         # Setup OpenAI client
         client = openai.OpenAI(api_key=api_key)
@@ -52,6 +55,15 @@ def generate_image(app, chapter):
             "data": img_response.content
         }
         
+    except openai.AuthenticationError as e:
+        app.log(f"OpenAI authentication error: {str(e)}")
+    except openai.RateLimitError as e:
+        app.log(f"OpenAI rate limit error: {str(e)}")
+    except openai.APIError as e:
+        app.log(f"OpenAI API error: {str(e)}")
+    except openai.APIConnectionError as e:
+        app.log(f"OpenAI connection error: {str(e)}")
     except Exception as e:
         app.log(f"Error generating image: {str(e)}")
-        return None
+    
+    return None
