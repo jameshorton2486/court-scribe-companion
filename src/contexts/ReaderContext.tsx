@@ -2,7 +2,7 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Book } from '@/components/ebook-uploader/EbookUploader';
 import { toast } from 'sonner';
-import { StorageType } from '@/utils/storageUtils';
+import { StorageType } from '@/utils/storage';
 import { useBookOperations, SyncStatus } from '@/hooks/useBookOperations';
 
 interface TocItem {

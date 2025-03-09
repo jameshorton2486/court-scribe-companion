@@ -1,7 +1,6 @@
-
 import { useEffect } from 'react';
 import { useReader } from '@/contexts/ReaderContext';
-import { StorageType } from '@/utils/storageUtils';
+import { StorageType } from '@/utils/storage';
 
 interface ReaderInitializerProps {
   book: any;

@@ -1,10 +1,9 @@
-
 import { useParams, useNavigate } from 'react-router-dom';
 import { ReaderProvider } from '@/contexts/ReaderContext';
 import ReaderInitializer from '@/components/reader/ReaderInitializer';
 import ReaderUI from '@/components/reader/ReaderUI';
 import useBookLoader from '@/hooks/useBookLoader';
-import { StorageType } from '@/utils/storageUtils';
+import { StorageType } from '@/utils/storage';
 
 const Reader = () => {
   const { bookId, chapterId } = useParams();

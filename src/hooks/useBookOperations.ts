@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Book } from '@/components/ebook-uploader/EbookUploader';
 import { validateBook } from '@/utils/validationUtils';
-import { getSavedBooks, saveBooksToStorage, StorageType } from '@/utils/storageUtils';
+import { getSavedBooks, saveBooksToStorage, StorageType } from '@/utils/storage';
 import { handleError, safeOperation } from '@/utils/errorHandlingUtils';
 
 export type SyncStatus = 'synchronized' | 'synchronizing' | 'unsynchronized' | 'error';
