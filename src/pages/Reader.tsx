@@ -4,11 +4,19 @@ import { ReaderProvider } from '@/contexts/ReaderContext';
 import ReaderInitializer from '@/components/reader/ReaderInitializer';
 import ReaderUI from '@/components/reader/ReaderUI';
 import useBookLoader from '@/hooks/useBookLoader';
+import { StorageType } from '@/utils/storageUtils';
 
 const Reader = () => {
   const { bookId, chapterId } = useParams();
   const navigate = useNavigate();
-  const { book, toc, updateBook, storageAvailable, storageType, setStorageType: setLoaderStorageType } = useBookLoader(bookId, navigate);
+  const { 
+    book, 
+    toc, 
+    updateBook, 
+    storageAvailable, 
+    storageType, 
+    setStorageType: setLoaderStorageType 
+  } = useBookLoader(bookId, navigate);
   
   return (
     <ReaderProvider>

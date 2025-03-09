@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { NavigateFunction } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -12,7 +11,7 @@ const useBookLoader = (bookId: string | undefined, navigate: NavigateFunction) =
   const [book, setBook] = useState<Book | null>(null);
   const [toc, setToc] = useState<TocItem[]>([]);
   const [storageAvailable, setStorageAvailable] = useState<boolean>(true);
-  const [storageType, setStorageType] = useState<'localStorage' | 'sessionStorage'>('localStorage');
+  const [storageType, setStorageType] = useState<StorageType>('localStorage');
 
   // Check storage availability once on mount
   useEffect(() => {

@@ -1,5 +1,7 @@
+
 import { useEffect } from 'react';
 import { useReader } from '@/contexts/ReaderContext';
+import { StorageType } from '@/utils/storageUtils';
 
 interface ReaderInitializerProps {
   book: any;
@@ -7,8 +9,8 @@ interface ReaderInitializerProps {
   chapterId: string | undefined;
   updateBook: (book: any) => void;
   storageAvailable: boolean;
-  storageType: string;
-  setStorageType: (type: string) => void;
+  storageType: StorageType;
+  setStorageType: (type: StorageType) => void;
 }
 
 const ReaderInitializer = ({
