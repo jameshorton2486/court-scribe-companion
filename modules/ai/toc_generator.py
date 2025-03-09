@@ -1,3 +1,4 @@
+
 import threading
 import time
 import os
@@ -21,15 +22,16 @@ def generate_ai_toc(app):
             messagebox.showerror("Error", "No OpenAI API key found. Please set the OPENAI_API_KEY environment variable or enter it in the application.")
             return
     
-    openai.api_key = api_key
-    
     # Start TOC generation in a separate thread
-    threading.Thread(target=_generate_ai_toc_thread, args=(app,), daemon=True).start()
+    threading.Thread(target=_generate_ai_toc_thread, args=(app, api_key), daemon=True).start()
 
-def _generate_ai_toc_thread(app):
+def _generate_ai_toc_thread(app, api_key):
     try:
         app.log("Generating AI-assisted table of contents...")
         app.update_progress(0, "Starting TOC generation...")
+        
+        # Setup OpenAI client
+        client = openai.OpenAI(api_key=api_key)
         
         # Extract chapter titles and brief content
         chapters_info = []
@@ -64,7 +66,7 @@ def _generate_ai_toc_thread(app):
         
         # Send to OpenAI
         app.update_progress(30, "Querying OpenAI...")
-        response = openai.chat.completions.create(
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "You are a professional book editor with expertise in organizing book content."},

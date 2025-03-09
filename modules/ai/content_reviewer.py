@@ -24,15 +24,16 @@ def review_with_ai(app):
     else:
         app.log("Using OpenAI API key from environment variables")
     
-    openai.api_key = api_key
-    
     # Start AI review in a separate thread
-    threading.Thread(target=_review_with_ai_thread, args=(app,), daemon=True).start()
+    threading.Thread(target=_review_with_ai_thread, args=(app, api_key), daemon=True).start()
 
-def _review_with_ai_thread(app):
+def _review_with_ai_thread(app, api_key):
     try:
         app.log("Starting AI content review...")
         app.update_progress(0, "Starting AI review...")
+        
+        # Setup OpenAI client
+        client = openai.OpenAI(api_key=api_key)
         
         total_chapters = len(app.chapters)
         review_results = []
@@ -60,7 +61,7 @@ def _review_with_ai_thread(app):
             
             # Send to OpenAI
             app.log(f"Sending chapter content to OpenAI for review...")
-            response = openai.chat.completions.create(
+            response = client.chat.completions.create(
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": "You are a professional book editor with expertise in improving book content."},

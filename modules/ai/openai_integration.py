@@ -37,12 +37,12 @@ def test_openai_connection(app):
         return
     
     try:
-        # Set the API key
-        openai.api_key = api_key
+        # Set up the client
+        client = openai.OpenAI(api_key=api_key)
         
         # Simple test request
         app.log("Sending test request to OpenAI API...")
-        response = openai.chat.completions.create(
+        response = client.chat.completions.create(
             model=app.openai_model.get(),
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
@@ -103,8 +103,8 @@ def enhance_text_with_ai(app, text, enhancement_type='grammar',
         app.update_progress(0, "AI enhancement failed: No API key")
         return None
     
-    # Set the API key
-    openai.api_key = api_key
+    # Set up the client
+    client = openai.OpenAI(api_key=api_key)
     
     # Map intensity to temperature and other parameters
     temperature = min(0.7, max(0.1, 0.1 + intensity * 0.5))
@@ -149,7 +149,7 @@ def enhance_text_with_ai(app, text, enhancement_type='grammar',
             app.log(f"Using model: {model}")
             
             # Call OpenAI API
-            response = openai.chat.completions.create(
+            response = client.chat.completions.create(
                 model=model,
                 messages=[
                     {"role": "system", "content": system_prompt},
@@ -203,8 +203,8 @@ def generate_ai_toc(app):
         app.update_progress(0, "AI TOC generation failed: No API key")
         return
     
-    # Set the API key
-    openai.api_key = api_key
+    # Set up the client
+    client = openai.OpenAI(api_key=api_key)
     
     try:
         # Prepare chapter titles and excerpts for TOC generation
@@ -236,7 +236,7 @@ def generate_ai_toc(app):
         model = app.openai_model.get()
         app.log(f"Using model: {model}")
         
-        response = openai.chat.completions.create(
+        response = client.chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -319,8 +319,8 @@ def review_with_ai(app):
         app.update_progress(0, "AI review failed: No API key")
         return
     
-    # Set the API key
-    openai.api_key = api_key
+    # Set up the client
+    client = openai.OpenAI(api_key=api_key)
     
     try:
         # Analyze each chapter and compile feedback
@@ -358,7 +358,7 @@ def review_with_ai(app):
             model = app.openai_model.get()
             
             try:
-                response = openai.chat.completions.create(
+                response = client.chat.completions.create(
                     model=model,
                     messages=[
                         {"role": "system", "content": system_prompt},
