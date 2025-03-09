@@ -82,7 +82,7 @@ export const enhanceChapterContent = async (
       errors: [{
         message: 'Failed to enhance chapter content',
         code: 'ENHANCEMENT_FAILED',
-        details: appError.details || String(appError.message)
+        details: appError.message || String(error)
       }]
     };
   }

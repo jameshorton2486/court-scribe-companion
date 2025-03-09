@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
-import { parseGlossary } from './glossary/GlossaryParser';
-import { renderGlossaryItems } from './glossary/GlossaryRenderer';
+import { parseGlossaryContent } from './glossary/GlossaryParser';
+import { renderGlossaryToHtml } from './glossary/GlossaryRenderer';
 import './glossary.css';
 
 interface GlossaryFormatterProps {
@@ -17,14 +17,20 @@ interface GlossaryFormatterProps {
 const GlossaryFormatter: React.FC<GlossaryFormatterProps> = ({ content }) => {
   // Parse the glossary content into structured data
   const glossaryItems = useMemo(() => {
-    return parseGlossary(content);
+    return parseGlossaryContent(content);
   }, [content]);
+  
+  // Create HTML string from glossary data
+  const glossaryHtml = useMemo(() => {
+    return renderGlossaryToHtml(glossaryItems);
+  }, [glossaryItems]);
   
   // Render the glossary with specialized formatting
   return (
-    <div className="glossary-container prose dark:prose-invert max-w-none">
-      {renderGlossaryItems(glossaryItems)}
-    </div>
+    <div 
+      className="glossary-container prose dark:prose-invert max-w-none"
+      dangerouslySetInnerHTML={{ __html: glossaryHtml }}
+    />
   );
 };
 
