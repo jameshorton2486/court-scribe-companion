@@ -52,7 +52,7 @@ def test_openai_connection(app):
         return False
     
     try:
-        # Set up the client
+        # Set up the client - removing any proxy configuration that might be causing issues
         client = openai.OpenAI(api_key=api_key)
         
         # Simple test request

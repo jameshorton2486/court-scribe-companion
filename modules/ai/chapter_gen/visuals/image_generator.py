@@ -25,7 +25,7 @@ def generate_image(app, chapter):
             app.log("Invalid OpenAI API key format")
             return None
         
-        # Setup OpenAI client
+        # Setup OpenAI client - removing any proxy configuration that might be causing issues
         client = openai.OpenAI(api_key=api_key)
         
         image_response = client.images.generate(

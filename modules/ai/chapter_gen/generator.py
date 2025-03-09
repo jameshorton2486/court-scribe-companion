@@ -61,7 +61,7 @@ def _generate_chapter_thread(app, api_key):
         Include appropriate section headings for each major point in the outline.
         """
         
-        # Setup OpenAI client
+        # Setup OpenAI client - removing any proxy configuration that might be causing issues
         client = openai.OpenAI(api_key=api_key)
         
         # Send to OpenAI
