@@ -1,7 +1,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { validateBook, isValidBook } from './BookValidator';
-import { Book } from '@/components/ebook-uploader/EbookUploader';
+import { Book } from './BookTypes';
 import * as PerformanceMonitor from './PerformanceMonitor';
 
 // Mock dependencies

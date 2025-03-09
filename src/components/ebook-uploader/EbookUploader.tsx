@@ -9,7 +9,8 @@ import PasteTab from './PasteTab';
 import UploadTab from './UploadTab';
 import { processBookContent, Book } from './BookProcessor';
 
-export type { Chapter, Book } from './BookProcessor';
+export type { Chapter } from './processors/ChapterProcessor';
+export type { Book } from './processors/BookTypes';
 
 interface EbookUploaderProps {
   onBookUploaded: (book: Book) => void;

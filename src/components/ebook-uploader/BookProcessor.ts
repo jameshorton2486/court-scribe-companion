@@ -9,38 +9,13 @@
 
 import { toast } from 'sonner';
 import { ChapterProcessingError, handleProcessingError } from './processors/ErrorHandler';
-import { processWithTiming, processLargeContent } from './processors/PerformanceMonitor';
+import { processWithTiming } from './processors/PerformanceMonitor';
 import { validateBook as validateBookStructure } from './processors/BookValidator';
+import { extractChapters, createSingleChapter, Chapter } from './processors/ChapterProcessor';
+import { Book } from './processors/BookTypes';
 
-/**
- * Represents a chapter in a book
- */
-export type Chapter = {
-  /** Unique identifier for the chapter */
-  id: string;
-  /** Chapter title */
-  title: string;
-  /** Chapter content in HTML format */
-  content: string;
-  /** Optional array of processing errors encountered */
-  processingErrors?: ChapterProcessingError[];
-};
-
-/**
- * Represents a book with metadata and chapters
- */
-export type Book = {
-  /** Unique identifier for the book */
-  id: string;
-  /** Book title */
-  title: string;
-  /** Book author */
-  author: string;
-  /** Array of chapters in the book */
-  chapters: Chapter[];
-  /** Optional array of processing errors encountered */
-  processingErrors?: ChapterProcessingError[];
-};
+// Re-export types for backwards compatibility
+export type { Chapter, Book };
 
 /**
  * Processes raw text content into a structured book object
@@ -86,113 +61,23 @@ export const processBookContent = (
       // Generate a simple ID based on title
       const id = title.toLowerCase().replace(/\s+/g, '-');
       
-      // Basic chapter extraction (split by headings)
-      const chapterRegex = /^#+\s+(.*?)$/gm;
-      
-      // Optimize for large content
+      // Split content into lines for processing
       let contentLines: string[];
       
       if (isLargeContent) {
         // For large content, process line splitting in one operation
-        // and avoid extra string manipulation
         contentLines = content.split('\n');
       } else {
         contentLines = content.split('\n');
       }
       
-      const chapters: Chapter[] = [];
-      let currentChapterTitle = '';
-      let currentChapterContent = '';
-      let chapterCount = 0;
-      
-      // Validate content structure before processing
-      const hasHeadings = processWithTiming(() => {
-        return contentLines.some(line => line.match(/^#+\s+(.*?)$/));
-      }, "heading detection");
-      
-      if (!hasHeadings) {
-        console.warn("No chapter headings found in content, creating a single chapter");
-      }
-      
-      // Process content in a memory-efficient way
-      processWithTiming(() => {
-        const totalLines = contentLines.length;
-        
-        const processChunk = (startIdx: number, endIdx: number) => {
-          for (let i = startIdx; i < endIdx; i++) {
-            const line = contentLines[i];
-            const chapterMatch = line.match(/^#+\s+(.*?)$/);
-            
-            if (chapterMatch) {
-              // If we already have content, save the previous chapter
-              if (currentChapterTitle) {
-                chapters.push({
-                  id: `ch${chapterCount}`,
-                  title: currentChapterTitle,
-                  content: currentChapterContent.trim()
-                });
-                chapterCount++;
-              }
-              
-              // Start a new chapter
-              currentChapterTitle = chapterMatch[1];
-              currentChapterContent = `<h2>${currentChapterTitle}</h2>\n`;
-            } else if (currentChapterTitle) {
-              // Add to current chapter content
-              currentChapterContent += line ? `<p>${line}</p>\n` : '';
-            }
-          }
-        };
-        
-        if (isLargeContent) {
-          // Process in chunks of 5000 lines for very large documents
-          const chunkSize = 5000;
-          for (let i = 0; i < totalLines; i += chunkSize) {
-            const endIdx = Math.min(i + chunkSize, totalLines);
-            processChunk(i, endIdx);
-            
-            // Log progress for very large documents
-            if (i > 0 && i % (chunkSize * 2) === 0) {
-              console.info(`Processed ${i} of ${totalLines} lines (${Math.round(i/totalLines*100)}%)`);
-            }
-          }
-        } else {
-          // Process all at once for smaller documents
-          processChunk(0, totalLines);
-        }
-        
-        // Add the last chapter if it exists
-        if (currentChapterTitle) {
-          chapters.push({
-            id: `ch${chapterCount}`,
-            title: currentChapterTitle,
-            content: currentChapterContent.trim()
-          });
-        }
-      }, "chapter processing");
+      // Extract chapters from content
+      let chapters = extractChapters(contentLines, isLargeContent);
       
       // If no chapters were found, create a single chapter
       if (chapters.length === 0) {
         console.info("Creating a single chapter from content without headings");
-        
-        // For large content, create a more efficient single chapter
-        if (isLargeContent) {
-          const formattedContent = processLargeContent(content, 20000, (chunk) => {
-            return `<p>${chunk.replace(/\n/g, '</p>\n<p>')}</p>`;
-          });
-          
-          chapters.push({
-            id: 'ch0',
-            title: title,
-            content: `<h2>${title}</h2>\n${formattedContent}`
-          });
-        } else {
-          chapters.push({
-            id: 'ch0',
-            title: title,
-            content: `<h2>${title}</h2>\n<p>${content}</p>`
-          });
-        }
+        chapters.push(createSingleChapter(title, content, isLargeContent));
       }
 
       // Log successful processing

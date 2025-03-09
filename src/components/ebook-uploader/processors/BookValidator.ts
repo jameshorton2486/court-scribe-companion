@@ -1,5 +1,5 @@
 
-import { Book } from '@/components/ebook-uploader/EbookUploader';
+import { Book } from './BookTypes';
 import { ChapterProcessingError } from './ErrorHandler';
 import { processWithTiming } from './PerformanceMonitor';
 
