@@ -47,14 +47,14 @@ export const determineAvailableStorage = (
   return { storage: null, type: requestedType };
 };
 
-// Re-export from storageChecks for ease of use
+// Re-export from storage checks for ease of use
 export { 
   isLocalStorageAvailable, 
   isSessionStorageAvailable,
   hasEnoughStorageSpace,
   saveFragmentedData,
   getFragmentedData
-} from '../storageChecks';
+} from './checks';
 
 // Export storage types
 export type StorageType = 'localStorage' | 'sessionStorage';

@@ -6,7 +6,7 @@ import {
   isLocalStorageAvailable,
   isSessionStorageAvailable,
   getFragmentedData
-} from '../storageChecks';
+} from './checks';
 import { TOKEN_KEY, ensureAccessToken } from './tokenUtils';
 import { determineAvailableStorage, STORAGE_KEY, StorageType } from './storageHelpers';
 

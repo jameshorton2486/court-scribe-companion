@@ -8,7 +8,7 @@ import {
   isSessionStorageAvailable,
   hasEnoughStorageSpace,
   saveFragmentedData 
-} from '../storageChecks';
+} from './checks';
 import { ensureAccessToken } from './tokenUtils';
 import { StorageType, STORAGE_KEY } from './storageHelpers';
 
