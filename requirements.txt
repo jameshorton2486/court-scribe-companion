@@ -1,40 +1,40 @@
 
 # Core dependencies
-python-docx>=0.8.11,<0.9.0
-openai>=1.0.0,<2.0.0
-pillow>=9.5.0,<10.0.0  # Updated for security
-matplotlib>=3.7.1,<4.0.0  # Updated for security
-beautifulsoup4>=4.11.2,<5.0.0  # Updated for security
-markdown>=3.4.3,<4.0.0  # Updated for security
-chardet>=5.1.0,<6.0.0  # Updated for security
-requests>=2.31.0,<3.0.0  # Updated for security
-tqdm>=4.65.0,<5.0.0  # Updated for security
+python-docx==0.8.11
+openai==1.3.5
+pillow==9.5.0  # Updated for security
+matplotlib==3.7.3  # Updated for security
+beautifulsoup4==4.12.2  # Updated for security
+markdown==3.4.4  # Updated for security
+chardet==5.2.0  # Updated for security
+requests==2.31.0  # Updated for security
+tqdm==4.66.1  # Updated for security
 
 # Security enhancements
-bleach>=6.0.0,<7.0.0  # HTML sanitization
-python-magic>=0.4.27,<0.5.0  # File type detection
-certifi>=2023.7.22  # SSL certificates
-bandit>=1.7.5,<2.0.0  # Security linting
+bleach==6.1.0  # HTML sanitization
+python-magic==0.4.27  # File type detection
+certifi==2023.11.17  # SSL certificates
+bandit==1.7.5  # Security linting
 
 # UI enhancements
-PyPDF2>=3.0.0,<4.0.0  # Updated for security
-reportlab>=4.0.4,<5.0.0  # Updated for security
-psutil>=5.9.5,<6.0.0  # Performance monitoring
+PyPDF2==3.0.1  # Updated for security
+reportlab==4.0.7  # Updated for security
+psutil==5.9.6  # Performance monitoring
 
 # Testing dependencies
-pytest>=7.3.1,<8.0.0
-pytest-cov>=4.1.0,<5.0.0
-pytest-mock>=3.10.0,<4.0.0
-safety>=2.3.5,<3.0.0  # Dependency security checking
+pytest==7.4.3
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+safety==2.3.5  # Dependency security checking
 
 # Development tools
-black>=23.3.0,<24.0.0
-isort>=5.12.0,<6.0.0
-flake8>=6.0.0,<7.0.0
-mypy>=1.3.0,<2.0.0
-pycodestyle>=2.10.0,<3.0.0
-autopep8>=2.0.2,<3.0.0
+black==23.11.0
+isort==5.12.0
+flake8==6.1.0
+mypy==1.7.1
+pycodestyle==2.11.1
+autopep8==2.0.4
 
 # Documentation
-sphinx>=7.0.0,<8.0.0
-sphinx-rtd-theme>=1.2.0,<2.0.0
+sphinx==7.2.6
+sphinx-rtd-theme==1.3.0

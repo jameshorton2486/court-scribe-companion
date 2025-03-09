@@ -16,6 +16,19 @@ export interface AppError {
   details?: string;
   originalError?: unknown;
   code?: string;
+  context?: string;
+}
+
+/**
+ * Standard error codes for application
+ */
+export enum ErrorCode {
+  VALIDATION_ERROR = 'VALIDATION_ERROR',
+  STORAGE_ERROR = 'STORAGE_ERROR',
+  NETWORK_ERROR = 'NETWORK_ERROR',
+  AUTH_ERROR = 'AUTH_ERROR',
+  PROCESSING_ERROR = 'PROCESSING_ERROR',
+  UNKNOWN_ERROR = 'UNKNOWN_ERROR'
 }
 
 /**
@@ -27,30 +40,62 @@ export interface TimedExecutionResult<T> {
 }
 
 /**
- * Handles an error and returns a structured error object
+ * Formats an error into a standardized AppError structure
  * 
  * @param error - The original error that occurred
- * @param operation - Name of the operation where the error occurred
- * @returns Structured error object with message and details
+ * @param context - Context in which the error occurred
+ * @returns Structured AppError object
  */
-export const handleError = (error: unknown, operation: string): AppError => {
-  console.error(`Error during ${operation}:`, error);
+export const formatError = (error: unknown, context: string): AppError => {
+  console.error(`Error in ${context}:`, error);
   
   if (error instanceof Error) {
     return {
       message: error.message,
       details: error.stack,
       originalError: error,
-      code: 'ERROR'
+      code: ErrorCode.UNKNOWN_ERROR,
+      context
+    };
+  }
+  
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    return {
+      message: String((error as { message: unknown }).message),
+      originalError: error,
+      code: ErrorCode.UNKNOWN_ERROR,
+      context
     };
   }
   
   return {
-    message: `An unexpected error occurred during ${operation}`,
+    message: `An unexpected error occurred in ${context}`,
     details: String(error),
     originalError: error,
-    code: 'UNKNOWN_ERROR'
+    code: ErrorCode.UNKNOWN_ERROR,
+    context
   };
+};
+
+/**
+ * Handles an error and returns a structured error object
+ * 
+ * @param error - The original error that occurred
+ * @param operation - Name of the operation where the error occurred
+ * @param showToast - Whether to show a toast notification
+ * @returns Structured error object with message and details
+ */
+export const handleError = (error: unknown, operation: string, showToast: boolean = false): AppError => {
+  const appError = formatError(error, operation);
+  
+  if (showToast) {
+    toast.error(`Error: ${appError.message}`, {
+      description: `Failed during ${operation}`,
+      duration: 5000,
+    });
+  }
+  
+  return appError;
 };
 
 /**
@@ -80,6 +125,25 @@ export const executeWithTiming = async <T>(
     return null;
   }
 };
+
+/**
+ * Creates a debounced version of a function
+ * 
+ * @param func - Function to debounce
+ * @param wait - Wait time in milliseconds
+ * @returns Debounced function
+ */
+export function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait = 300
+): (...args: Parameters<T>) => void {
+  let timeout: number | undefined;
+  
+  return function(...args: Parameters<T>): void {
+    clearTimeout(timeout);
+    timeout = window.setTimeout(() => func(...args), wait);
+  };
+}
 
 /**
  * Safely executes an operation with error handling

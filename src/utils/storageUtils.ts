@@ -1,4 +1,3 @@
-
 import { Book } from '@/components/ebook-uploader/EbookUploader';
 import { toast } from 'sonner';
 import { validateBook, sanitizeHtml } from '@/utils/validationUtils';
@@ -9,7 +8,7 @@ import {
   saveFragmentedData,
   getFragmentedData
 } from './storageChecks';
-import { handleError, ErrorCode, debounce } from './errorHandlingUtils';
+import { handleError, debounce } from './errorHandlingUtils';
 
 /**
  * Types of browser storage that can be used
@@ -118,7 +117,8 @@ export const getSavedBooks = (storageType: StorageType = 'localStorage'): Book[]
       }
     }
   } catch (error) {
-    handleError(error, 'Storage retrieval', true);
+    handleError(error, 'Storage retrieval');
+    return [];
   }
   
   // If all attempts fail, return empty array
@@ -246,7 +246,7 @@ export const saveBooksToStorage = (books: Book[], storageType: StorageType = 'lo
     
     return false;
   } catch (error) {
-    handleError(error, 'Saving books', true);
+    handleError(error, 'Saving books');
     return false;
   }
 };

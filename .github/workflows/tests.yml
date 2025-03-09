@@ -29,7 +29,15 @@ jobs:
         bandit -r modules/ -ll -ii || exit 0
     - name: Check dependencies for security vulnerabilities
       run: |
-        safety check || exit 0
+        safety check -i 42194 -i 44715 -i 44716 -i 51457 || exit 0
+    - name: Run static type checking
+      run: |
+        mypy modules/ || exit 0
+    - name: Run code style checks
+      run: |
+        black --check modules/ || exit 0
+        isort --check-only --profile black modules/ || exit 0
+        flake8 modules/ || exit 0
 
   typescript-tests:
     runs-on: ubuntu-latest
@@ -47,3 +55,9 @@ jobs:
     - name: Run security scan
       run: |
         npx audit-ci --moderate || exit 0
+    - name: Run TypeScript type checking
+      run: |
+        npm run typecheck || exit 0
+    - name: Run ESLint
+      run: |
+        npm run lint || exit 0

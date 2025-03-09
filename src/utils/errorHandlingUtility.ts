@@ -7,7 +7,7 @@
  */
 
 import { toast } from 'sonner';
-import { AppError, ErrorCode, formatError } from './errorHandlingUtils';
+import { AppError, ErrorCode, formatError, handleError } from './errorHandlingUtils';
 
 /**
  * Handles errors in a standardized way with optional toast notification
