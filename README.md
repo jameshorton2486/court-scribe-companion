@@ -22,26 +22,53 @@ The application is structured around distinct modules:
 ### Backend (Python)
 
 - `modules/document/`: Document loading and processing
+  - `document_loader.py`: Handles loading various document formats
+  - `chapter_extractor.py`: Extracts chapters from loaded documents
+  - `text_processor.py`: Text cleaning and processing utilities
+  - `toc_generator.py`: Table of contents generation
+  
 - `modules/ai/`: AI-based content enhancement
+  - `content_reviewer.py`: Reviews and suggests improvements to content
+  - `openai_integration.py`: Integration with OpenAI's API
+  - `chapter_gen/`: Chapter generation utilities
+  
 - `modules/ui/`: Desktop user interface components
+  - `main_window.py`: Main application window definition
+  - `file_tab.py`, `ai_tab.py`, `chapter_tab.py`: UI tabs
+  - `ui_builder.py`: UI component creation utilities
+  
 - `modules/utils/`: Utility functions
+  - Error handling, file operations, text processing
 
 ### Frontend (React/TypeScript)
 
 - `src/components/`: UI components
+  - `reader/`: E-reader components
+  - `ebook-uploader/`: Book upload/import components
+  - `book-enhancer/`: Content enhancement components
+  - `ui/`: Reusable UI components (shadcn/ui)
+  
 - `src/contexts/`: React context providers
+  - `ReaderContext.tsx`: Main reader state management
+
 - `src/hooks/`: Custom React hooks
-- `src/pages/`: Application pages/routes
+  - `useBookLoader.ts`: Book loading and management
+  - `useBookOperations.ts`: Book operations (export, import, etc.)
+
 - `src/utils/`: Utility functions
+  - `errorHandlingUtils.ts`: Error handling utilities
+  - `storageUtils.ts`: Local storage management
 
-## Backend Setup
+## Getting Started
 
-### Prerequisites
+### Backend Setup
+
+#### Prerequisites
 
 - Python 3.9 or higher
 - Required Python packages (see `requirements.txt`)
 
-### Installation
+#### Installation
 
 1. Clone the repository:
 ```bash
@@ -60,20 +87,20 @@ source venv/bin/activate  # On Windows, use: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### Running the Backend
+#### Running the Backend
 
 ```bash
 python book_processor.py
 ```
 
-## Frontend Setup
+### Frontend Setup
 
-### Prerequisites
+#### Prerequisites
 
 - Node.js 18.x or higher
 - npm or yarn
 
-### Installation
+#### Installation
 
 1. Install dependencies:
 ```bash
@@ -84,6 +111,59 @@ npm install
 ```bash
 npm run dev
 ```
+
+## Usage
+
+### Importing Books
+
+1. Navigate to the "Upload" page
+2. Either paste your content or upload a supported file
+3. Fill in title and author information
+4. Click "Process E-book" to import
+
+### Reading Books
+
+1. Navigate to the "Reader" page
+2. Select a book from your library
+3. Use the navigation controls to move between chapters
+4. Toggle the table of contents for quick navigation
+
+### Enhancing Content
+
+1. Open a book in the reader
+2. Click the "Enhance" button
+3. Select enhancement options
+4. Apply enhancements to selected chapters
+
+## Development Guidelines
+
+### Code Style
+
+- **Python**: Follow PEP 8 style guidelines
+- **TypeScript/React**: Follow project ESLint configuration
+- Use meaningful variable and function names
+- Write descriptive comments for complex logic
+
+### Component Structure
+
+- Create small, focused components
+- Use proper TypeScript interfaces for props
+- Follow the React hooks pattern for state management
+- Document component props and functionality
+
+### Error Handling
+
+- Use structured error objects
+- Implement proper error boundaries
+- Log errors with useful information
+- Provide user-friendly error messages
+
+### Performance Considerations
+
+- Implement pagination for large datasets
+- Use memoization for expensive calculations
+- Implement debouncing for frequent events
+- Manage local storage efficiently
 
 ## Testing
 
@@ -100,56 +180,6 @@ pytest tests/
 ```bash
 npm test
 ```
-
-## Error Handling Guidelines
-
-This project uses a centralized error handling approach to ensure consistent error management across the codebase.
-
-### Key Error Handling Principles
-
-1. **Use the error handling utilities**:
-   - `handleError`: For logging and user notification
-   - `safeOperation`: For wrapping async operations with error handling
-   - `executeWithTiming`: For operations where timing metrics are important
-
-2. **Error propagation**:
-   - Lower-level functions should throw errors for higher-level functions to handle
-   - User-facing components should catch errors and provide appropriate feedback
-
-3. **Error structure**:
-   - Use the `AppError` interface for consistent error formatting
-   - Include error codes for easier debugging and tracking
-
-## Code Style Guidelines
-
-This project follows these coding standards:
-
-- **Python**: PEP 8 style guide
-- **TypeScript/JavaScript**: ESlint and Prettier configuration
-- **React**: Component composition and hooks pattern
-
-### Naming Conventions
-
-- **Files**: 
-  - Python: snake_case (e.g., `document_loader.py`)
-  - TypeScript/React: PascalCase for components (e.g., `ChapterContent.tsx`), camelCase for utilities
-- **Variables and Functions**: camelCase (JS/TS) or snake_case (Python)
-- **Classes**: PascalCase
-- **Constants**: UPPER_SNAKE_CASE
-
-## Security Best Practices
-
-- Validate and sanitize all user inputs
-- Use secure dependencies and keep them updated
-- Implement proper error handling
-- Use content security measures when rendering HTML content
-
-## Performance Considerations
-
-- Use chunked processing for large documents
-- Implement debouncing for frequent events
-- Monitor memory usage with large files
-- Use browser storage fragmentation for large datasets
 
 ## Contributing
 

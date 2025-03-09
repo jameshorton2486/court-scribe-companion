@@ -1,29 +1,65 @@
 
+/**
+ * Book Processor Module
+ * 
+ * This module handles the processing and conversion of text content
+ * into structured book objects with chapters. It includes utilities
+ * for parsing, optimizing, and validating book content.
+ */
+
 import { toast } from 'sonner';
 import { ChapterProcessingError, handleProcessingError } from './processors/ErrorHandler';
 import { processWithTiming, processLargeContent } from './processors/PerformanceMonitor';
 import { validateBook as validateBookStructure } from './processors/BookValidator';
 
+/**
+ * Represents a chapter in a book
+ */
 export type Chapter = {
+  /** Unique identifier for the chapter */
   id: string;
+  /** Chapter title */
   title: string;
+  /** Chapter content in HTML format */
   content: string;
+  /** Optional array of processing errors encountered */
   processingErrors?: ChapterProcessingError[];
 };
 
+/**
+ * Represents a book with metadata and chapters
+ */
 export type Book = {
+  /** Unique identifier for the book */
   id: string;
+  /** Book title */
   title: string;
+  /** Book author */
   author: string;
+  /** Array of chapters in the book */
   chapters: Chapter[];
+  /** Optional array of processing errors encountered */
   processingErrors?: ChapterProcessingError[];
 };
 
+/**
+ * Processes raw text content into a structured book object
+ * 
+ * This function handles the conversion of text content into a well-structured
+ * book with chapters. It includes optimizations for large documents, error handling,
+ * and performance monitoring.
+ * 
+ * @param title - The title of the book
+ * @param author - The author of the book
+ * @param content - The raw text content to process
+ * @returns A structured Book object or null if processing failed
+ */
 export const processBookContent = (
   title: string, 
   author: string, 
   content: string
 ): Book | null => {
+  // Validate inputs
   if (!title.trim()) {
     toast.error("Please enter a title for your ebook");
     return null;

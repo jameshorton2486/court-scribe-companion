@@ -3,7 +3,12 @@
 UI Builder Module
 
 This module handles the creation and layout of the application's
-graphical user interface components.
+graphical user interface components. It provides functions to construct
+the main UI framework, tabs, and shared elements like logging and progress
+indicators.
+
+The module follows a composition pattern, where each part of the UI is
+built by specialized functions, promoting code reuse and maintainability.
 """
 
 import tkinter as tk
@@ -11,10 +16,11 @@ from tkinter import ttk, scrolledtext
 from modules.ui.file_tab import create_file_tab
 from modules.ui.ai_tab import create_ai_tab
 from modules.ui.chapter_tab import create_chapter_tab
+from modules.ui.log_manager import LogManager
 
 def create_main_ui(app):
     """
-    Create the main UI components for the BookProcessor application
+    Create the main UI components for the BookProcessor application.
     
     This function sets up the main application window, creates tabs for
     different functionality areas, and configures shared UI elements
@@ -27,6 +33,7 @@ def create_main_ui(app):
     main_frame = ttk.Frame(app.root, padding=10)
     main_frame.pack(fill=tk.BOTH, expand=True)
     
+    # Create notebook for tabbed interface
     notebook = ttk.Notebook(main_frame)
     notebook.pack(fill=tk.BOTH, expand=True)
     
@@ -42,17 +49,24 @@ def create_main_ui(app):
     chapter_tab = ttk.Frame(notebook, padding=10)
     notebook.add(chapter_tab, text="Chapter Generation")
     
-    # File tab contents
+    # Create tab contents using specialized functions
     create_file_tab(file_tab, app)
-    
-    # AI Enhancement tab contents
     create_ai_tab(ai_tab, app)
-    
-    # Chapter Generation tab contents
     create_chapter_tab(chapter_tab, app)
     
-    # Log display (shared across tabs)
-    log_frame = ttk.LabelFrame(main_frame, text="Processing Log", padding=10)
+    # Create shared UI components
+    _create_log_section(main_frame, app)
+    _create_progress_section(main_frame, app)
+
+def _create_log_section(parent, app):
+    """
+    Create the logging section of the UI.
+    
+    Args:
+        parent: The parent frame to contain the log section
+        app: The application instance
+    """
+    log_frame = ttk.LabelFrame(parent, text="Processing Log", padding=10)
     log_frame.pack(fill=tk.BOTH, expand=True, pady=5)
     
     app.log_text = scrolledtext.ScrolledText(log_frame, width=80, height=10)
@@ -61,9 +75,16 @@ def create_main_ui(app):
     
     # Initialize log manager
     app.log_manager = LogManager(app.log_text)
+
+def _create_progress_section(parent, app):
+    """
+    Create the progress and status section of the UI.
     
-    # Progress and status (shared across tabs)
-    progress_frame = ttk.Frame(main_frame)
+    Args:
+        parent: The parent frame to contain the progress section
+        app: The application instance
+    """
+    progress_frame = ttk.Frame(parent)
     progress_frame.pack(fill=tk.X, pady=5)
     
     # Status indicator with improved layout

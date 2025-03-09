@@ -29,9 +29,39 @@ Main modules:
   - file_utils: File operations helpers
   - text_utils: Text processing utilities
 
+Architecture Overview:
+----------------------
 The application follows a modular architecture to ensure maintainability,
 testability, and extensibility. Each module focuses on a specific aspect
 of functionality, with clear interfaces between components.
+
+- The document module handles all aspects of document processing, from loading
+  files to extracting and processing text content.
+  
+- The AI module provides AI-powered content enhancement, including quality
+  assessment, chapter generation, and content optimization.
+  
+- The UI module provides a user-friendly interface for interacting with
+  the application's functionality.
+  
+- Utility modules provide common functionality used throughout the application.
+
+Usage Example:
+-------------
+```python
+from modules.document.document_loader import load_document
+from modules.document.chapter_extractor import extract_chapters
+from modules.ai.content_reviewer import review_with_ai
+
+# Load a document
+document = load_document("path/to/document.docx")
+
+# Extract chapters
+chapters = extract_chapters(document)
+
+# Review content with AI
+improved_chapters = review_with_ai(chapters)
+```
 """
 
 __version__ = '1.0.0'
@@ -39,4 +69,3 @@ __author__ = 'Court Reporter Team'
 __maintainer__ = 'Court Reporter Maintenance Team'
 __email__ = 'support@courtreporter.example.com'
 __status__ = 'Production'
-

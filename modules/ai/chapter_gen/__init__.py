@@ -25,6 +25,16 @@ Components:
 The chapter generation module leverages AI models to create
 high-quality, coherent, and engaging book chapters while 
 maintaining consistency with the overall book style and voice.
+
+Usage:
+    from modules.ai.chapter_gen.generator import generate_chapter_content
+    from modules.ai.chapter_gen.exporter import save_generated_chapter
+    
+    # Generate a chapter
+    chapter_content = generate_chapter_content(outline, style_params)
+    
+    # Save the chapter
+    save_generated_chapter(chapter_content, format='html')
 """
 
 __version__ = '0.8.0'
@@ -37,4 +47,3 @@ from modules.ai.chapter_gen.exporter import save_generated_chapter
 DEFAULT_QUALITY_LEVEL = 3
 DEFAULT_CREATIVITY_LEVEL = 2
 MAX_TOKENS_PER_CHAPTER = 4000
-

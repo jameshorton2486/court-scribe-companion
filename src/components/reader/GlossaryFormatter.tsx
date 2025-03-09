@@ -5,6 +5,9 @@ import { renderGlossaryToHtml } from './glossary/GlossaryRenderer';
 import './glossary.css';
 
 interface GlossaryFormatterProps {
+  /**
+   * Raw glossary content to be formatted
+   */
   content: string;
 }
 
@@ -30,6 +33,7 @@ const GlossaryFormatter: React.FC<GlossaryFormatterProps> = ({ content }) => {
     <div 
       className="glossary-container prose dark:prose-invert max-w-none"
       dangerouslySetInnerHTML={{ __html: glossaryHtml }}
+      aria-label="Glossary content"
     />
   );
 };
