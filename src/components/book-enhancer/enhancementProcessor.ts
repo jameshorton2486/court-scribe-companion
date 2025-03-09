@@ -29,7 +29,7 @@ export const enhanceBook = async (
     const enhancedChapters = [...book.chapters];
     const enhancementErrors: ChapterProcessingError[] = [];
     
-    const enhancementResult = await executeWithTiming(async () => {
+    const timingResult = await executeWithTiming(async () => {
       // Process each chapter
       for (let i = 0; i < enhancedChapters.length; i++) {
         const chapter = enhancedChapters[i];
@@ -76,14 +76,14 @@ export const enhanceBook = async (
     }, 'Book enhancement');
     
     // Check if enhancement was successful
-    if (enhancementResult) {
-      enhancedBook.chapters = enhancementResult.result.enhancedChapters;
+    if (timingResult) {
+      enhancedBook.chapters = timingResult.result.enhancedChapters;
       
-      if (enhancementResult.result.enhancementErrors.length > 0) {
-        enhancedBook.processingErrors = enhancementResult.result.enhancementErrors;
+      if (timingResult.result.enhancementErrors.length > 0) {
+        enhancedBook.processingErrors = timingResult.result.enhancementErrors;
       }
       
-      console.info(`Enhanced book in ${(enhancementResult.executionTime / 1000).toFixed(2)}s`);
+      console.info(`Enhanced book in ${(timingResult.executionTime / 1000).toFixed(2)}s`);
       return enhancedBook;
     } else {
       throw new Error('Book enhancement failed');

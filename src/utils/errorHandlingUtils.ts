@@ -1,206 +1,108 @@
 
+/**
+ * Utilities for error handling and operation safety
+ * 
+ * This module provides functions for safely executing operations with proper error handling,
+ * performance timing, and user feedback.
+ */
+
 import { toast } from 'sonner';
 
-export enum ErrorCode {
-  UNKNOWN_ERROR = 'UNKNOWN_ERROR',
-  NETWORK_ERROR = 'NETWORK_ERROR',
-  TIMEOUT = 'TIMEOUT',
-  STORAGE_ERROR = 'STORAGE_ERROR',
-  VALIDATION_ERROR = 'VALIDATION_ERROR',
-  PERMISSION_ERROR = 'PERMISSION_ERROR',
-  SECURITY_ERROR = 'SECURITY_ERROR',
-  NOT_FOUND = 'NOT_FOUND',
-  PARSING_ERROR = 'PARSING_ERROR'
-}
-
+/**
+ * Error interface for structured error information
+ */
 export interface AppError {
-  code: ErrorCode;
   message: string;
-  context?: string;
+  details?: string;
   originalError?: unknown;
-  data?: Record<string, unknown>;
+  code?: string;
 }
 
 /**
- * Standard error handling function that logs and shows toast notifications
- * 
- * @param error Error to handle
- * @param context Context in which the error occurred
- * @param showToast Whether to show a toast notification
- * @returns Formatted AppError
+ * Result of a timed execution with performance metrics
  */
-export const handleError = (
-  error: unknown, 
-  context = 'Application',
-  showToast = true
-): AppError => {
-  const appError = formatError(error, context);
-  
-  // Log the error to console with context
-  console.error(`[${context}] ${appError.message}`, appError);
-  
-  // Show toast notification if requested
-  if (showToast) {
-    toast.error(`Error: ${appError.message}`, {
-      description: appError.context,
-      duration: 5000,
-    });
-  }
-  
-  return appError;
-};
+export interface TimedExecutionResult<T> {
+  result: T;
+  executionTime: number;
+}
 
 /**
- * Format an unknown error into a standard AppError format
+ * Handles an error and returns a structured error object
+ * 
+ * @param error - The original error that occurred
+ * @param operation - Name of the operation where the error occurred
+ * @returns Structured error object with message and details
  */
-export const formatError = (error: unknown, context = 'Application'): AppError => {
-  // Handle case when error is already in AppError format
-  if (typeof error === 'object' && error !== null && 'code' in error && 'message' in error) {
-    return error as AppError;
-  }
+export const handleError = (error: unknown, operation: string): AppError => {
+  console.error(`Error during ${operation}:`, error);
   
-  // Handle Error object
   if (error instanceof Error) {
-    let code = ErrorCode.UNKNOWN_ERROR;
-    
-    // Determine error type based on Error subclass or message
-    if ('code' in error && typeof error.code === 'string') {
-      if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
-        code = ErrorCode.TIMEOUT;
-      } else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
-        code = ErrorCode.NETWORK_ERROR;
-      }
-    }
-    
-    if (error.name === 'SecurityError') {
-      code = ErrorCode.SECURITY_ERROR;
-    } else if (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
-      code = ErrorCode.STORAGE_ERROR;
-    } else if (error.name === 'SyntaxError' || error.name === 'TypeError') {
-      code = ErrorCode.PARSING_ERROR;
-    }
-    
-    // Create standardized error
     return {
-      code,
-      message: error.message || 'An unknown error occurred',
-      context,
-      originalError: error
+      message: error.message,
+      details: error.stack,
+      originalError: error,
+      code: 'ERROR'
     };
   }
   
-  // Handle string errors
-  if (typeof error === 'string') {
-    return {
-      code: ErrorCode.UNKNOWN_ERROR,
-      message: error,
-      context
-    };
-  }
-  
-  // Default for anything else
   return {
-    code: ErrorCode.UNKNOWN_ERROR,
-    message: 'An unknown error occurred',
-    context,
-    originalError: error
+    message: `An unexpected error occurred during ${operation}`,
+    details: String(error),
+    originalError: error,
+    code: 'UNKNOWN_ERROR'
   };
 };
 
 /**
- * Safely executes an async operation with error handling
- */
-export const safeOperation = async <T>(
-  operation: () => Promise<T>,
-  operationName: string,
-  errorMessage = 'Operation failed'
-): Promise<T> => {
-  try {
-    return await operation();
-  } catch (error) {
-    const appError = handleError(error, operationName, true);
-    
-    // Add custom user-friendly message
-    appError.message = errorMessage;
-    
-    throw appError;
-  }
-};
-
-/**
- * Executes an operation with timing measurement
+ * Executes an operation with timing measurements
+ * 
+ * @param operation - Async function to execute and time
+ * @param operationName - Name of the operation for logging
+ * @returns Result with execution time in ms
  */
 export const executeWithTiming = async <T>(
   operation: () => Promise<T>,
   operationName: string
-): Promise<T> => {
-  const startTime = performance.now();
+): Promise<TimedExecutionResult<T> | null> => {
   try {
+    const startTime = performance.now();
     const result = await operation();
-    const endTime = performance.now();
-    console.info(`${operationName} completed in ${(endTime - startTime).toFixed(2)}ms`);
-    return result;
+    const executionTime = performance.now() - startTime;
+    
+    console.info(`${operationName} completed in ${executionTime.toFixed(2)}ms`);
+    
+    return {
+      result,
+      executionTime
+    };
   } catch (error) {
-    const endTime = performance.now();
-    console.error(`${operationName} failed after ${(endTime - startTime).toFixed(2)}ms`);
-    throw error;
+    handleError(error, operationName);
+    return null;
   }
 };
 
 /**
- * Creates a debounced function that delays invoking func until after wait milliseconds
+ * Safely executes an operation with error handling
+ * 
+ * @param operation - Async function to execute safely
+ * @param operationName - Name of the operation for error reporting
+ * @param errorMessage - User-friendly error message
+ * @returns Result of the operation or null on error
  */
-export function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait = 300
-): (...args: Parameters<T>) => void {
-  let timeout: number | undefined;
-  
-  return function(...args: Parameters<T>): void {
-    clearTimeout(timeout);
-    timeout = window.setTimeout(() => func(...args), wait);
-  };
-}
-
-/**
- * Creates a throttled function that invokes func at most once per threshold period
- */
-export function throttle<T extends (...args: any[]) => any>(
-  func: T,
-  threshold = 300
-): (...args: Parameters<T>) => void {
-  let last: number = 0;
-  let timeout: number | undefined;
-  
-  return function(...args: Parameters<T>): void {
-    const now = Date.now();
-    const remaining = threshold - (now - last);
+export const safeOperation = async <T>(
+  operation: () => Promise<T>,
+  operationName: string,
+  errorMessage: string = `Error during ${operationName}`
+): Promise<T | null> => {
+  try {
+    return await operation();
+  } catch (error) {
+    const appError = handleError(error, operationName);
     
-    if (remaining <= 0) {
-      if (timeout) {
-        clearTimeout(timeout);
-        timeout = undefined;
-      }
-      last = now;
-      func(...args);
-    } else if (!timeout) {
-      timeout = window.setTimeout(() => {
-        last = Date.now();
-        timeout = undefined;
-        func(...args);
-      }, remaining);
-    }
-  };
-}
-
-/**
- * Check if an error has a specific code
- */
-export const hasErrorCode = (error: AppError, code: ErrorCode): boolean => {
-  return error.code === code;
-};
-
-// Fix build error with correct comparison
-export const isSecurityError = (error: AppError): boolean => {
-  return error.code === ErrorCode.SECURITY_ERROR;
+    toast.error(errorMessage, {
+      description: appError.message
+    });
+    
+    return null;
+  }
 };
