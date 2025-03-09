@@ -8,6 +8,7 @@ import openai
 import requests
 from PIL import Image, ImageTk
 from tkinter import messagebox
+from modules.ai.chapter_gen.visuals import generate_chapter_visual
 
 def generate_chapter_content(app):
     if not app.chapters:
@@ -77,7 +78,6 @@ def _generate_chapter_thread(app, api_key):
         # Generate image/diagram if requested
         image_data = None
         if app.include_images.get() or app.include_diagrams.get():
-            from modules.ai.chapter_gen.visuals import generate_chapter_visual
             app.update_progress(50, "Generating visual content...")
             image_data = generate_chapter_visual(app, chapter)
             
