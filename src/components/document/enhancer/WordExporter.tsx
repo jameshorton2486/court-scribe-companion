@@ -48,7 +48,7 @@ const WordExporter: React.FC<WordExporterProps> = ({ document }) => {
       const blob = new Blob([docContent], { type: 'application/msword' });
       
       // Create a download link
-      const link = document.createElement('a');
+      const link = window.document.createElement('a');
       link.href = URL.createObjectURL(blob);
       
       // Clean up the filename
@@ -56,9 +56,9 @@ const WordExporter: React.FC<WordExporterProps> = ({ document }) => {
       link.download = `${safeTitle}.doc`;
       
       // Trigger the download
-      document.body.appendChild(link);
+      window.document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      window.document.body.removeChild(link);
       
       toast.success("Document Exported", {
         description: "Your enhanced document has been exported to Word format."
