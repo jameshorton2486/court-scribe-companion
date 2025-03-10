@@ -28,6 +28,7 @@ const WordExporter: React.FC<WordExporterProps> = ({ document }) => {
     h1 { font-size: 18pt; font-weight: bold; margin-top: 24pt; margin-bottom: 6pt; }
     h2 { font-size: 16pt; font-weight: bold; margin-top: 18pt; margin-bottom: 6pt; }
     h3 { font-size: 14pt; font-weight: bold; margin-top: 14pt; margin-bottom: 4pt; }
+    h4 { font-size: 13pt; font-weight: bold; margin-top: 12pt; margin-bottom: 4pt; }
     p { margin: 6pt 0; }
   </style>
 </head>
@@ -36,9 +37,20 @@ const WordExporter: React.FC<WordExporterProps> = ({ document }) => {
   <p>By ${document.author || 'Unknown Author'}</p>
 `;
 
-      // Add each chapter
+      // Add each chapter and handle subsections
       document.chapters.forEach(chapter => {
-        docContent += `<h2>${chapter.title}</h2>`;
+        // Extract chapter number if it exists (e.g., "Chapter 3" or "3" from "3.1")
+        const chapterMatch = chapter.title.match(/^(?:Chapter\s+)?(\d+)(?:\.\d+)?|^(\d+)(?:\.\d+)?/i);
+        const isSubsection = chapter.title.match(/^\d+\.\d+/) !== null;
+        
+        if (isSubsection) {
+          // This is a subsection (e.g., "3.1")
+          docContent += `<h3>${chapter.title}</h3>`;
+        } else {
+          // This is a main chapter
+          docContent += `<h2>${chapter.title}</h2>`;
+        }
+        
         docContent += formatForWordExport(chapter.content);
       });
 

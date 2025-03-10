@@ -1,4 +1,3 @@
-
 import { Chapter, Document } from './DocumentUploader';
 
 /**
@@ -86,7 +85,7 @@ const fixEncodingIssues = (content: string): string => {
 };
 
 /**
- * Extract chapters from document content
+ * Extract chapters and subsections from document content
  */
 const extractChapters = (content: string): Chapter[] => {
   // Check if content appears to have encoding issues
@@ -96,15 +95,17 @@ const extractChapters = (content: string): Chapter[] => {
   const lines = content.split('\n');
   const chapters: Chapter[] = [];
   
-  // Simple chapter detection (heading patterns)
+  // Chapter and subsection detection patterns
   const chapterPatterns = [
-    /^chapter\s+(\d+|[A-Z]+)[\s:]+(.+)$/i,  // "Chapter X: Title" or "Chapter X - Title"
-    /^(\d+|[A-Z]+)[\s\.]+(.+)$/            // "1. Title" or "I. Title"
+    /^chapter\s+(\d+)[\s:]+(.+)$/i,            // "Chapter X: Title" or "Chapter X - Title"
+    /^(\d+)[\s\.]+(.+)$/,                       // "1. Title" or "I. Title"
+    /^(\d+\.\d+)[\s]+(.+)$/                    // "1.1 Title" (subsection)
   ];
   
   let currentChapterTitle = hasEncodingIssues ? 'Encoding Issues Detected' : 'Introduction';
   let currentChapterContent = '';
   let chapterCount = 0;
+  let lastChapterNumber: string | null = null;
   
   // Function to add current chapter
   const addChapter = () => {
@@ -125,8 +126,8 @@ const extractChapters = (content: string): Chapter[] => {
     // Skip empty lines
     if (!line) continue;
     
-    // Check if line is a chapter heading
-    let isChapterHeading = false;
+    // Check if line is a chapter heading or subsection
+    let isHeading = false;
     
     for (const pattern of chapterPatterns) {
       const match = line.match(pattern);
@@ -134,16 +135,31 @@ const extractChapters = (content: string): Chapter[] => {
         // Save previous chapter
         addChapter();
         
-        // Start new chapter
-        currentChapterTitle = match[2] ? match[2].trim() : `Chapter ${match[1]}`;
-        currentChapterContent = `<h2>${currentChapterTitle}</h2>\n`;
-        isChapterHeading = true;
+        // Start new chapter or subsection
+        const chapterNumber = match[1];
+        const title = match[2] ? match[2].trim() : `Chapter ${chapterNumber}`;
+        
+        // Check if it's a subsection (contains a decimal point)
+        const isSubsection = chapterNumber.includes('.');
+        
+        if (isSubsection) {
+          // This is a subsection (e.g., "3.1")
+          currentChapterTitle = `${chapterNumber} ${title}`;
+          currentChapterContent = `<h3>${chapterNumber} ${title}</h3>\n`;
+        } else {
+          // This is a main chapter
+          currentChapterTitle = `Chapter ${chapterNumber}: ${title}`;
+          currentChapterContent = `<h2>Chapter ${chapterNumber}: ${title}</h2>\n`;
+          lastChapterNumber = chapterNumber;
+        }
+        
+        isHeading = true;
         break;
       }
     }
     
     // If not a chapter heading, add to current chapter
-    if (!isChapterHeading) {
+    if (!isHeading) {
       // If this is the first content and no chapter yet, create default chapter
       if (chapters.length === 0 && !currentChapterContent) {
         currentChapterTitle = hasEncodingIssues ? 'Encoding Issues Detected' : 'Introduction';
