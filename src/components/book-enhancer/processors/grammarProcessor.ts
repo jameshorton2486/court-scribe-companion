@@ -1,6 +1,29 @@
-import { Chapter } from '@/components/document/DocumentUploader';
 
-// Types for grammar processing
+/**
+ * Grammar and Spelling Correction Module
+ *
+ * This module enhances text content by correcting grammar,
+ * spelling, and improving readability based on configurable correction levels.
+ */
+
+export enum GrammarLevel {
+  Basic = 1,
+  Intermediate = 2,
+  Advanced = 3,
+}
+
+export interface SpellingError {
+  word: string;
+  index: number;
+}
+
+export interface SpellingCorrection {
+  original: string;
+  correction: string;
+  index: number;
+}
+
+// Define the GrammarError type interface that was missing and causing TypeScript errors
 export type GrammarError = {
   type: 'spelling' | 'grammar' | 'punctuation';
   word: string;
@@ -8,212 +31,123 @@ export type GrammarError = {
   suggestion: string;
 };
 
-export type GrammarAnalysisResult = {
-  errors: GrammarError[];
-  score: number; // 0-100 score for grammar quality
-  suggestions: string[];
-};
+const commonMisspellings: Record<string, string> = {
+  teh: 'the',
+  recieve: 'receive',
+  seperate: 'separate',
+  occured: 'occurred',
+  accomodate: 'accommodate',
+  definately: 'definitely',
+  embarass: 'embarrass',
+  gaurd: 'guard',
+  wierd: 'weird',
+  priviledge: 'privilege',
+  concious: 'conscious',
+  occurence: 'occurrence',
+  possable: 'possible',
+  alot: 'a lot',
+}
 
-// Main function to analyze grammar in chapter content
-export const analyzeGrammar = (chapter: Chapter): GrammarAnalysisResult => {
-  const content = stripHtmlTags(chapter.content);
-  
-  // Detect various types of errors
-  const spellingErrors = detectSpellingErrors(content);
-  const grammarErrors = detectGrammarErrors(content);
-  const punctuationErrors = detectPunctuationErrors(content);
-  
-  // Combine all errors
-  const allErrors = [
-    ...spellingErrors.map(err => ({ ...err, type: 'spelling' as const })),
-    ...grammarErrors.map(err => ({ ...err, type: 'grammar' as const })),
-    ...punctuationErrors.map(err => ({ ...err, type: 'punctuation' as const }))
-  ];
-  
-  // Calculate grammar score (100 - deductions based on errors)
-  const baseScore = 100;
-  const deduction = Math.min(allErrors.length * 5, 70); // Cap deduction at 70 points
-  const score = baseScore - deduction;
-  
-  // Generate overall suggestions
-  const suggestions = generateSuggestions(content, allErrors);
-  
-  return {
-    errors: allErrors,
-    score,
-    suggestions
-  };
-};
+export const applyGrammarCorrections = (
+  text: string,
+  grammarLevel: GrammarLevel = GrammarLevel.Basic
+): string => {
+  if (typeof text !== 'string' || !text.trim()) return '';
 
-// Function to detect common spelling errors in text
-export const detectSpellingErrors = (text: string): Array<{word: string, index: number, suggestion: string}> => {
-  // Define some common misspellings
-  const commonMisspellings: Record<string, string> = {
-    'definately': 'definitely',
-    'seperate': 'separate',
-    'occured': 'occurred',
-    'recieve': 'receive',
-    'untill': 'until',
-    'accomodate': 'accommodate',
-    'acknowlege': 'acknowledge',
-    'accross': 'across',
-    'agressive': 'aggressive',
-    'apparant': 'apparent',
-    'aquire': 'acquire',
-    'arguement': 'argument',
-    'basicly': 'basically',
-    'begining': 'beginning',
-    'beleive': 'believe',
-    'commitee': 'committee',
-    'concieve': 'conceive',
-    // ... more common misspellings
-  };
-  
-  const words = text.match(/\b\w+\b/g) || [];
-  const errors: Array<{word: string, index: number, suggestion: string}> = [];
-  
-  words.forEach((word: string) => {
-    const lowerWord = word.toLowerCase();
-    if (commonMisspellings[lowerWord]) {
-      const index = text.indexOf(word);
-      if (index !== -1) {
-        errors.push({ 
-          word, 
-          index,
-          suggestion: commonMisspellings[lowerWord]
-        });
-      }
+  let correctedText = text;
+
+  // Basic corrections
+  correctedText = correctedText
+    .replace(/\s+/g, ' ')
+    .replace(/\s([.,!?;:])/g, '$1')
+    .replace(/\.\.+/g, '.')
+    .replace(/\bi\b/g, 'I')
+    .replace(/\b(i'm|i'll|i've|i'd)\b/gi, (m) => `I${m.slice(1)}`)
+    .replace(/([.!?]\s+)([a-z])/g, (_, s, c) => `${s}${c.toUpperCase()}`);
+
+  if (grammarLevel >= GrammarLevel.Intermediate) {
+    correctedText = correctedText
+      .replace(/\b(youre|theyre|theres)\b/gi, (m) => `${m.slice(0, -2)}'re`)
+      .replace(/\b(its|were)\s+(going|doing|being|not|a|the)\b/gi, (_, w, next) => `${w === 'its' ? "it's" : "we're"} ${next}`)
+      .replace(/\b(can|should|would|did|does)n?t\b/gi, "$1n't")
+      .replace(/ - /g, '—');
+  }
+
+  if (grammarLevel >= GrammarLevel.Advanced) {
+    const advancedCorrections: [RegExp, string][] = [
+      [/\b(amount) of (\w+s)\b/gi, 'number of $2'],
+      [/\b(amount)\s+of\s+(people|items|things)\b/gi, 'number of $2'],
+      [/\b(effect change)\b/gi, 'affect change'],
+      [/\b(then change)\b/gi, 'than change'],
+      [/\b(for all intents and purposes)\b/gi, 'essentially'],
+      [/\b(at this point in time)\b/gi, 'now'],
+      [/\bin order to\b/gi, 'to'],
+      [/\breturn back\b/gi, 'return'],
+    ];
+
+    for (const [pattern, replacement] of advancedCorrections) {
+      correctedText = correctedText.replace(pattern, replacement);
     }
-  });
-  
-  return errors;
+  }
+
+  return correctedText;
 };
 
-// Function to detect grammar errors
-export const detectGrammarErrors = (text: string): Array<{word: string, index: number, suggestion: string}> => {
-  const errors: Array<{word: string, index: number, suggestion: string}> = [];
-  
-  // Check for subject-verb agreement issues (simplified)
-  const subjectVerbPatterns = [
-    { pattern: /they is\b/gi, replacement: 'they are' },
-    { pattern: /he are\b/gi, replacement: 'he is' },
-    { pattern: /she are\b/gi, replacement: 'she is' },
-    { pattern: /it are\b/gi, replacement: 'it is' },
-    { pattern: /we is\b/gi, replacement: 'we are' },
-    { pattern: /you is\b/gi, replacement: 'you are' },
-  ];
-  
-  subjectVerbPatterns.forEach(({ pattern, replacement }) => {
-    let match;
-    while ((match = pattern.exec(text)) !== null) {
-      errors.push({
-        word: match[0],
-        index: match.index,
-        suggestion: replacement
-      });
+export const detectSpellingErrors = (text: string): SpellingError[] => {
+  const errors: SpellingError[] = [];
+  const wordRegex = /\b([a-z]+)\b/gi;
+  let match;
+
+  while ((match = wordRegex.exec(text))) {
+    const wordLower = match[1].toLowerCase();
+    if (commonMisspellings[wordLower]) {
+      errors.push({ word: match[1], index: match.index });
     }
-  });
-  
-  // Check for double negatives
-  const doubleNegativePattern = /\b(not|no|never|nobody|nothing|nowhere|neither)\b.*\b(not|no|never|nobody|nothing|nowhere|neither)\b/gi;
-  let match;
-  while ((match = doubleNegativePattern.exec(text)) !== null) {
-    errors.push({
-      word: match[0],
-      index: match.index,
-      suggestion: 'Consider removing one negative to avoid double negation'
-    });
   }
-  
+
   return errors;
 };
 
-// Function to detect punctuation errors
-export const detectPunctuationErrors = (text: string): Array<{word: string, index: number, suggestion: string}> => {
-  const errors: Array<{word: string, index: number, suggestion: string}> = [];
-  
-  // Check for missing periods at end of sentences
-  const sentenceEndPattern = /\b[A-Z][^.!?]*(?<![.!?])\s+[A-Z]/g;
-  let match;
-  while ((match = sentenceEndPattern.exec(text)) !== null) {
-    errors.push({
-      word: match[0],
-      index: match.index,
-      suggestion: 'Consider adding a period at the end of this sentence'
+export const generateSpellingCorrections = (
+  errors: SpellingError[]
+): SpellingCorrection[] =>
+  errors.map((error) => ({
+    original: error.word,
+    correction: commonMisspellings[error.word.toLowerCase()] || error.word,
+    index: error.index,
+  }));
+
+export const applySpellingCorrections = (
+  text: string,
+  corrections: SpellingCorrection[]
+): string => {
+  if (!corrections.length) return text;
+
+  // Apply corrections from end to start to avoid indexing issues
+  corrections
+    .sort((a, b) => b.index - a.index)
+    .forEach(({ original, correction, index }) => {
+      text = `${text.slice(0, index)}${correction}${text.slice(index + original.length)}`;
     });
-  }
-  
-  // Check for multiple punctuation
-  const multiPunctuationPattern = /[.!?]{2,}/g;
-  while ((match = multiPunctuationPattern.exec(text)) !== null) {
-    errors.push({
-      word: match[0],
-      index: match.index,
-      suggestion: 'Use a single punctuation mark'
-    });
-  }
-  
-  // Check for spaces before punctuation
-  const spaceBeforePunctuationPattern = /\s+[,.!?;:]/g;
-  while ((match = spaceBeforePunctuationPattern.exec(text)) !== null) {
-    errors.push({
-      word: match[0],
-      index: match.index,
-      suggestion: 'Remove space before punctuation'
-    });
-  }
-  
-  return errors;
+
+  return text;
 };
 
-// Helper function to strip HTML tags for text analysis
+export const correctText = (
+  text: string,
+  grammarLevel: GrammarLevel = GrammarLevel.Basic
+): string => {
+  const grammarCorrected = applyGrammarCorrections(text, grammarLevel);
+  const spellingErrors = detectSpellingErrors(grammarCorrected);
+  const spellingCorrections = generateSpellingCorrections(spellingErrors);
+  return applySpellingCorrections(grammarCorrected, spellingCorrections);
+};
+
+// Maintain backward compatibility for existing code that may use these functions
 export const stripHtmlTags = (html: string): string => {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 };
 
-// Generate overall suggestions based on errors
-export const generateSuggestions = (
-  text: string, 
-  errors: Array<{type: string, word: string, index: number, suggestion: string}>
-): string[] => {
-  const suggestions: string[] = [];
-  
-  // Count error types
-  const errorCounts: Record<string, number> = {};
-  errors.forEach(error => {
-    errorCounts[error.type] = (errorCounts[error.type] || 0) + 1;
-  });
-  
-  // Generate suggestions based on error frequency
-  if (errorCounts['spelling'] > 5) {
-    suggestions.push('Consider using a spell checker to fix multiple spelling errors');
-  }
-  
-  if (errorCounts['grammar'] > 3) {
-    suggestions.push('Review subject-verb agreement throughout the text');
-  }
-  
-  if (errorCounts['punctuation'] > 3) {
-    suggestions.push('Check punctuation usage, especially at the end of sentences');
-  }
-  
-  // Check for passive voice (simplified)
-  const passiveVoiceCount = (text.match(/\b(is|are|was|were|be|been|being)\s+\w+ed\b/gi) || []).length;
-  if (passiveVoiceCount > 3) {
-    suggestions.push('Consider using active voice instead of passive voice for clearer writing');
-  }
-  
-  // Check for sentence length
-  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
-  const longSentences = sentences.filter(s => s.split(/\s+/).length > 25).length;
-  if (longSentences > 2) {
-    suggestions.push('Consider breaking up long sentences for improved readability');
-  }
-  
-  return suggestions;
-};
-
-// Apply grammar fixes to content
 export const applyGrammarFixes = (content: string, errors: GrammarError[]): string => {
   // Sort errors by index in reverse order to avoid index shifting when replacing
   const sortedErrors = [...errors].sort((a, b) => b.index - a.index);
@@ -230,16 +164,4 @@ export const applyGrammarFixes = (content: string, errors: GrammarError[]): stri
   });
   
   return fixedContent;
-};
-
-// Add this export to fix the missing export error
-export const applyGrammarCorrections = (text: string, level: number): string => {
-  const errors = detectSpellingErrors(text);
-  if (level >= 2) {
-    errors.push(...detectGrammarErrors(text));
-  }
-  if (level >= 3) {
-    errors.push(...detectPunctuationErrors(text));
-  }
-  return applyGrammarFixes(text, errors);
 };
