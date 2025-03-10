@@ -69,12 +69,10 @@ export const detectSpellingErrors = (text: string): Array<{word: string, index: 
     // ... more common misspellings
   };
   
-  // Simple word extraction - this is a simplified version
   const words = text.match(/\b\w+\b/g) || [];
   const errors: Array<{word: string, index: number, suggestion: string}> = [];
   
   words.forEach((word: string) => {
-    // Fix: Explicitly type word as string to ensure toLowerCase exists
     const lowerWord = word.toLowerCase();
     if (commonMisspellings[lowerWord]) {
       const index = text.indexOf(word);
@@ -232,4 +230,16 @@ export const applyGrammarFixes = (content: string, errors: GrammarError[]): stri
   });
   
   return fixedContent;
+};
+
+// Add this export to fix the missing export error
+export const applyGrammarCorrections = (text: string, level: number): string => {
+  const errors = detectSpellingErrors(text);
+  if (level >= 2) {
+    errors.push(...detectGrammarErrors(text));
+  }
+  if (level >= 3) {
+    errors.push(...detectPunctuationErrors(text));
+  }
+  return applyGrammarFixes(text, errors);
 };
