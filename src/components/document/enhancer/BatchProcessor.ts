@@ -1,5 +1,5 @@
-
 import { Chapter } from '../DocumentUploader';
+import { toast } from 'sonner';
 
 /**
  * Format chapter content for Word export
@@ -35,6 +35,58 @@ export const formatForWordExport = (content: string): string => {
     .replace(/&gt;/g, '>');
   
   return formattedContent;
+};
+
+/**
+ * Process a batch of chapters using the OpenAI API
+ */
+export const processChapterBatch = async (
+  chapters: Chapter[],
+  apiKey: string
+): Promise<Chapter[]> => {
+  if (!chapters.length) {
+    return [];
+  }
+
+  try {
+    console.log(`Processing batch of ${chapters.length} chapters`);
+    
+    // Here we would typically make OpenAI API calls to enhance each chapter
+    // For now, we'll just simulate the enhancement process
+    const enhancedChapters = chapters.map(chapter => {
+      // Check if this is a main chapter or subsection based on the title
+      const isSubsection = chapter.title.match(/^\d+\.\d+/) !== null;
+      const isMainChapter = chapter.title.match(/^(Chapter\s+)?\d+/i) !== null && !isSubsection;
+      
+      let enhancedContent = chapter.content;
+      
+      // Add appropriate heading based on hierarchy
+      if (isMainChapter) {
+        // Main chapters should have h2 tags
+        enhancedContent = `<h2>${chapter.title}</h2>\n${enhancedContent}`;
+      } else if (isSubsection) {
+        // Subsections should have h3 tags
+        enhancedContent = `<h3>${chapter.title}</h3>\n${enhancedContent}`;
+      } else {
+        // Other sections use their original content
+        enhancedContent = `<h2>${chapter.title}</h2>\n${enhancedContent}`;
+      }
+      
+      return {
+        ...chapter,
+        content: enhancedContent
+      };
+    });
+    
+    console.log(`Enhanced ${enhancedChapters.length} chapters`);
+    return enhancedChapters;
+  } catch (error) {
+    console.error('Error processing chapter batch:', error);
+    toast.error('Error processing chapters', {
+      description: 'There was an error enhancing your chapters.'
+    });
+    return chapters; // Return original chapters if enhancement fails
+  }
 };
 
 /**

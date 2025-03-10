@@ -59,7 +59,7 @@ const WordExporter: React.FC<WordExporterProps> = ({ document }) => {
       // Create a Blob with the document content
       const blob = new Blob([docContent], { type: 'application/msword' });
       
-      // Create a download link
+      // Create a download link using the browser's document object
       const link = window.document.createElement('a');
       link.href = URL.createObjectURL(blob);
       

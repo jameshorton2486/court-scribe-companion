@@ -51,7 +51,7 @@ const DocumentEnhancer: React.FC<DocumentEnhancerProps> = ({
       
       <CardContent className="space-y-6">
         {!isApiKeyValid && (
-          <Alert variant="default">
+          <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>API Key Required</AlertTitle>
             <AlertDescription>
