@@ -1,12 +1,13 @@
 
 import { useState } from 'react';
-import { Upload, FileText } from 'lucide-react';
+import { Upload, FileText, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { processDocument } from './DocumentProcessor';
+import { processDocument, detectEncodingIssues } from './DocumentProcessor';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export type Document = {
   id: string;
@@ -30,15 +31,36 @@ const DocumentUploader = ({ onDocumentLoaded }: DocumentUploaderProps) => {
   const [author, setAuthor] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [encodingIssuesDetected, setEncodingIssuesDetected] = useState(false);
+  const [fileContent, setFileContent] = useState<string>('');
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
       
       // Auto-populate title from filename if empty
       if (!title) {
-        const fileName = e.target.files[0].name.replace(/\.\w+$/, '');
+        const fileName = selectedFile.name.replace(/\.\w+$/, '');
         setTitle(fileName);
+      }
+      
+      try {
+        // Preview file content to check for encoding issues
+        const text = await readFileContent(selectedFile);
+        setFileContent(text);
+        
+        // Check for encoding issues
+        const hasIssues = detectEncodingIssues(text);
+        setEncodingIssuesDetected(hasIssues);
+        
+        if (hasIssues) {
+          toast.warning("Possible encoding issues detected", {
+            description: "The document may contain encoding problems. Try to re-save it in UTF-8 format before uploading."
+          });
+        }
+      } catch (error) {
+        console.error("Error reading file:", error);
       }
     }
   };
@@ -57,17 +79,25 @@ const DocumentUploader = ({ onDocumentLoaded }: DocumentUploaderProps) => {
     setIsProcessing(true);
     
     try {
-      // Read file content
-      const text = await readFileContent(file);
+      // Use the already read content or read it if not available
+      const text = fileContent || await readFileContent(file);
       
       // Process document
       const document = processDocument(title, author, text);
       
       if (document) {
         onDocumentLoaded(document);
-        toast.success("Document processed successfully", {
-          description: `Created ${document.chapters.length} chapter(s) from your document.`
-        });
+        
+        // Show appropriate toast based on encoding detection
+        if (encodingIssuesDetected) {
+          toast.success("Document processed with warnings", {
+            description: `Created ${document.chapters.length} chapter(s), but encoding issues were detected.`
+          });
+        } else {
+          toast.success("Document processed successfully", {
+            description: `Created ${document.chapters.length} chapter(s) from your document.`
+          });
+        }
       }
     } catch (error) {
       console.error("Error processing document:", error);
@@ -155,6 +185,17 @@ const DocumentUploader = ({ onDocumentLoaded }: DocumentUploaderProps) => {
             </Label>
           </div>
         </div>
+        
+        {encodingIssuesDetected && (
+          <Alert variant="destructive" className="mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Encoding Issues Detected</AlertTitle>
+            <AlertDescription>
+              Your document appears to have encoding problems that may cause text to display incorrectly. 
+              Consider re-saving your document in UTF-8 format before uploading, or try a different file format.
+            </AlertDescription>
+          </Alert>
+        )}
       </CardContent>
       <CardFooter>
         <Button 
