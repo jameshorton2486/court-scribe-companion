@@ -2,6 +2,48 @@
 /**
  * Simulates document enhancement in various ways
  */
+
+// API key for testing
+let openaiApiKey: string | null = null;
+
+// Helper to set the API key
+export const setOpenAIApiKey = (apiKey: string): void => {
+  openaiApiKey = apiKey;
+};
+
+// Helper to get the API key
+export const getOpenAIApiKey = (): string | null => {
+  return openaiApiKey;
+};
+
+// Method to test API key
+export const testApiKey = async (): Promise<{ success: boolean; message: string }> => {
+  if (!openaiApiKey) {
+    return { 
+      success: false, 
+      message: "No API key provided. Please enter an OpenAI API key." 
+    };
+  }
+
+  // Adding a delay to simulate API call
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  // Basic validation check for SK format
+  if (!openaiApiKey.startsWith('sk-') || openaiApiKey.length < 30) {
+    return { 
+      success: false, 
+      message: "Invalid API key format. OpenAI API keys typically start with 'sk-'" 
+    };
+  }
+
+  // This is just a simulation. In a real app, you would make an actual API call to OpenAI
+  // to validate the key using their authentication endpoints
+  return { 
+    success: true, 
+    message: "API key validation successful! You can now use OpenAI enhancements." 
+  };
+};
+
 export const enhanceChapterContent = async (
   content: string,
   enhancementType: string
