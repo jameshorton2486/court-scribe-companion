@@ -1,5 +1,5 @@
 
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "./components/theme-provider";
 import { Toaster } from "sonner";
 import DocumentManager from "@/components/document/DocumentManager";
 

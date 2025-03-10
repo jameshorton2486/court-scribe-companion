@@ -44,7 +44,7 @@ const DocumentManager: React.FC = () => {
   return (
     <div className="space-y-8">
       {!document && (
-        <DocumentUploader onDocumentUploaded={handleDocumentUploaded} />
+        <DocumentUploader onDocumentLoaded={handleDocumentUploaded} />
       )}
       
       {document && !selectedChapter && (
