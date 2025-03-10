@@ -1,30 +1,30 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import Reader from "./pages/Reader";
-import NotFound from "./pages/NotFound";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "sonner";
+import DocumentManager from "@/components/document/DocumentManager";
 
-const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/reader/:bookId" element={<Reader />} />
-          <Route path="/reader/:bookId/:chapterId" element={<Reader />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <ThemeProvider defaultTheme="light" storageKey="document-enhancer-theme">
+      <div className="min-h-screen bg-background p-4 md:p-8">
+        <header className="container mx-auto mb-8">
+          <h1 className="text-3xl font-bold text-center">Document Enhancer</h1>
+          <p className="text-center text-muted-foreground">
+            Upload a document, edit content by chapter, and enhance it with AI
+          </p>
+        </header>
+        
+        <main className="container mx-auto max-w-4xl">
+          <DocumentManager />
+        </main>
+        
+        <footer className="container mx-auto mt-12 text-center text-sm text-muted-foreground">
+          <p>Document Enhancer &copy; {new Date().getFullYear()}</p>
+        </footer>
+      </div>
+      <Toaster position="top-center" />
+    </ThemeProvider>
+  );
+}
 
 export default App;
