@@ -116,6 +116,7 @@ export const detectSpellingErrors = (text: string): Array<{word: string, index: 
   const errors: Array<{word: string, index: number}> = [];
   
   words.forEach(word => {
+    // Fix: Explicitly type word as string to ensure toLowerCase exists
     const lowerWord = word.toLowerCase();
     if (commonMisspellings[lowerWord]) {
       const index = text.indexOf(word);
