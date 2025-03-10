@@ -9,7 +9,7 @@ const DocumentManager: React.FC = () => {
   const [document, setDocument] = useState<Document | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
 
-  const handleDocumentUploaded = (doc: Document) => {
+  const handleDocumentLoaded = (doc: Document) => {
     setDocument(doc);
     setSelectedChapter(null);
     toast.success("Document processed successfully", {
@@ -44,7 +44,7 @@ const DocumentManager: React.FC = () => {
   return (
     <div className="space-y-8">
       {!document && (
-        <DocumentUploader onDocumentLoaded={handleDocumentUploaded} />
+        <DocumentUploader onDocumentLoaded={handleDocumentLoaded} />
       )}
       
       {document && !selectedChapter && (
