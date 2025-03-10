@@ -8,6 +8,7 @@ with support for different log levels, formatting, and UI integration.
 
 import tkinter as tk
 import datetime
+import logging
 from enum import Enum
 
 class LogLevel(Enum):
@@ -52,6 +53,9 @@ class LogManager:
         self.log_text = log_text
         self.log_level = LogLevel.INFO  # Default log level
         self.tags_configured = False
+        
+        # Set up logger
+        self.logger = logging.getLogger('ui')
         
     def set_log_level(self, level):
         """
@@ -102,6 +106,14 @@ class LogManager:
         self.log_text.insert(tk.END, f"{formatted_message}\n", (tag,))
         self.log_text.see(tk.END)
         self.log_text.config(state=tk.DISABLED)
+        
+        # Also log to the file logger
+        logging_level = getattr(logging, level_str)
+        self.logger.log(logging_level, message)
+        
+        # For error and critical logs, also print to console for visibility
+        if level in [LogLevel.ERROR, LogLevel.CRITICAL]:
+            print(f"{level_str}: {message}")
     
     def debug(self, message):
         """
