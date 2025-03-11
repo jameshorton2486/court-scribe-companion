@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Document, Chapter } from '../DocumentUploader';
-import { getOpenAIApiKey, getCustomBookPrompt, getPromptTemplates } from './EnhancementService';
+import { getOpenAIApiKey, getCustomBookPrompt } from './EnhancementService';
 import EnhancementProgress from './components/EnhancementProgress';
 import EnhanceButton from './components/EnhanceButton';
 import PromptSelectionSection from './components/PromptSelectionSection';
@@ -28,7 +28,6 @@ const EnhancementController: React.FC<EnhancementControllerProps> = ({
   const [statusMessage, setStatusMessage] = useState('');
   const [enhancementPrompt, setEnhancementPrompt] = useState(getPromptTemplates()[0].prompt);
   
-  // Check for existing custom prompt on load
   useEffect(() => {
     const savedPrompt = getCustomBookPrompt(document.title);
     if (savedPrompt) {
@@ -68,16 +67,13 @@ const EnhancementController: React.FC<EnhancementControllerProps> = ({
       );
       
       if (enhancedChapters.length > 0) {
-        // Create the enhanced document
         const enhancedDocument = {
           ...document,
           chapters: enhancedChapters
         };
         
-        // Export to Word format
         exportToWord(enhancedDocument);
         
-        // Notify the parent component
         onDocumentEnhanced(enhancedDocument);
         
         toast.success("Document Enhancement Complete", {
@@ -130,7 +126,6 @@ const EnhancementController: React.FC<EnhancementControllerProps> = ({
   );
 };
 
-// Import this from PromptService to avoid circular dependencies
 const getPromptTemplates = () => {
   return [
     {

@@ -1,18 +1,15 @@
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { getPromptTemplates } from './EnhancementService';
-import { PencilIcon, BookTextIcon, RotateCcw } from 'lucide-react';
+import TemplateSelector from './components/TemplateSelector';
+import CustomPromptEditor from './components/CustomPromptEditor';
 import { 
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { BookTextIcon } from 'lucide-react';
 
 interface PromptSelectorProps {
   onPromptSelected: (prompt: string) => void;
@@ -57,6 +54,10 @@ const PromptSelector: React.FC<PromptSelectorProps> = ({
     setCustomPromptEnabled(false);
     handleTemplateSelection(selectedTemplateId);
   };
+
+  const handleCustomTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCustomTitle(e.target.value);
+  };
   
   return (
     <div className="space-y-4">
@@ -72,89 +73,22 @@ const PromptSelector: React.FC<PromptSelectorProps> = ({
           <AccordionTrigger>Enhancement Prompt Options</AccordionTrigger>
           <AccordionContent>
             <div className="pt-4 space-y-6">
-              <div className="flex flex-col space-y-4">
-                <div className="flex justify-between items-center">
-                  <h4 className="text-sm font-medium">Select Prompt Template</h4>
-                  {customPromptEnabled && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={resetToTemplates}
-                    >
-                      <RotateCcw className="mr-2 h-4 w-4" />
-                      Use Templates
-                    </Button>
-                  )}
-                </div>
-                
-                {!customPromptEnabled && (
-                  <RadioGroup 
-                    value={selectedTemplateId} 
-                    onValueChange={handleTemplateSelection}
-                    className="space-y-2"
-                  >
-                    {promptTemplates.map(template => (
-                      <div key={template.id} className="flex items-start space-x-2 border p-3 rounded-md">
-                        <RadioGroupItem value={template.id} id={`template-${template.id}`} />
-                        <div className="grid gap-1.5">
-                          <Label htmlFor={`template-${template.id}`} className="font-medium">
-                            {template.name}
-                          </Label>
-                          <p className="text-sm text-muted-foreground">
-                            {template.description}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </RadioGroup>
-                )}
-                
-                <div className="flex justify-between items-center mt-4">
-                  <h4 className="text-sm font-medium">
-                    {customPromptEnabled ? 'Custom Prompt' : 'Or Create Custom Prompt'}
-                  </h4>
-                  
-                  {!customPromptEnabled && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={enableCustomPrompt}
-                    >
-                      <PencilIcon className="mr-2 h-4 w-4" />
-                      Create Custom
-                    </Button>
-                  )}
-                </div>
-                
-                {customPromptEnabled && (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="custom-title">Custom Enhancement Title</Label>
-                      <Input
-                        id="custom-title"
-                        placeholder="My Book Enhancement"
-                        value={customTitle}
-                        onChange={(e) => setCustomTitle(e.target.value)}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="custom-prompt">Custom Enhancement Prompt</Label>
-                      <Textarea
-                        id="custom-prompt"
-                        placeholder="Write your custom enhancement prompt here..."
-                        value={customPrompt}
-                        onChange={handleCustomPromptChange}
-                        className="min-h-[200px]"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Write detailed instructions for how the AI should enhance your document.
-                        Be specific about style, tone, formatting, and content improvements.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <TemplateSelector 
+                promptTemplates={promptTemplates}
+                selectedTemplateId={selectedTemplateId}
+                customPromptEnabled={customPromptEnabled}
+                onTemplateSelect={handleTemplateSelection}
+                onEnableCustomPrompt={enableCustomPrompt}
+                onResetToTemplates={resetToTemplates}
+              />
+              
+              <CustomPromptEditor 
+                customPromptEnabled={customPromptEnabled}
+                customTitle={customTitle}
+                customPrompt={customPrompt}
+                onCustomTitleChange={handleCustomTitleChange}
+                onCustomPromptChange={handleCustomPromptChange}
+              />
             </div>
           </AccordionContent>
         </AccordionItem>
