@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Document, Chapter } from '../DocumentUploader';
-import { getOpenAIApiKey, getCustomBookPrompt } from './EnhancementService';
+import { getOpenAIApiKey, getCustomBookPrompt, getPromptTemplates as getTemplates } from './EnhancementService';
 import EnhancementProgress from './components/EnhancementProgress';
 import EnhanceButton from './components/EnhanceButton';
 import PromptSelectionSection from './components/PromptSelectionSection';
@@ -26,7 +26,7 @@ const EnhancementController: React.FC<EnhancementControllerProps> = ({
   const [progress, setProgress] = useState(0);
   const [enhancedChapters, setEnhancedChapters] = useState<Chapter[]>([]);
   const [statusMessage, setStatusMessage] = useState('');
-  const [enhancementPrompt, setEnhancementPrompt] = useState(getPromptTemplates()[0].prompt);
+  const [enhancementPrompt, setEnhancementPrompt] = useState(getTemplates()[0].prompt);
   
   useEffect(() => {
     const savedPrompt = getCustomBookPrompt(document.title);
@@ -124,18 +124,6 @@ const EnhancementController: React.FC<EnhancementControllerProps> = ({
       />
     </div>
   );
-};
-
-const getPromptTemplates = () => {
-  return [
-    {
-      id: 'default',
-      name: 'Standard Enhancement',
-      description: 'Basic document enhancement focusing on grammar, clarity, and style.',
-      prompt: 'Enhance this document by improving grammar, clarity, and professional style while maintaining the original meaning and content structure.'
-    },
-    // ... other templates would be here
-  ];
 };
 
 export default EnhancementController;
