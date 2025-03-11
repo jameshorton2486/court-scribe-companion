@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -6,7 +5,7 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { Document, Chapter } from '../DocumentUploader';
 import { getOpenAIApiKey } from './EnhancementService';
-import { processChapterBatch } from './BatchProcessor';
+import { processChapterBatch, processBatches } from './BatchProcessor';
 
 interface EnhancementControllerProps {
   document: Document;
