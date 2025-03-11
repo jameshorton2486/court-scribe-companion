@@ -6,14 +6,37 @@
 // API key for testing
 let openaiApiKey: string | null = null;
 
-// Helper to set the API key
+// Helper to set the API key and store it in localStorage
 export const setOpenAIApiKey = (apiKey: string): void => {
   openaiApiKey = apiKey;
+  
+  // Store in localStorage for persistence
+  try {
+    localStorage.setItem('openai_api_key', apiKey);
+  } catch (error) {
+    console.error('Failed to store API key in localStorage:', error);
+  }
 };
 
-// Helper to get the API key
+// Helper to get the API key from memory or localStorage
 export const getOpenAIApiKey = (): string | null => {
-  return openaiApiKey;
+  // If we already have it in memory, return it
+  if (openaiApiKey) {
+    return openaiApiKey;
+  }
+  
+  // Try to retrieve from localStorage
+  try {
+    const storedKey = localStorage.getItem('openai_api_key');
+    if (storedKey) {
+      openaiApiKey = storedKey;
+      return storedKey;
+    }
+  } catch (error) {
+    console.error('Failed to retrieve API key from localStorage:', error);
+  }
+  
+  return null;
 };
 
 // Method to test API key
@@ -49,11 +72,13 @@ export const testApiKey = async (): Promise<{ success: boolean; message: string 
  * 
  * @param content The original content to enhance
  * @param enhancementType The type of enhancement to apply
+ * @param customPrompt Optional custom prompt to guide the enhancement
  * @returns Enhanced content
  */
 export const enhanceChapterContent = async (
   content: string,
-  enhancementType: string
+  enhancementType: string,
+  customPrompt?: string
 ): Promise<string> => {
   // In a real app, this would call OpenAI or another service
   // For this simplified version, we'll simulate enhancement
@@ -64,6 +89,25 @@ export const enhanceChapterContent = async (
   
   let enhancedContent = content;
   
+  // If a custom prompt is provided, we would use it to guide the enhancement
+  // In a real implementation, this would be passed to the AI service
+  if (customPrompt) {
+    console.log(`Using custom prompt for enhancement: ${customPrompt.substring(0, 100)}...`);
+    
+    // Simulate more extensive processing when using a custom prompt
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Additional delay
+    
+    // For simulation, modify the content slightly differently when using a custom prompt
+    enhancedContent = content
+      .replace(/\b(the|a|an)\b/gi, match => match.toUpperCase())
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/^/, '<p><em>Enhanced with custom prompt: </em>')
+      .replace(/$/, '</p>');
+      
+    return enhancedContent;
+  }
+  
+  // Regular enhancements as before
   switch (enhancementType) {
     case 'grammar':
       // Simulate grammar corrections
@@ -164,4 +208,49 @@ export const logEnhancementError = (error: any, context: string): void => {
   
   // Log to console in a structured format for easier debugging
   console.error('Enhancement Error Details:', JSON.stringify(errorDetails, null, 2));
+};
+
+// Default prompt templates for book enhancement
+export const getPromptTemplates = () => {
+  return [
+    {
+      id: 'default',
+      name: 'Standard Enhancement',
+      description: 'Basic document enhancement focusing on grammar, clarity, and style.',
+      prompt: 'Enhance this document by improving grammar, clarity, and professional style while maintaining the original meaning and content structure.'
+    },
+    {
+      id: 'judicial',
+      name: 'Judicial Writing',
+      description: 'Optimized for legal and judicial documents with precise formatting and citations.',
+      prompt: `Refine and enhance this document by improving readability, removing redundancies, strengthening transitions, and enhancing formatting consistency. Ensure it remains engaging, well-structured, and easy to navigate for court reporters.
+
+Key Improvement Areas:
+- Remove Redundancies: Avoid repeating case studies and streamline discussions on formatting rules.
+- Enhance Readability & Structure: Break up large blocks of text with subheadings and improve section transitions.
+- Standardize Formatting & Style: Ensure consistent use of formatting for examples and key terms.
+- Improve Practical Applications: Add more interactive examples and checklists.
+- Clarify Legal & Technical References: Ensure all legal citation styles are accurate and consistently formatted.
+
+Write in a clear, engaging, and professional tone while maintaining proper legal formatting where applicable.`
+    },
+    {
+      id: 'academic',
+      name: 'Academic Paper',
+      description: 'Formats text according to academic standards with proper citations and terminology.',
+      prompt: 'Enhance this document following academic writing standards. Ensure proper citation format, academic terminology, clear argumentation, and maintain a formal scholarly tone throughout.'
+    },
+    {
+      id: 'creative',
+      name: 'Creative Writing',
+      description: 'Enhances narrative flow, descriptive language, and character development.',
+      prompt: 'Enhance this creative text by improving narrative flow, enriching descriptive language, developing characters more fully, and creating more engaging dialogue while preserving the original story and author's voice.'
+    },
+    {
+      id: 'technical',
+      name: 'Technical Documentation',
+      description: 'Optimizes technical documentation with clear explanations and consistent terminology.',
+      prompt: 'Enhance this technical documentation by improving clarity, ensuring consistent terminology, adding appropriate examples, and structuring content for easy reference. Maintain technical accuracy while making concepts more accessible.'
+    }
+  ];
 };

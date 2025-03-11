@@ -1,11 +1,13 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { Document, Chapter } from '../DocumentUploader';
-import { getOpenAIApiKey } from './EnhancementService';
+import { getOpenAIApiKey, getPromptTemplates } from './EnhancementService';
 import { processChapterBatch, processBatches } from './BatchProcessor';
+import PromptSelector from './PromptSelector';
 
 interface EnhancementControllerProps {
   document: Document;
@@ -22,6 +24,7 @@ const EnhancementController: React.FC<EnhancementControllerProps> = ({
   const [progress, setProgress] = useState(0);
   const [enhancedChapters, setEnhancedChapters] = useState<Chapter[]>([]);
   const [statusMessage, setStatusMessage] = useState('');
+  const [enhancementPrompt, setEnhancementPrompt] = useState(getPromptTemplates()[0].prompt);
   
   const BATCH_SIZE = 3; // Process 3 chapters at a time to avoid API overload
   
@@ -49,6 +52,7 @@ const EnhancementController: React.FC<EnhancementControllerProps> = ({
       setTotalBatches(totalBatches);
       
       console.log(`Starting document enhancement: ${chaptersToProcess.length} chapters in ${totalBatches} batches`);
+      console.log(`Using enhancement prompt: ${enhancementPrompt.substring(0, 100)}...`);
       
       // Process chapters in batches
       for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
@@ -60,8 +64,12 @@ const EnhancementController: React.FC<EnhancementControllerProps> = ({
         const currentBatchChapters = chaptersToProcess.slice(startIdx, endIdx);
         
         try {
-          // Process the current batch
-          const enhancedBatch = await processChapterBatch(currentBatchChapters, apiKey);
+          // Process the current batch with the custom prompt
+          const enhancedBatch = await processChapterBatch(
+            currentBatchChapters, 
+            apiKey,
+            enhancementPrompt // Pass the enhancement prompt
+          );
           
           // Update the enhanced chapters array
           setEnhancedChapters(prev => [...prev, ...enhancedBatch]);
@@ -120,6 +128,10 @@ const EnhancementController: React.FC<EnhancementControllerProps> = ({
     }
   };
   
+  const handlePromptChange = (prompt: string) => {
+    setEnhancementPrompt(prompt);
+  };
+  
   const exportToWord = (enhancedDocument: Document) => {
     try {
       setStatusMessage('Preparing Word document...');
@@ -148,6 +160,11 @@ const EnhancementController: React.FC<EnhancementControllerProps> = ({
           fix formatting issues, and ensure professional style throughout the document.
         </p>
       </div>
+      
+      <PromptSelector 
+        onPromptSelected={handlePromptChange}
+        selectedPrompt={enhancementPrompt}
+      />
       
       {isEnhancing && (
         <div className="space-y-4">

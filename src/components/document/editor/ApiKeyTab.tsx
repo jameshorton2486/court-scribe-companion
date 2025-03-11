@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { setOpenAIApiKey, getOpenAIApiKey, testApiKey } from '../enhancer/EnhancementService';
 import { toast } from 'sonner';
-import { AlertCircle, CheckCircle, Key } from 'lucide-react';
+import { AlertCircle, CheckCircle, Key, SaveIcon } from 'lucide-react';
 
 interface ApiKeyTabProps {
   onApiKeyChanged?: () => Promise<void>;
@@ -15,11 +15,13 @@ const ApiKeyTab: React.FC<ApiKeyTabProps> = ({ onApiKeyChanged }) => {
   const [apiKey, setApiKey] = useState<string>('');
   const [isValidating, setIsValidating] = useState<boolean>(false);
   const [validationResult, setValidationResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [isStoredLocally, setIsStoredLocally] = useState<boolean>(false);
   
   useEffect(() => {
     const savedApiKey = getOpenAIApiKey();
     if (savedApiKey) {
       setApiKey(savedApiKey);
+      setIsStoredLocally(true);
       validateApiKey(savedApiKey);
     }
   }, []);
@@ -27,6 +29,7 @@ const ApiKeyTab: React.FC<ApiKeyTabProps> = ({ onApiKeyChanged }) => {
   const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setApiKey(e.target.value);
     setValidationResult(null);
+    setIsStoredLocally(false);
   };
   
   const validateApiKey = async (key: string) => {
@@ -73,6 +76,7 @@ const ApiKeyTab: React.FC<ApiKeyTabProps> = ({ onApiKeyChanged }) => {
     }
     
     setOpenAIApiKey(apiKey.trim());
+    setIsStoredLocally(true);
     await validateApiKey(apiKey.trim());
   };
   
@@ -87,7 +91,7 @@ const ApiKeyTab: React.FC<ApiKeyTabProps> = ({ onApiKeyChanged }) => {
             </div>
             <p className="text-xs text-muted-foreground">
               Enter your OpenAI API key to enable document enhancement features.
-              Your key will only be stored in your browser and is never sent to our servers.
+              Your key will be securely stored in your browser and will persist between sessions.
             </p>
           </div>
           
@@ -100,9 +104,21 @@ const ApiKeyTab: React.FC<ApiKeyTabProps> = ({ onApiKeyChanged }) => {
               className="font-mono"
             />
             <Button onClick={handleSaveApiKey} disabled={isValidating}>
-              {isValidating ? "Validating..." : "Save Key"}
+              {isValidating ? "Validating..." : (
+                <>
+                  <SaveIcon className="h-4 w-4 mr-2" />
+                  Save Key
+                </>
+              )}
             </Button>
           </div>
+          
+          {isStoredLocally && !isValidating && (
+            <div className="flex items-center gap-2 text-sm text-green-600">
+              <CheckCircle className="h-4 w-4" />
+              <p>API key is stored in your browser</p>
+            </div>
+          )}
           
           {validationResult && (
             <div className={`flex items-center gap-2 text-sm ${validationResult.success ? 'text-green-600' : 'text-red-600'}`}>
