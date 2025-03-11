@@ -6,7 +6,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { getPromptTemplates } from './EnhancementService';
-import { PencilIcon, BookTextIcon, ResetIcon } from 'lucide-react';
+import { PencilIcon, BookTextIcon, RotateCcw } from 'lucide-react';
 import { 
   Accordion,
   AccordionContent,
@@ -81,7 +81,7 @@ const PromptSelector: React.FC<PromptSelectorProps> = ({
                       size="sm" 
                       onClick={resetToTemplates}
                     >
-                      <ResetIcon className="mr-2 h-4 w-4" />
+                      <RotateCcw className="mr-2 h-4 w-4" />
                       Use Templates
                     </Button>
                   )}

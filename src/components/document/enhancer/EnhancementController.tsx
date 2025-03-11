@@ -5,9 +5,10 @@ import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { Document, Chapter } from '../DocumentUploader';
-import { getOpenAIApiKey, getPromptTemplates } from './EnhancementService';
+import { getOpenAIApiKey, getPromptTemplates, getCustomBookPrompt } from './EnhancementService';
 import { processChapterBatch, processBatches } from './BatchProcessor';
 import PromptSelector from './PromptSelector';
+import CustomBookPrompt from './CustomBookPrompt';
 
 interface EnhancementControllerProps {
   document: Document;
@@ -25,6 +26,17 @@ const EnhancementController: React.FC<EnhancementControllerProps> = ({
   const [enhancedChapters, setEnhancedChapters] = useState<Chapter[]>([]);
   const [statusMessage, setStatusMessage] = useState('');
   const [enhancementPrompt, setEnhancementPrompt] = useState(getPromptTemplates()[0].prompt);
+  
+  // Check for existing custom prompt on load
+  useEffect(() => {
+    const savedPrompt = getCustomBookPrompt(document.title);
+    if (savedPrompt) {
+      setEnhancementPrompt(savedPrompt);
+      toast.info("Book-specific prompt loaded", {
+        description: "A custom prompt for this book was found and loaded"
+      });
+    }
+  }, [document.title]);
   
   const BATCH_SIZE = 3; // Process 3 chapters at a time to avoid API overload
   
@@ -161,10 +173,20 @@ const EnhancementController: React.FC<EnhancementControllerProps> = ({
         </p>
       </div>
       
-      <PromptSelector 
-        onPromptSelected={handlePromptChange}
-        selectedPrompt={enhancementPrompt}
-      />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <PromptSelector 
+            onPromptSelected={handlePromptChange}
+            selectedPrompt={enhancementPrompt}
+          />
+        </div>
+        <div>
+          <CustomBookPrompt 
+            bookTitle={document.title}
+            onPromptSelected={handlePromptChange}
+          />
+        </div>
+      </div>
       
       {isEnhancing && (
         <div className="space-y-4">

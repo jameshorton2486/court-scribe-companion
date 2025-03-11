@@ -1,109 +1,102 @@
-
 import { Chapter } from '../DocumentUploader';
 import { enhanceChapterContent, logEnhancementError } from './EnhancementService';
 
 /**
- * Process a batch of chapters for enhancement
- * 
- * @param chapters Batch of chapters to process
- * @param apiKey OpenAI API key
- * @param customPrompt Optional custom prompt to guide enhancements
- * @returns Enhanced chapters
+ * Process a batch of chapters with AI enhancement
  */
 export const processChapterBatch = async (
   chapters: Chapter[],
   apiKey: string,
-  customPrompt?: string
+  enhancementPrompt: string
 ): Promise<Chapter[]> => {
-  if (!chapters || chapters.length === 0) {
-    return [];
-  }
+  // Create a copy of the chapters to avoid mutating the original
+  const enhancedChapters: Chapter[] = [];
   
-  console.log(`Processing batch of ${chapters.length} chapters${customPrompt ? ' with custom prompt' : ''}`);
-  
-  // Process chapters in parallel for efficiency
-  const enhancementPromises = chapters.map(async (chapter) => {
+  // Process each chapter
+  for (const chapter of chapters) {
     try {
-      // For main chapters (h2) and subsections (h3), determine enhancement type
-      const enhancementType = chapter.level === 3 ? 'clarity' : 'style';
-      
-      // Process the chapter content with AI enhancement
+      // Enhance the chapter content
       const enhancedContent = await enhanceChapterContent(
         chapter.content,
-        enhancementType,
-        customPrompt // Pass the custom prompt if provided
+        'style', // Default to style enhancement
+        enhancementPrompt // Use the custom prompt
       );
       
-      // Return enhanced chapter
-      return {
+      // Add the enhanced chapter to the result
+      enhancedChapters.push({
         ...chapter,
-        content: enhancedContent,
-        isEnhanced: true
-      };
-    } catch (error) {
-      // Log the error but return the original chapter to maintain document structure
-      logEnhancementError(error, `Chapter ${chapter.title}`);
-      return chapter;
-    }
-  });
-  
-  // Wait for all chapters to be processed
-  return Promise.all(enhancementPromises);
-};
-
-/**
- * Process all chapters in batches
- * 
- * @param chapters All chapters to process
- * @param apiKey OpenAI API key
- * @param batchSize Number of chapters to process in each batch
- * @param onBatchComplete Callback for when a batch completes
- * @param customPrompt Optional custom prompt to guide enhancements
- * @returns Enhanced chapters
- */
-export const processBatches = async (
-  chapters: Chapter[],
-  apiKey: string,
-  batchSize: number,
-  onBatchComplete?: (batch: Chapter[], batchIndex: number) => void,
-  customPrompt?: string
-): Promise<Chapter[]> => {
-  if (!chapters || chapters.length === 0) {
-    return [];
-  }
-  
-  const totalBatches = Math.ceil(chapters.length / batchSize);
-  console.log(`Processing ${chapters.length} chapters in ${totalBatches} batches`);
-  
-  let enhancedChapters: Chapter[] = [];
-  
-  for (let i = 0; i < totalBatches; i++) {
-    const start = i * batchSize;
-    const end = Math.min(start + batchSize, chapters.length);
-    const batch = chapters.slice(start, end);
-    
-    console.log(`Processing batch ${i + 1}/${totalBatches} with ${batch.length} chapters`);
-    
-    try {
-      // Process the current batch
-      const enhancedBatch = await processChapterBatch(batch, apiKey, customPrompt);
-      enhancedChapters.push(...enhancedBatch);
+        content: enhancedContent
+      });
       
-      // Notify of batch completion
-      if (onBatchComplete) {
-        onBatchComplete(enhancedBatch, i);
-      }
-      
-      // Add a small delay between batches to prevent API rate limits
-      if (i < totalBatches - 1) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+      // Add a small delay between chapters to prevent rate limits
+      await new Promise(resolve => setTimeout(resolve, 500));
     } catch (error) {
-      logEnhancementError(error, `Batch ${i + 1}`);
-      // On error, add the original chapters to maintain document structure
-      enhancedChapters.push(...batch);
+      logEnhancementError(error, `Processing chapter "${chapter.title}"`);
+      
+      // If enhancement fails, keep the original chapter
+      enhancedChapters.push(chapter);
     }
   }
   
   return enhancedChapters;
+};
+
+/**
+ * Formats content for Word export
+ */
+export const formatForWordExport = (content: string): string => {
+  // In a real implementation, this would format the content for Word
+  // For this simplified version, we just make some basic HTML formatting adjustments
+  
+  let formattedContent = content;
+  
+  // Ensure paragraph tags
+  if (!formattedContent.startsWith('<p>')) {
+    formattedContent = '<p>' + formattedContent;
+  }
+  if (!formattedContent.endsWith('</p>')) {
+    formattedContent += '</p>';
+  }
+  
+  // Fix common formatting issues
+  formattedContent = formattedContent
+    .replace(/<p>\s*<\/p>/g, '') // Remove empty paragraphs
+    .replace(/([.!?:;,])([^\s\d"])/g, '$1 $2') // Add space after punctuation
+    .replace(/<(\/?)h(\d)>/g, '<$1strong>') // Convert headings to strong for Word compatibility
+    .replace(/<br\s*\/?>/g, '</p><p>') // Convert <br> to paragraphs
+    .replace(/<hr\s*\/?>/g, '<p>---</p>'); // Convert <hr> to text separator
+  
+  // Add Word-specific metadata (this would be more sophisticated in a real implementation)
+  const wordMetadata = `
+    <meta name="author" content="Document Enhancer">
+    <meta name="description" content="Enhanced document for Word export">
+  `;
+  
+  return formattedContent;
+};
+
+/**
+ * Process batches of chapters
+ */
+export const processBatches = async (
+  chapters: Chapter[],
+  apiKey: string,
+  batchSize: number = 3,
+  enhancementPrompt: string
+): Promise<Chapter[]> => {
+  const allEnhancedChapters: Chapter[] = [];
+  
+  // Process chapters in batches
+  for (let i = 0; i < chapters.length; i += batchSize) {
+    const batch = chapters.slice(i, i + batchSize);
+    const enhancedBatch = await processChapterBatch(batch, apiKey, enhancementPrompt);
+    allEnhancedChapters.push(...enhancedBatch);
+    
+    // Add a delay between batches
+    if (i + batchSize < chapters.length) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+  
+  return allEnhancedChapters;
 };
