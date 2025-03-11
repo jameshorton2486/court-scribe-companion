@@ -244,7 +244,7 @@ Write in a clear, engaging, and professional tone while maintaining proper legal
       id: 'creative',
       name: 'Creative Writing',
       description: 'Enhances narrative flow, descriptive language, and character development.',
-      prompt: 'Enhance this creative text by improving narrative flow, enriching descriptive language, developing characters more fully, and creating more engaging dialogue while preserving the original story and author's voice.'
+      prompt: 'Enhance this creative text by improving narrative flow, enriching descriptive language, developing characters more fully, and creating more engaging dialogue while preserving the original story and author\'s voice.'
     },
     {
       id: 'technical',
