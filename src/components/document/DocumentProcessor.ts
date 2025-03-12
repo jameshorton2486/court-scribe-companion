@@ -96,22 +96,32 @@ const extractChapters = (content: string): Chapter[] => {
   const chapters: Chapter[] = [];
   
   // Chapter and subsection detection patterns
-  const chapterPatterns = [
-    /^chapter\s+(\d+)[\s:]+(.+)$/i,            // "Chapter X: Title" or "Chapter X - Title"
-    /^(\d+)[\s\.]+(.+)$/,                       // "1. Title" or "I. Title"
-    /^(\d+\.\d+)[\s]+(.+)$/                    // "1.1 Title" (subsection)
+  const sectionPatterns = [
+    /^chapter\s+(\d+)[\s:]+(.+)$/i,            // "Chapter X: Title"
+    /^(\d+)[\s\.]+(.+)$/,                       // "1. Title"
+    /^(\d+\.\d+)[\s]+(.+)$/,                   // "1.1 Title" (subsection)
+    /^appendix\s+([A-Z])[\s:\.]+(.+)$/i,       // "Appendix A: Title"
+    /^([A-Z])[\s:\.]+(.+)$/,                   // "A. Title" (appendix style)
+    /^back\s+matter:?\s*(.+)$/i,               // "Back Matter: Title"
+    /^index:?\s*(.+)$/i,                       // "Index: Title"
   ];
   
   let currentChapterTitle = hasEncodingIssues ? 'Encoding Issues Detected' : 'Introduction';
   let currentChapterContent = '';
   let chapterCount = 0;
   let lastChapterNumber: string | null = null;
-  
+  let isInBackMatter = false;
+  let isInAppendices = false;
+
   // Function to add current chapter
   const addChapter = () => {
     if (currentChapterContent) {
+      const id = isInAppendices ? `appendix-${chapterCount}` : 
+                isInBackMatter ? `backmatter-${chapterCount}` : 
+                `ch-${chapterCount}`;
+                
       chapters.push({
-        id: `ch-${chapterCount}`,
+        id,
         title: currentChapterTitle,
         content: currentChapterContent.trim()
       });
@@ -125,56 +135,57 @@ const extractChapters = (content: string): Chapter[] => {
     
     // Skip empty lines
     if (!line) continue;
-    
-    // Check if line is a chapter heading or subsection
+
+    // Check for section markers
+    if (line.toLowerCase().startsWith('appendices')) {
+      isInAppendices = true;
+      isInBackMatter = false;
+      continue;
+    }
+
+    if (line.toLowerCase().includes('back matter')) {
+      isInBackMatter = true;
+      isInAppendices = false;
+      continue;
+    }
+
+    // Check if line is a heading
     let isHeading = false;
     
-    for (const pattern of chapterPatterns) {
+    for (const pattern of sectionPatterns) {
       const match = line.match(pattern);
       if (match) {
         // Save previous chapter
         addChapter();
         
-        // Start new chapter or subsection
-        const chapterNumber = match[1];
-        const title = match[2] ? match[2].trim() : `Chapter ${chapterNumber}`;
-        
-        // Check if it's a subsection (contains a decimal point)
-        const isSubsection = chapterNumber.includes('.');
-        
-        if (isSubsection) {
-          // This is a subsection (e.g., "3.1")
-          currentChapterTitle = `${chapterNumber} ${title}`;
-          currentChapterContent = `<h3>${chapterNumber} ${title}</h3>\n`;
+        // Handle different section types
+        if (line.toLowerCase().startsWith('appendix') || (isInAppendices && match[1].length === 1)) {
+          currentChapterTitle = `Appendix ${match[1]}: ${match[2] || 'Untitled'}`;
+          currentChapterContent = `<h2>${currentChapterTitle}</h2>\n`;
+        } else if (isInBackMatter) {
+          currentChapterTitle = match[2] || match[1];
+          currentChapterContent = `<h2>${currentChapterTitle}</h2>\n`;
         } else {
           // This is a main chapter
-          currentChapterTitle = `Chapter ${chapterNumber}: ${title}`;
-          currentChapterContent = `<h2>Chapter ${chapterNumber}: ${title}</h2>\n`;
-          lastChapterNumber = chapterNumber;
+          currentChapterTitle = `Chapter ${match[1]}: ${match[2]}`;
+          currentChapterContent = `<h2>Chapter ${match[1]}: ${match[2]}</h2>\n`;
+          lastChapterNumber = match[1];
         }
         
         isHeading = true;
         break;
       }
     }
-    
-    // If not a chapter heading, add to current chapter
-    if (!isHeading) {
-      // If this is the first content and no chapter yet, create default chapter
-      if (chapters.length === 0 && !currentChapterContent) {
-        currentChapterTitle = hasEncodingIssues ? 'Encoding Issues Detected' : 'Introduction';
-        currentChapterContent = `<h2>${currentChapterTitle}</h2>\n`;
-        
-        // If encoding issues detected, add a warning
-        if (hasEncodingIssues) {
-          currentChapterContent += `<div style="color: red; padding: 10px; margin: 10px 0; background-color: #ffeeee; border: 1px solid #ffcccc; border-radius: 4px;">
-            <p><strong>Warning:</strong> This document appears to have encoding issues. The text may display incorrectly.</p>
-            <p>Try re-saving your document in UTF-8 format before uploading again, or try a different file format (like .txt).</p>
-          </div>\n`;
-        }
+
+    // Handle bullet points and lists
+    if (line.startsWith('•')) {
+      currentChapterContent += `<li>${line.substring(1).trim()}</li>\n`;
+    } else if (!isHeading) {
+      if (currentChapterContent.endsWith('</li>\n')) {
+        // Close list if we were in one
+        currentChapterContent += '</ul>\n';
       }
-      
-      // Add line to current chapter content
+      // Add regular paragraph
       currentChapterContent += `<p>${line}</p>\n`;
     }
   }
