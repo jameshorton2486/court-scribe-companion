@@ -1,6 +1,14 @@
 
-import React, { useState } from 'react';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import React, { useEffect, useState } from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+// Define the template interface
+interface PromptTemplate {
+  id: string;
+  name: string;
+  description: string;
+  prompt: string;
+}
 
 export interface TemplateSelectorProps {
   onTemplateSelect: (template: string) => void;
@@ -11,53 +19,80 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   onTemplateSelect,
   disabled = false
 }) => {
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('academic');
+  // Predefined prompt templates
+  const defaultTemplates: PromptTemplate[] = [
+    {
+      id: 'grammar',
+      name: 'Grammar & Clarity',
+      description: 'Improve grammar and clarity while preserving style',
+      prompt: 'Improve grammar, spelling, and clarity in this content. Fix punctuation and sentence structure issues while preserving the original tone and style. Make the text more readable but don\'t change the meaning or add new information.'
+    },
+    {
+      id: 'professional',
+      name: 'Professional Tone',
+      description: 'Make the content more professional and formal',
+      prompt: 'Rewrite this content to have a more professional and formal tone. Improve vocabulary, eliminate casual language, and ensure proper grammar and punctuation. Make it suitable for a business or academic context.'
+    },
+    {
+      id: 'concise',
+      name: 'Concise & Direct',
+      description: 'Make the content more concise and to-the-point',
+      prompt: 'Make this content more concise and direct. Remove unnecessary words, redundancies, and filler phrases. Simplify complex sentences while preserving all important information and key points.'
+    },
+    {
+      id: 'engaging',
+      name: 'Engaging & Interesting',
+      description: 'Make the content more engaging and interesting',
+      prompt: 'Make this content more engaging and interesting to read. Improve the flow, use more varied sentence structures, and add descriptive language where appropriate. Make it captivating while maintaining the original meaning and information.'
+    }
+  ];
   
-  const templates = {
-    academic: "Enhance this text to meet high academic standards. Improve grammar, clarity, and formal tone while preserving the original meaning. Use appropriate academic vocabulary and ensure logical flow between ideas. Fix any structural issues while maintaining the author's voice.",
-    professional: "Transform this content into polished, professional writing. Correct grammatical errors, enhance vocabulary, and improve sentence structure. Ensure clear communication while maintaining a business-appropriate tone. Make the content concise and impactful.",
-    creative: "Enhance this writing with creative flair. Improve the imagery, vary sentence structure, and elevate vocabulary. Maintain the author's unique voice while fixing grammatical errors. Make the narrative engaging and evocative while preserving the original story and meaning.",
-    simplified: "Simplify this text for improved readability. Clarify complex ideas, use simpler vocabulary, and break down lengthy sentences. Fix grammatical errors and ensure logical flow. Maintain the core message while making the content more accessible to a general audience.",
-    technical: "Refine this technical content for clarity and precision. Ensure accurate terminology, fix grammar issues, and improve structural organization. Maintain technical depth while making explanations more accessible. Ensure consistent formatting of technical elements."
-  };
+  const [selectedTemplate, setSelectedTemplate] = useState<string>(defaultTemplates[0].id);
   
-  const handleTemplateChange = (value: string) => {
-    setSelectedTemplate(value);
-    // @ts-ignore - TypeScript doesn't know about the templates object keys
-    const templateText = templates[value] || '';
-    onTemplateSelect(templateText);
+  useEffect(() => {
+    // Initialize with the first template
+    if (defaultTemplates.length > 0) {
+      const template = defaultTemplates.find(t => t.id === selectedTemplate);
+      if (template) {
+        onTemplateSelect(template.prompt);
+      }
+    }
+  }, []);
+  
+  const handleTemplateChange = (templateId: string) => {
+    setSelectedTemplate(templateId);
+    const template = defaultTemplates.find(t => t.id === templateId);
+    if (template) {
+      onTemplateSelect(template.prompt);
+    }
   };
   
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div>
-        <label htmlFor="template-select" className="block text-sm font-medium mb-2">
-          Select Enhancement Template
+        <label htmlFor="template-selector" className="block text-sm font-medium mb-2">
+          Enhancement Template
         </label>
-        <Select 
-          value={selectedTemplate} 
+        <Select
+          value={selectedTemplate}
           onValueChange={handleTemplateChange}
           disabled={disabled}
         >
-          <SelectTrigger id="template-select" className="w-full">
-            <SelectValue placeholder="Select a writing style" />
+          <SelectTrigger id="template-selector" className="w-full">
+            <SelectValue placeholder="Select a template" />
           </SelectTrigger>
           <SelectContent>
-            <SelectGroup>
-              <SelectItem value="academic">Academic</SelectItem>
-              <SelectItem value="professional">Professional</SelectItem>
-              <SelectItem value="creative">Creative</SelectItem>
-              <SelectItem value="simplified">Simplified</SelectItem>
-              <SelectItem value="technical">Technical</SelectItem>
-            </SelectGroup>
+            {defaultTemplates.map((template) => (
+              <SelectItem key={template.id} value={template.id}>
+                {template.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
       
-      <div className="p-3 bg-muted rounded-md">
-        <p className="text-sm">
-          {templates[selectedTemplate as keyof typeof templates]}
-        </p>
+      <div className="text-sm text-muted-foreground">
+        {defaultTemplates.find(t => t.id === selectedTemplate)?.description || 'Select a template to see description'}
       </div>
     </div>
   );

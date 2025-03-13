@@ -7,6 +7,9 @@ import { enhanceChapterContent } from './processors/chapterEnhancer';
 import { safeApiCall } from './utils/enhancementUtils';
 import { safeOperation, executeWithTiming } from '@/utils/errorHandlingUtils';
 
+// Import the Chapter interface to ensure type compatibility
+import { Chapter, ProcessingError } from '@/components/document/DocumentUploader';
+
 /**
  * Enhances a book by processing selected chapters with specified enhancement options
  * 
@@ -49,10 +52,13 @@ export const enhanceBook = async (
           enhancedChapters[i] = {
             ...chapter,
             content: result.content,
-            processingErrors: result.errors
           };
           
           if (result.errors && result.errors.length > 0) {
+            // Add errors to chapter if the interface supports it
+            if ('processingErrors' in chapter) {
+              (enhancedChapters[i] as any).processingErrors = result.errors;
+            }
             enhancementErrors.push(...result.errors);
           }
           
@@ -80,7 +86,8 @@ export const enhanceBook = async (
       enhancedBook.chapters = timingResult.result.enhancedChapters;
       
       if (timingResult.result.enhancementErrors.length > 0) {
-        enhancedBook.processingErrors = timingResult.result.enhancementErrors;
+        // Add errors to book if the interface supports it
+        (enhancedBook as any).processingErrors = timingResult.result.enhancementErrors;
       }
       
       console.info(`Enhanced book in ${(timingResult.executionTime / 1000).toFixed(2)}s`);

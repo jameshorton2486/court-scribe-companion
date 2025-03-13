@@ -20,6 +20,13 @@ export const sanitizeHtml = (html: string): string => {
 };
 
 /**
+ * Sanitize text content to prevent injection attacks
+ */
+export const sanitizeTextContent = (input: string): string => {
+  return input.trim();
+};
+
+/**
  * Sanitize a string input to prevent injection attacks
  */
 export const sanitizeInput = (input: string): string => {
@@ -32,6 +39,14 @@ export const sanitizeInput = (input: string): string => {
 export const isValidApiKey = (apiKey: string): boolean => {
   // OpenAI API keys typically start with 'sk-' and are around 51 characters long
   return /^sk-[a-zA-Z0-9]{48}$/.test(apiKey);
+};
+
+/**
+ * Validate API key format - same as isValidApiKey but with a different name
+ * to maintain backward compatibility
+ */
+export const validateApiKeyFormat = (apiKey: string): boolean => {
+  return isValidApiKey(apiKey);
 };
 
 /**

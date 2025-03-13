@@ -1,209 +1,221 @@
-
-import { useState } from 'react';
-import { Upload, FileText, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Upload, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import { processDocument, detectEncodingIssues } from './DocumentProcessor';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { processDocument, validateDocument } from './DocumentProcessor';
 
-export type Document = {
+// Export interfaces for use in other components
+export interface ProcessingError {
+  code: string;
+  message: string;
+  details?: string;
+}
+
+export interface Chapter {
+  id: string;
+  title: string;
+  content: string;
+  processingErrors?: ProcessingError[];
+}
+
+export interface Document {
   id: string;
   title: string;
   author: string;
   chapters: Chapter[];
-};
-
-export type Chapter = {
-  id: string;
-  title: string;
-  content: string;
-};
-
-interface DocumentUploaderProps {
-  onDocumentLoaded: (document: Document) => void;
+  processingErrors?: ProcessingError[];
 }
 
-const DocumentUploader = ({ onDocumentLoaded }: DocumentUploaderProps) => {
+const DocumentUploader: React.FC<{ onDocumentLoaded: (document: Document) => void }> = ({ onDocumentLoaded }) => {
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
-  const [file, setFile] = useState<File | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [encodingIssuesDetected, setEncodingIssuesDetected] = useState(false);
-  const [fileContent, setFileContent] = useState<string>('');
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      setFile(selectedFile);
-      
-      // Auto-populate title from filename if empty
-      if (!title) {
-        const fileName = selectedFile.name.replace(/\.\w+$/, '');
-        setTitle(fileName);
-      }
-      
-      try {
-        // Preview file content to check for encoding issues
-        const text = await readFileContent(selectedFile);
-        setFileContent(text);
-        
-        // Check for encoding issues
-        const hasIssues = detectEncodingIssues(text);
-        setEncodingIssuesDetected(hasIssues);
-        
-        if (hasIssues) {
-          toast.warning("Possible encoding issues detected", {
-            description: "The document may contain encoding problems. Try to re-save it in UTF-8 format before uploading."
-          });
-        }
-      } catch (error) {
-        console.error("Error reading file:", error);
-      }
-    }
+  const [content, setContent] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('upload');
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setContent(e.target.value);
   };
-
-  const handleProcess = async () => {
-    if (!file) {
-      toast.error("Please select a file to upload");
-      return;
-    }
-
-    if (!title.trim()) {
-      toast.error("Please enter a title for your document");
-      return;
-    }
-
-    setIsProcessing(true);
+  
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTitle(e.target.value);
+  };
+  
+  const handleAuthorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAuthor(e.target.value);
+  };
+  
+  const processUploadedDocument = useCallback(() => {
+    setIsLoading(true);
+    setUploadError(null);
     
     try {
-      // Use the already read content or read it if not available
-      const text = fileContent || await readFileContent(file);
+      const validationResult = validateDocument(content);
       
-      // Process document
-      const document = processDocument(title, author, text);
-      
-      if (document) {
-        onDocumentLoaded(document);
-        
-        // Show appropriate toast based on encoding detection
-        if (encodingIssuesDetected) {
-          toast.success("Document processed with warnings", {
-            description: `Created ${document.chapters.length} chapter(s), but encoding issues were detected.`
-          });
-        } else {
-          toast.success("Document processed successfully", {
-            description: `Created ${document.chapters.length} chapter(s) from your document.`
-          });
-        }
+      if (!validationResult.isValid) {
+        toast.error("Document Validation Failed", {
+          description: validationResult.messages.join(', ')
+        });
+        setUploadError(validationResult.messages.join(', '));
+        return;
       }
-    } catch (error) {
-      console.error("Error processing document:", error);
-      toast.error("Failed to process document", {
-        description: error instanceof Error ? error.message : "Unknown error occurred"
+      
+      const document = processDocument(title, author, content);
+      onDocumentLoaded(document);
+      toast.success("Document processed successfully", {
+        description: `${document.chapters.length} chapters extracted`
       });
+      
+    } catch (error: any) {
+      console.error("Error processing document:", error);
+      toast.error("Document Processing Failed", {
+        description: error.message || 'An unexpected error occurred'
+      });
+      setUploadError(error.message || 'An unexpected error occurred');
     } finally {
-      setIsProcessing(false);
+      setIsLoading(false);
     }
-  };
-
-  const readFileContent = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      
-      reader.onload = (e) => {
-        if (e.target?.result) {
-          resolve(e.target.result as string);
-        } else {
-          reject(new Error("Failed to read file"));
-        }
-      };
-      
-      reader.onerror = () => reject(new Error("File read error"));
-      
-      if (file.type === 'application/pdf') {
-        // For PDF files, we would need PDF.js or similar library
-        // This is a simplified version so we'll show an error
-        reject(new Error("PDF processing is not supported in this simplified demo"));
+  }, [title, author, content, onDocumentLoaded]);
+  
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      toast.error("No file selected");
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (event: ProgressEvent<FileReader>) => {
+      const fileContent = event.target?.result;
+      if (typeof fileContent === 'string') {
+        setContent(fileContent);
+        toast.success("File uploaded successfully", {
+          description: file.name
+        });
       } else {
-        // For text files, DOCX would need additional processing in real app
-        reader.readAsText(file);
+        toast.error("Failed to read file content");
+        setUploadError("Failed to read file content");
       }
-    });
+    };
+    reader.onerror = () => {
+      toast.error("Failed to read file");
+      setUploadError("Failed to read file");
+    };
+    setIsLoading(true);
+    setUploadError(null);
+    reader.onloadend = () => {
+      setIsLoading(false);
+    };
+    reader.readAsText(file);
   };
-
+  
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card className="w-[90%] md:w-[70%] lg:w-[50%] mx-auto">
       <CardHeader>
-        <CardTitle>Upload Document</CardTitle>
+        <CardTitle className="text-2xl">Document Uploader</CardTitle>
+        <CardDescription>Upload your document to begin</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="title">Document Title</Label>
-          <Input 
-            id="title" 
-            value={title} 
-            onChange={(e) => setTitle(e.target.value)} 
-            placeholder="Enter document title"
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="author">Author (Optional)</Label>
-          <Input 
-            id="author" 
-            value={author} 
-            onChange={(e) => setAuthor(e.target.value)}
-            placeholder="Enter author name"
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="file">Upload File</Label>
-          <div className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center">
-            <Input
-              id="file"
-              type="file"
-              className="hidden"
-              onChange={handleFileChange}
-              accept=".txt,.docx,.md,.html"
-            />
-            <Label htmlFor="file" className="cursor-pointer flex flex-col items-center gap-2">
-              <Upload className="h-8 w-8 text-gray-400" />
-              {file ? (
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  <span className="text-sm font-medium">{file.name}</span>
-                </div>
-              ) : (
-                <span className="text-sm text-gray-500">
-                  Click to select a document file (.txt, .docx, .md, .html)
-                </span>
+      
+      <CardContent>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="upload">Upload File</TabsTrigger>
+            <TabsTrigger value="paste">Paste Text</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="upload" className="space-y-4">
+            <div className="grid gap-4">
+              <div className="flex items-center space-x-2">
+                <Upload className="h-4 w-4" />
+                <label
+                  htmlFor="upload-file"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Select a file to upload
+                </label>
+              </div>
+              <Input 
+                type="file" 
+                id="upload-file" 
+                className="hidden" 
+                onChange={handleFileUpload} 
+              />
+              {uploadError && (
+                <p className="text-sm text-red-500">Upload Error: {uploadError}</p>
               )}
-            </Label>
-          </div>
-        </div>
-        
-        {encodingIssuesDetected && (
-          <Alert variant="destructive" className="mt-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Encoding Issues Detected</AlertTitle>
-            <AlertDescription>
-              Your document appears to have encoding problems that may cause text to display incorrectly. 
-              Consider re-saving your document in UTF-8 format before uploading, or try a different file format.
-            </AlertDescription>
-          </Alert>
-        )}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="paste" className="space-y-4">
+            <div className="grid gap-4">
+              <div className="space-y-2">
+                <label
+                  htmlFor="document-title"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Document Title
+                </label>
+                <Input 
+                  type="text" 
+                  id="document-title" 
+                  placeholder="Enter document title" 
+                  value={title}
+                  onChange={handleTitleChange}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label
+                  htmlFor="document-author"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Document Author (optional)
+                </label>
+                <Input 
+                  type="text" 
+                  id="document-author" 
+                  placeholder="Enter author name" 
+                  value={author}
+                  onChange={handleAuthorChange}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label
+                  htmlFor="document-content"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Document Content
+                </label>
+                <textarea
+                  id="document-content"
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="Paste your document content here..."
+                  value={content}
+                  onChange={handleContentChange}
+                />
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </CardContent>
-      <CardFooter>
+      
+      <CardFooter className="flex justify-end">
         <Button 
-          onClick={handleProcess}
-          disabled={isProcessing || !file}
-          className="w-full"
+          onClick={processUploadedDocument} 
+          disabled={isLoading || !content.trim()}
         >
-          {isProcessing ? "Processing..." : "Process Document"}
+          {isLoading ? (
+            <>
+              Processing <span className="animate-spin ml-2">...</span>
+            </>
+          ) : (
+            "Process Document"
+          )}
         </Button>
       </CardFooter>
     </Card>

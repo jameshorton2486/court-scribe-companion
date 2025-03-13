@@ -4,11 +4,13 @@ import { Textarea } from '@/components/ui/textarea';
 
 export interface CustomPromptEditorProps {
   onPromptChange: (prompt: string) => void;
+  initialPrompt?: string;
   disabled?: boolean;
 }
 
 const CustomPromptEditor: React.FC<CustomPromptEditorProps> = ({ 
   onPromptChange,
+  initialPrompt,
   disabled = false
 }) => {
   const [promptText, setPromptText] = useState<string>('');
@@ -17,10 +19,11 @@ const CustomPromptEditor: React.FC<CustomPromptEditorProps> = ({
   const defaultPrompt = "Rewrite and enhance this content to improve clarity, grammar, and readability while preserving the original meaning and style.";
   
   useEffect(() => {
-    // Initialize with default prompt
-    setPromptText(defaultPrompt);
-    onPromptChange(defaultPrompt);
-  }, []);
+    // Initialize with provided prompt or default prompt
+    const initialText = initialPrompt || defaultPrompt;
+    setPromptText(initialText);
+    onPromptChange(initialText);
+  }, [initialPrompt]);
   
   const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newPrompt = e.target.value;

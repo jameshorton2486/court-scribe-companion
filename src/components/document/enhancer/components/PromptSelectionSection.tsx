@@ -5,11 +5,13 @@ import CustomPromptEditor from './CustomPromptEditor';
 
 export interface PromptSelectionSectionProps {
   onPromptSelected: (prompt: string) => void;
+  enhancementPrompt?: string;
   disabled?: boolean;
 }
 
 const PromptSelectionSection: React.FC<PromptSelectionSectionProps> = ({ 
   onPromptSelected,
+  enhancementPrompt = '',
   disabled = false 
 }) => {
   const [useCustomPrompt, setUseCustomPrompt] = useState(false);
@@ -45,6 +47,7 @@ const PromptSelectionSection: React.FC<PromptSelectionSectionProps> = ({
       {useCustomPrompt ? (
         <CustomPromptEditor
           onPromptChange={handleCustomPromptChange}
+          initialPrompt={enhancementPrompt}
           disabled={disabled}
         />
       ) : (

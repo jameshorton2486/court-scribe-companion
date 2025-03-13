@@ -1,177 +1,179 @@
 
 /**
- * Centralized logging service for the application
- * Provides consistent formatting and log levels
+ * Centralized logging service with performance monitoring
  */
 
-type LogLevel = 'debug' | 'info' | 'warning' | 'error' | 'critical';
-
-interface LogEntry {
-  timestamp: string;
-  level: LogLevel;
-  message: string;
-  context?: Record<string, any>;
+// Define log levels
+export enum LogLevel {
+  DEBUG = 0,
+  INFO = 1,
+  WARNING = 2,
+  ERROR = 3
 }
 
-// In-memory log storage (limited to prevent memory issues)
-const MAX_LOG_ENTRIES = 1000;
-const logHistory: LogEntry[] = [];
-
-// Environment-based log level filtering
-const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
-  'debug': 0,
-  'info': 1,
-  'warning': 2,
-  'error': 3,
-  'critical': 4
+// Configure logger
+const loggerConfig = {
+  level: LogLevel.INFO,
+  includeTimestamp: true,
+  logToConsole: true
 };
 
-let currentMinLogLevel: LogLevel = 'info'; // Default log level
+// Performance monitoring utility
+interface PerformanceApi {
+  startTimer: (operationName: string) => () => void;
+  monitor: <T extends (...args: any[]) => any>(
+    operationName: string, 
+    fn: T
+  ) => (...args: Parameters<T>) => ReturnType<T>;
+  now: () => number;
+}
 
-/**
- * Set the minimum log level to display
- */
-export const setLogLevel = (level: LogLevel): void => {
-  currentMinLogLevel = level;
-  console.log(`Log level set to: ${level}`);
-};
-
-/**
- * Create a timestamp for log entries
- */
-const createTimestamp = (): string => {
-  return new Date().toISOString();
-};
-
-/**
- * Internal function to add a log entry
- */
-const addLogEntry = (level: LogLevel, message: string, context?: Record<string, any>): void => {
-  // Check if we should log based on current log level
-  if (LOG_LEVEL_PRIORITY[level] < LOG_LEVEL_PRIORITY[currentMinLogLevel]) {
-    return;
-  }
-  
-  const entry: LogEntry = {
-    timestamp: createTimestamp(),
-    level,
-    message,
-    context
-  };
-  
-  // Add to history, maintaining max size
-  logHistory.push(entry);
-  if (logHistory.length > MAX_LOG_ENTRIES) {
-    logHistory.shift();
-  }
-  
-  // Format the log entry
-  const formattedEntry = formatLogEntry(entry);
-  
-  // Output to console with appropriate styling
-  switch (level) {
-    case 'debug':
-      console.debug(formattedEntry, context || '');
-      break;
-    case 'info':
-      console.info(formattedEntry, context || '');
-      break;
-    case 'warning':
-      console.warn(formattedEntry, context || '');
-      break;
-    case 'error':
-    case 'critical':
-      console.error(formattedEntry, context || '');
-      break;
-  }
-};
-
-/**
- * Format a log entry for display
- */
-const formatLogEntry = (entry: LogEntry): string => {
-  return `[${entry.timestamp}] [${entry.level.toUpperCase()}] ${entry.message}`;
-};
-
-/**
- * Public logging API
- */
-export const logger = {
-  debug: (message: string, context?: Record<string, any>) => addLogEntry('debug', message, context),
-  info: (message: string, context?: Record<string, any>) => addLogEntry('info', message, context),
-  warning: (message: string, context?: Record<string, any>) => addLogEntry('warning', message, context),
-  error: (message: string, context?: Record<string, any>) => addLogEntry('error', message, context),
-  critical: (message: string, context?: Record<string, any>) => addLogEntry('critical', message, context),
-  
+// Create the performance monitoring API
+export const performance: PerformanceApi = {
   /**
-   * Get the log history
+   * Start a timer for an operation and return a function to end it
+   * 
+   * @param operationName - Name of the operation being timed
+   * @returns Function to call when operation is complete
+   * 
+   * @example
+   * const endTimer = performance.startTimer('Process chapter');
+   * // ... do work
+   * endTimer(); // Logs the time elapsed
    */
-  getHistory: (): LogEntry[] => [...logHistory],
-  
-  /**
-   * Clear the log history
-   */
-  clearHistory: (): void => {
-    logHistory.length = 0;
-    console.log('Log history cleared');
-  }
-};
-
-/**
- * Performance monitoring helpers
- */
-export const performance = {
-  /**
-   * Start timing an operation
-   */
-  startTimer: (operationName: string): (() => void) => {
-    const startTime = window.performance.now();
-    logger.debug(`Starting operation: ${operationName}`);
-    
+  startTimer: (operationName: string) => {
+    const startTime = performance.now();
     return () => {
-      const endTime = window.performance.now();
-      const duration = endTime - startTime;
-      logger.info(`Operation complete: ${operationName}`, { 
-        operation: operationName,
-        durationMs: duration.toFixed(2) 
-      });
+      const endTime = performance.now();
+      const elapsedMs = endTime - startTime;
+      logger.debug(`Operation "${operationName}" completed in ${elapsedMs.toFixed(2)}ms`);
     };
   },
   
   /**
-   * Wrap a function with performance monitoring
+   * Monitor the execution time of a function
+   * 
+   * @param operationName - Name of the operation to monitor
+   * @param fn - Function to monitor
+   * @returns Wrapped function that logs execution time
+   * 
+   * @example
+   * const processChapter = performance.monitor('Process chapter', (chapter) => {
+   *   // process the chapter
+   *   return processedChapter;
+   * });
    */
-  monitor: <T extends (...args: any[]) => any>(
-    operationName: string, 
-    fn: T
-  ): ((...args: Parameters<T>) => ReturnType<T>) => {
-    return (...args: Parameters<T>): ReturnType<T> => {
-      const startTime = window.performance.now();
-      logger.debug(`Starting operation: ${operationName}`);
+  monitor: (operationName, fn) => {
+    return (...args) => {
+      const startTime = performance.now();
+      const result = fn(...args);
       
-      try {
-        const result = fn(...args);
-        const endTime = window.performance.now();
-        const duration = endTime - startTime;
-        
-        logger.info(`Operation complete: ${operationName}`, { 
-          operation: operationName,
-          durationMs: duration.toFixed(2) 
+      // Check if the result is a promise
+      if (result instanceof Promise) {
+        return result.finally(() => {
+          const endTime = performance.now();
+          const elapsedMs = endTime - startTime;
+          logger.debug(`Async operation "${operationName}" completed in ${elapsedMs.toFixed(2)}ms`);
         });
-        
-        return result;
-      } catch (error) {
-        const endTime = window.performance.now();
-        const duration = endTime - startTime;
-        
-        logger.error(`Operation failed: ${operationName}`, {
-          operation: operationName,
-          durationMs: duration.toFixed(2),
-          error
-        });
-        
-        throw error;
       }
+      
+      // For synchronous functions
+      const endTime = performance.now();
+      const elapsedMs = endTime - startTime;
+      logger.debug(`Operation "${operationName}" completed in ${elapsedMs.toFixed(2)}ms`);
+      
+      return result;
     };
+  },
+  
+  /**
+   * Get the current high-resolution time
+   * 
+   * @returns Current time in milliseconds
+   */
+  now: () => {
+    return typeof window !== 'undefined' && window.performance && window.performance.now
+      ? window.performance.now()
+      : Date.now();
   }
+};
+
+// Logger implementation
+export const logger = {
+  /**
+   * Log a debug message
+   * 
+   * @param message - Message to log
+   * @param data - Optional data to include with the log
+   */
+  debug: (message: string, data?: any) => {
+    if (loggerConfig.level <= LogLevel.DEBUG) {
+      console.debug(
+        `${loggerConfig.includeTimestamp ? new Date().toISOString() : ''} [DEBUG] ${message}`,
+        data || ''
+      );
+    }
+  },
+  
+  /**
+   * Log an info message
+   * 
+   * @param message - Message to log
+   * @param data - Optional data to include with the log
+   */
+  info: (message: string, data?: any) => {
+    if (loggerConfig.level <= LogLevel.INFO) {
+      console.info(
+        `${loggerConfig.includeTimestamp ? new Date().toISOString() : ''} [INFO] ${message}`,
+        data || ''
+      );
+    }
+  },
+  
+  /**
+   * Log a warning message
+   * 
+   * @param message - Message to log
+   * @param data - Optional data to include with the log
+   */
+  warning: (message: string, data?: any) => {
+    if (loggerConfig.level <= LogLevel.WARNING) {
+      console.warn(
+        `${loggerConfig.includeTimestamp ? new Date().toISOString() : ''} [WARNING] ${message}`,
+        data || ''
+      );
+    }
+  },
+  
+  /**
+   * Log an error message
+   * 
+   * @param message - Message to log
+   * @param data - Optional data to include with the log
+   */
+  error: (message: string, data?: any) => {
+    if (loggerConfig.level <= LogLevel.ERROR) {
+      console.error(
+        `${loggerConfig.includeTimestamp ? new Date().toISOString() : ''} [ERROR] ${message}`,
+        data || ''
+      );
+    }
+  },
+  
+  /**
+   * Set the current log level
+   * 
+   * @param level - New log level
+   */
+  setLevel: (level: LogLevel) => {
+    loggerConfig.level = level;
+  }
+};
+
+// Export utility for tracking function execution
+export const trackFunctionExecution = <T extends (...args: any[]) => any>(
+  functionName: string,
+  fn: T
+): ((...args: Parameters<T>) => ReturnType<T>) => {
+  return performance.monitor(functionName, fn);
 };
