@@ -14,11 +14,13 @@ import SystemMonitor from './components/SystemMonitor';
 interface DocumentEnhancerProps {
   document: Document;
   onDocumentEnhanced: (enhancedDocument: Document) => void;
+  selectedChapterIds?: string[];
 }
 
 const DocumentEnhancer: React.FC<DocumentEnhancerProps> = ({
   document,
-  onDocumentEnhanced
+  onDocumentEnhanced,
+  selectedChapterIds
 }) => {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [enhancedChapters, setEnhancedChapters] = useState<Chapter[]>([]);
@@ -47,41 +49,82 @@ const DocumentEnhancer: React.FC<DocumentEnhancerProps> = ({
       setIsEnhancing(true);
       setStatusType('loading');
       setProgress(0);
-      setStatusMessage('Preparing document enhancement...');
+      
+      // Filter chapters if specific chapters are selected
+      let chaptersToProcess = document.chapters;
+      if (selectedChapterIds && selectedChapterIds.length > 0) {
+        chaptersToProcess = document.chapters.filter(chapter => 
+          selectedChapterIds.includes(chapter.id)
+        );
+        setStatusMessage(`Preparing to enhance ${chaptersToProcess.length} selected sections...`);
+        
+        logger.info('Starting targeted document enhancement', { 
+          document: document.title,
+          selectedChapters: selectedChapterIds.length,
+          totalChapters: document.chapters.length
+        });
+      } else {
+        setStatusMessage('Preparing complete document enhancement...');
+        
+        logger.info('Starting complete document enhancement', { 
+          document: document.title,
+          chapters: document.chapters.length
+        });
+      }
       
       // Calculate total batches (chapters / 3, rounded up)
-      const calculatedTotalBatches = Math.ceil(document.chapters.length / 3);
+      const calculatedTotalBatches = Math.ceil(chaptersToProcess.length / 3);
       setTotalBatches(calculatedTotalBatches);
       
-      logger.info('Starting document enhancement process', { 
-        document: document.title,
-        chapters: document.chapters.length,
-        batches: calculatedTotalBatches
-      });
+      // Create a document with only the chapters to process
+      const documentToProcess: Document = {
+        ...document,
+        chapters: chaptersToProcess
+      };
       
       // Process document enhancement
-      const result = await processDocumentEnhancement(
-        document,
+      const enhancedChaptersResult = await processDocumentEnhancement(
+        documentToProcess,
         enhancementPrompt,
         updateProgress,
         updateEnhancedChapters
       );
       
-      if (result.length > 0) {
+      if (enhancedChaptersResult.length > 0) {
+        let finalChapters: Chapter[];
+        
+        // If we're only enhancing specific chapters, we need to merge them back with the original chapters
+        if (selectedChapterIds && selectedChapterIds.length > 0) {
+          finalChapters = document.chapters.map(originalChapter => {
+            const enhancedChapter = enhancedChaptersResult.find(ec => ec.id === originalChapter.id);
+            return enhancedChapter || originalChapter;
+          });
+          
+          logger.info('Selective enhancement completed', {
+            document: document.title,
+            enhancedChapters: enhancedChaptersResult.length,
+            totalChapters: document.chapters.length
+          });
+        } else {
+          // If enhancing all chapters, just use the enhanced result
+          finalChapters = enhancedChaptersResult;
+          
+          logger.info('Complete document enhancement completed', {
+            document: document.title,
+            chaptersProcessed: enhancedChaptersResult.length
+          });
+        }
+        
         // Create enhanced document with processed chapters
         const enhancedDocument: Document = {
           ...document,
-          chapters: result
+          chapters: finalChapters
         };
         
         // Call the callback to update parent component
         onDocumentEnhanced(enhancedDocument);
         
         setStatusType('success');
-        logger.info('Document enhancement completed successfully', {
-          document: document.title,
-          chaptersProcessed: result.length
-        });
       } else {
         setStatusType('error');
         setStatusMessage('Enhancement failed. Please check API key and try again.');
@@ -107,6 +150,22 @@ const DocumentEnhancer: React.FC<DocumentEnhancerProps> = ({
         <TabsContent value="enhance" className="space-y-6">
           <Card className="p-6">
             <h3 className="text-lg font-medium mb-4">Enhancement Options</h3>
+            
+            {selectedChapterIds && selectedChapterIds.length > 0 ? (
+              <div className="mb-4 p-3 bg-accent rounded-md">
+                <p className="text-sm font-medium">Enhancing {selectedChapterIds.length} selected section(s)</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Only the selected sections will be enhanced. The rest of the document will remain unchanged.
+                </p>
+              </div>
+            ) : (
+              <div className="mb-4 p-3 bg-accent rounded-md">
+                <p className="text-sm font-medium">Enhancing entire document</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  All {document.chapters.length} sections will be enhanced.
+                </p>
+              </div>
+            )}
             
             <PromptSelectionSection
               onPromptSelected={setEnhancementPrompt}

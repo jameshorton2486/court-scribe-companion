@@ -1,87 +1,63 @@
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { PencilIcon, RotateCcw } from 'lucide-react';
+import React, { useState } from 'react';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-interface PromptTemplate {
-  id: string;
-  name: string;
-  description: string;
-  prompt: string;
+export interface TemplateSelectorProps {
+  onTemplateSelect: (template: string) => void;
+  disabled?: boolean;
 }
 
-interface TemplateSelectorProps {
-  promptTemplates: PromptTemplate[];
-  selectedTemplateId: string;
-  customPromptEnabled: boolean;
-  onTemplateSelect: (templateId: string) => void;
-  onEnableCustomPrompt: () => void;
-  onResetToTemplates: () => void;
-}
-
-const TemplateSelector: React.FC<TemplateSelectorProps> = ({
-  promptTemplates,
-  selectedTemplateId,
-  customPromptEnabled,
+const TemplateSelector: React.FC<TemplateSelectorProps> = ({ 
   onTemplateSelect,
-  onEnableCustomPrompt,
-  onResetToTemplates
+  disabled = false
 }) => {
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('academic');
+  
+  const templates = {
+    academic: "Enhance this text to meet high academic standards. Improve grammar, clarity, and formal tone while preserving the original meaning. Use appropriate academic vocabulary and ensure logical flow between ideas. Fix any structural issues while maintaining the author's voice.",
+    professional: "Transform this content into polished, professional writing. Correct grammatical errors, enhance vocabulary, and improve sentence structure. Ensure clear communication while maintaining a business-appropriate tone. Make the content concise and impactful.",
+    creative: "Enhance this writing with creative flair. Improve the imagery, vary sentence structure, and elevate vocabulary. Maintain the author's unique voice while fixing grammatical errors. Make the narrative engaging and evocative while preserving the original story and meaning.",
+    simplified: "Simplify this text for improved readability. Clarify complex ideas, use simpler vocabulary, and break down lengthy sentences. Fix grammatical errors and ensure logical flow. Maintain the core message while making the content more accessible to a general audience.",
+    technical: "Refine this technical content for clarity and precision. Ensure accurate terminology, fix grammar issues, and improve structural organization. Maintain technical depth while making explanations more accessible. Ensure consistent formatting of technical elements."
+  };
+  
+  const handleTemplateChange = (value: string) => {
+    setSelectedTemplate(value);
+    // @ts-ignore - TypeScript doesn't know about the templates object keys
+    const templateText = templates[value] || '';
+    onTemplateSelect(templateText);
+  };
+  
   return (
-    <div className="flex flex-col space-y-4">
-      <div className="flex justify-between items-center">
-        <h4 className="text-sm font-medium">Select Prompt Template</h4>
-        {customPromptEnabled && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={onResetToTemplates}
-          >
-            <RotateCcw className="mr-2 h-4 w-4" />
-            Use Templates
-          </Button>
-        )}
+    <div className="space-y-4">
+      <div>
+        <label htmlFor="template-select" className="block text-sm font-medium mb-2">
+          Select Enhancement Template
+        </label>
+        <Select 
+          value={selectedTemplate} 
+          onValueChange={handleTemplateChange}
+          disabled={disabled}
+        >
+          <SelectTrigger id="template-select" className="w-full">
+            <SelectValue placeholder="Select a writing style" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectItem value="academic">Academic</SelectItem>
+              <SelectItem value="professional">Professional</SelectItem>
+              <SelectItem value="creative">Creative</SelectItem>
+              <SelectItem value="simplified">Simplified</SelectItem>
+              <SelectItem value="technical">Technical</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
       </div>
       
-      {!customPromptEnabled && (
-        <RadioGroup 
-          value={selectedTemplateId} 
-          onValueChange={onTemplateSelect}
-          className="space-y-2"
-        >
-          {promptTemplates.map(template => (
-            <div key={template.id} className="flex items-start space-x-2 border p-3 rounded-md">
-              <RadioGroupItem value={template.id} id={`template-${template.id}`} />
-              <div className="grid gap-1.5">
-                <Label htmlFor={`template-${template.id}`} className="font-medium">
-                  {template.name}
-                </Label>
-                <p className="text-sm text-muted-foreground">
-                  {template.description}
-                </p>
-              </div>
-            </div>
-          ))}
-        </RadioGroup>
-      )}
-      
-      <div className="flex justify-between items-center mt-4">
-        <h4 className="text-sm font-medium">
-          {customPromptEnabled ? 'Custom Prompt' : 'Or Create Custom Prompt'}
-        </h4>
-        
-        {!customPromptEnabled && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={onEnableCustomPrompt}
-          >
-            <PencilIcon className="mr-2 h-4 w-4" />
-            Create Custom
-          </Button>
-        )}
+      <div className="p-3 bg-muted rounded-md">
+        <p className="text-sm">
+          {templates[selectedTemplate as keyof typeof templates]}
+        </p>
       </div>
     </div>
   );

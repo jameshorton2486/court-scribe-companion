@@ -49,7 +49,7 @@ const PromptSelectionSection: React.FC<PromptSelectionSectionProps> = ({
         />
       ) : (
         <TemplateSelector
-          onTemplateSelected={handleTemplateSelected}
+          onTemplateSelect={handleTemplateSelected}
           disabled={disabled}
         />
       )}

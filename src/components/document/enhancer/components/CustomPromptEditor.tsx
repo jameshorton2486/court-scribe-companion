@@ -1,54 +1,53 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 
-interface CustomPromptEditorProps {
-  customPromptEnabled: boolean;
-  customTitle: string;
-  customPrompt: string;
-  onCustomTitleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onCustomPromptChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+export interface CustomPromptEditorProps {
+  onPromptChange: (prompt: string) => void;
+  disabled?: boolean;
 }
 
-const CustomPromptEditor: React.FC<CustomPromptEditorProps> = ({
-  customPromptEnabled,
-  customTitle,
-  customPrompt,
-  onCustomTitleChange,
-  onCustomPromptChange
+const CustomPromptEditor: React.FC<CustomPromptEditorProps> = ({ 
+  onPromptChange,
+  disabled = false
 }) => {
-  if (!customPromptEnabled) {
-    return null;
-  }
+  const [promptText, setPromptText] = useState<string>('');
+  
+  // Default prompt template as a starting point
+  const defaultPrompt = "Rewrite and enhance this content to improve clarity, grammar, and readability while preserving the original meaning and style.";
+  
+  useEffect(() => {
+    // Initialize with default prompt
+    setPromptText(defaultPrompt);
+    onPromptChange(defaultPrompt);
+  }, []);
+  
+  const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newPrompt = e.target.value;
+    setPromptText(newPrompt);
+    onPromptChange(newPrompt);
+  };
   
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="custom-title">Custom Enhancement Title</Label>
-        <Input
-          id="custom-title"
-          placeholder="My Book Enhancement"
-          value={customTitle}
-          onChange={onCustomTitleChange}
+    <div className="space-y-3">
+      <div>
+        <label htmlFor="custom-prompt" className="block text-sm font-medium mb-2">
+          Custom Enhancement Instructions
+        </label>
+        <Textarea
+          id="custom-prompt"
+          placeholder="Enter custom enhancement instructions..."
+          value={promptText}
+          onChange={handlePromptChange}
+          disabled={disabled}
+          className="min-h-[120px]"
         />
       </div>
       
-      <div className="space-y-2">
-        <Label htmlFor="custom-prompt">Custom Enhancement Prompt</Label>
-        <Textarea
-          id="custom-prompt"
-          placeholder="Write your custom enhancement prompt here..."
-          value={customPrompt}
-          onChange={onCustomPromptChange}
-          className="min-h-[200px]"
-        />
-        <p className="text-xs text-muted-foreground">
-          Write detailed instructions for how the AI should enhance your document.
-          Be specific about style, tone, formatting, and content improvements.
-        </p>
-      </div>
+      <p className="text-xs text-muted-foreground">
+        Write clear instructions for how the AI should enhance your document. 
+        Be specific about tone, style, and what aspects to focus on.
+      </p>
     </div>
   );
 };
