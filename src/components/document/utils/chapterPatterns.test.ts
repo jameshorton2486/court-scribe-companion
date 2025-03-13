@@ -6,6 +6,7 @@ import {
   getChapterTitle, 
   getChapterContentHeader 
 } from './chapterPatterns';
+import { createRegExpMatchArray } from './securityUtils';
 
 describe('chapterPatterns', () => {
   describe('isHeading', () => {
@@ -50,50 +51,50 @@ describe('chapterPatterns', () => {
   
   describe('getChapterTitle', () => {
     it('should format regular chapter titles correctly', () => {
-      const match = ['Chapter 1: Introduction', '1', 'Introduction'];
+      const match = createRegExpMatchArray(['Chapter 1: Introduction', '1', 'Introduction']);
       expect(getChapterTitle(match, false, false)).toBe('Chapter 1: Introduction');
     });
     
     it('should format appendix titles correctly', () => {
-      const match = ['Appendix A: Data', 'A', 'Data'];
+      const match = createRegExpMatchArray(['Appendix A: Data', 'A', 'Data']);
       expect(getChapterTitle(match, true, false)).toBe('Appendix A: Data');
     });
     
     it('should format back matter titles correctly', () => {
-      const match = ['Back Matter: References', 'Back Matter', 'References'];
+      const match = createRegExpMatchArray(['Back Matter: References', 'Back Matter', 'References']);
       expect(getChapterTitle(match, false, true)).toBe('References');
     });
     
     it('should handle missing title in capture groups', () => {
-      const match = ['Chapter 1:', '1', undefined];
+      const match = createRegExpMatchArray(['Chapter 1:', '1', undefined]);
       expect(getChapterTitle(match, false, false)).toBe('Chapter 1: ');
       
-      const appendixMatch = ['Appendix B', 'B', undefined];
+      const appendixMatch = createRegExpMatchArray(['Appendix B', 'B', undefined]);
       expect(getChapterTitle(appendixMatch, true, false)).toBe('Appendix B: Untitled');
     });
   });
   
   describe('getChapterContentHeader', () => {
     it('should generate HTML heading for regular chapters', () => {
-      const match = ['Chapter 1: Introduction', '1', 'Introduction'];
+      const match = createRegExpMatchArray(['Chapter 1: Introduction', '1', 'Introduction']);
       const header = getChapterContentHeader(match, false, false);
       expect(header).toBe('<h2>Chapter 1: Introduction</h2>\n');
     });
     
     it('should generate HTML heading for appendices', () => {
-      const match = ['Appendix A: Data', 'A', 'Data'];
+      const match = createRegExpMatchArray(['Appendix A: Data', 'A', 'Data']);
       const header = getChapterContentHeader(match, true, false);
       expect(header).toBe('<h2>Appendix A: Data</h2>\n');
     });
     
     it('should generate HTML heading for back matter', () => {
-      const match = ['Back Matter: References', 'Back Matter', 'References'];
+      const match = createRegExpMatchArray(['Back Matter: References', 'Back Matter', 'References']);
       const header = getChapterContentHeader(match, false, true);
       expect(header).toBe('<h2>References</h2>\n');
     });
     
     it('should handle missing title in appendix', () => {
-      const match = ['Appendix C', 'C', undefined];
+      const match = createRegExpMatchArray(['Appendix C', 'C', undefined]);
       const header = getChapterContentHeader(match, true, false);
       expect(header).toBe('<h2>Appendix C: Untitled</h2>\n');
     });

@@ -208,7 +208,7 @@ export const processBatches = async (
     
     // Process chapters in batches
     for (let i = 0; i < validChapters.length; i += validBatchSize) {
-      const batchStartTime = performance.now();
+      const batchStartTime = window.performance.now();
       const batchNumber = Math.floor(i / validBatchSize) + 1;
       
       logger.info(`Processing batch ${batchNumber} of ${Math.ceil(validChapters.length / validBatchSize)}`);
@@ -221,7 +221,7 @@ export const processBatches = async (
       allEnhancedChapters.push(...enhancedBatch);
       
       // Log batch performance
-      const batchTime = performance.now() - batchStartTime;
+      const batchTime = window.performance.now() - batchStartTime;
       logger.info(`Batch ${batchNumber} processed in ${batchTime.toFixed(2)}ms`);
       
       // Add a delay between batches with exponential backoff to prevent rate limits

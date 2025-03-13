@@ -1,33 +1,58 @@
 
-import React from 'react';
-import PromptSelector from '../PromptSelector';
-import CustomBookPrompt from '../CustomBookPrompt';
+import React, { useState } from 'react';
+import TemplateSelector from './TemplateSelector';
+import CustomPromptEditor from './CustomPromptEditor';
 
-interface PromptSelectionSectionProps {
-  bookTitle: string;
-  enhancementPrompt: string;
-  onPromptChange: (prompt: string) => void;
+export interface PromptSelectionSectionProps {
+  onPromptSelected: (prompt: string) => void;
+  disabled?: boolean;
 }
 
-const PromptSelectionSection: React.FC<PromptSelectionSectionProps> = ({
-  bookTitle,
-  enhancementPrompt,
-  onPromptChange
+const PromptSelectionSection: React.FC<PromptSelectionSectionProps> = ({ 
+  onPromptSelected,
+  disabled = false 
 }) => {
+  const [useCustomPrompt, setUseCustomPrompt] = useState(false);
+  
+  const handleTemplateSelected = (template: string) => {
+    if (!disabled) {
+      onPromptSelected(template);
+    }
+  };
+  
+  const handleCustomPromptChange = (customPrompt: string) => {
+    if (!disabled) {
+      onPromptSelected(customPrompt);
+    }
+  };
+  
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <PromptSelector 
-          onPromptSelected={onPromptChange}
-          selectedPrompt={enhancementPrompt}
+    <div className="space-y-4">
+      <div className="flex items-center space-x-2">
+        <input
+          type="checkbox"
+          id="useCustomPrompt"
+          checked={useCustomPrompt}
+          onChange={(e) => setUseCustomPrompt(e.target.checked)}
+          disabled={disabled}
+          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
         />
+        <label htmlFor="useCustomPrompt" className="text-sm font-medium leading-none">
+          Use Custom Prompt
+        </label>
       </div>
-      <div>
-        <CustomBookPrompt 
-          bookTitle={bookTitle}
-          onPromptSelected={onPromptChange}
+      
+      {useCustomPrompt ? (
+        <CustomPromptEditor
+          onPromptChange={handleCustomPromptChange}
+          disabled={disabled}
         />
-      </div>
+      ) : (
+        <TemplateSelector
+          onTemplateSelected={handleTemplateSelected}
+          disabled={disabled}
+        />
+      )}
     </div>
   );
 };

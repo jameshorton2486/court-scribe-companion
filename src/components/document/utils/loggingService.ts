@@ -125,11 +125,11 @@ export const performance = {
    * Start timing an operation
    */
   startTimer: (operationName: string): (() => void) => {
-    const startTime = performance.now();
+    const startTime = window.performance.now();
     logger.debug(`Starting operation: ${operationName}`);
     
     return () => {
-      const endTime = performance.now();
+      const endTime = window.performance.now();
       const duration = endTime - startTime;
       logger.info(`Operation complete: ${operationName}`, { 
         operation: operationName,
@@ -146,12 +146,12 @@ export const performance = {
     fn: T
   ): ((...args: Parameters<T>) => ReturnType<T>) => {
     return (...args: Parameters<T>): ReturnType<T> => {
-      const startTime = performance.now();
+      const startTime = window.performance.now();
       logger.debug(`Starting operation: ${operationName}`);
       
       try {
         const result = fn(...args);
-        const endTime = performance.now();
+        const endTime = window.performance.now();
         const duration = endTime - startTime;
         
         logger.info(`Operation complete: ${operationName}`, { 
@@ -161,7 +161,7 @@ export const performance = {
         
         return result;
       } catch (error) {
-        const endTime = performance.now();
+        const endTime = window.performance.now();
         const duration = endTime - startTime;
         
         logger.error(`Operation failed: ${operationName}`, {

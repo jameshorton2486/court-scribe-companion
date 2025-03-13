@@ -1,25 +1,25 @@
 
-/**
- * Book Types Module
- * 
- * Centralized type definitions for book-related data structures.
- */
-
-import { Chapter } from './ChapterProcessor';
-import { ChapterProcessingError } from './ErrorHandler';
-
-/**
- * Represents a book with metadata and chapters
- */
-export type Book = {
-  /** Unique identifier for the book */
+export interface Chapter {
   id: string;
-  /** Book title */
   title: string;
-  /** Book author */
-  author: string;
-  /** Array of chapters in the book */
+  content: string;
+}
+
+export interface Book {
+  id: string;
+  title: string;
+  author?: string;
+  coverImage?: string;
+  description?: string;
+  language?: string;
+  publicationDate?: string;
+  publisher?: string;
   chapters: Chapter[];
-  /** Optional array of processing errors encountered */
-  processingErrors?: ChapterProcessingError[];
-};
+}
+
+export interface ValidationError {
+  code: string;
+  message: string;
+  field?: string;
+  chapterIndex?: number;
+}
