@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-import DocumentUploader from '../DocumentUploader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,6 +8,7 @@ import StatusIndicator from './components/StatusIndicator';
 import PromptSelectionSection from './components/PromptSelectionSection';
 import EnhancementProgress from './components/EnhancementProgress';
 import SystemMonitor from './components/SystemMonitor';
+import { Document } from '../DocumentUploader';
 
 interface EnhancementControllerProps {
   onDocumentUpload: (file: File) => void;
@@ -55,6 +55,18 @@ const EnhancementController: React.FC<EnhancementControllerProps> = ({
     onDocumentUpload(file);
   };
 
+  // Helper function to map status to StatusIndicator type
+  const mapStatusToIndicatorType = (status: 'idle' | 'loading' | 'enhancing' | 'complete' | 'error'): 'success' | 'error' | 'warning' | 'info' | 'loading' | 'idle' => {
+    switch (status) {
+      case 'loading': return 'loading';
+      case 'enhancing': return 'info';
+      case 'complete': return 'success';
+      case 'error': return 'error';
+      case 'idle':
+      default: return 'idle';
+    }
+  };
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -62,7 +74,28 @@ const EnhancementController: React.FC<EnhancementControllerProps> = ({
         <CardDescription>Upload and enhance your document with AI prompts.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <DocumentUploader onFileUpload={handleFileUpload} />
+        {/* We need to update how we use DocumentUploader based on its actual interface */}
+        <div className="document-upload-section">
+          <input
+            type="file"
+            accept=".txt,.docx,.md,.html"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                handleFileUpload(file);
+              }
+            }}
+            className="hidden"
+            id="document-upload"
+          />
+          <label
+            htmlFor="document-upload"
+            className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-primary text-primary-foreground hover:bg-primary/90 h-10 py-2 px-4"
+          >
+            Upload Document
+          </label>
+        </div>
+        
         {uploadedDocumentName && (
           <p>Uploaded Document: {uploadedDocumentName}</p>
         )}
@@ -82,6 +115,7 @@ const EnhancementController: React.FC<EnhancementControllerProps> = ({
         <EnhanceButton
           isEnhancing={isEnhancing}
           onEnhance={() => onEnhance(selectedPrompts)}
+          text="Enhance Entire Document"
         />
         <EnhancementProgress 
           progress={enhancementProgress}
@@ -91,10 +125,7 @@ const EnhancementController: React.FC<EnhancementControllerProps> = ({
           statusMessage={statusMessage}
         />
         <StatusIndicator 
-          status={status === 'loading' ? 'loading' : 
-                 status === 'enhancing' ? 'info' : 
-                 status === 'complete' ? 'success' : 
-                 status === 'error' ? 'error' : 'idle'}
+          status={mapStatusToIndicatorType(status)}
           message={errorMessage || statusMessage || "Ready"}
         />
         <SystemMonitor />
