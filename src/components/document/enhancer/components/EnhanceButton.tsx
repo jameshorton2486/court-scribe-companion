@@ -6,9 +6,14 @@ import { Loader2 } from 'lucide-react';
 interface EnhanceButtonProps {
   isEnhancing: boolean;
   onEnhance: () => void;
+  text?: string;
 }
 
-const EnhanceButton: React.FC<EnhanceButtonProps> = ({ isEnhancing, onEnhance }) => {
+const EnhanceButton: React.FC<EnhanceButtonProps> = ({ 
+  isEnhancing, 
+  onEnhance,
+  text
+}) => {
   return (
     <div className="flex justify-end">
       <Button 
@@ -22,7 +27,7 @@ const EnhanceButton: React.FC<EnhanceButtonProps> = ({ isEnhancing, onEnhance })
             Enhancing Document...
           </>
         ) : (
-          'Enhance Entire Document'
+          text || 'Enhance Entire Document'
         )}
       </Button>
     </div>

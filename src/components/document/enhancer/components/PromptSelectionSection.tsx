@@ -7,12 +7,14 @@ export interface PromptSelectionSectionProps {
   onPromptSelected: (prompt: string) => void;
   enhancementPrompt?: string;
   disabled?: boolean;
+  bookTitle?: string;
 }
 
 const PromptSelectionSection: React.FC<PromptSelectionSectionProps> = ({ 
   onPromptSelected,
   enhancementPrompt = '',
-  disabled = false 
+  disabled = false,
+  bookTitle
 }) => {
   const [useCustomPrompt, setUseCustomPrompt] = useState(false);
   

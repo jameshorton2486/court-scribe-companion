@@ -56,20 +56,6 @@ const EnhancementController: React.FC<EnhancementControllerProps> = ({
     onDocumentUpload(file);
   };
 
-  // Correctly typed props for PromptSelectionSection
-  const promptSelectionProps = {
-    bookTitle: uploadedDocumentName || "Document",
-    enhancementPrompt: selectedPrompts.join(", "),
-    onPromptChange: (prompt: string) => {
-      // Parse the prompt and update selected prompts
-      const promptsArray = prompt.split(",").map(p => p.trim());
-      // Clear existing prompts
-      [...selectedPrompts].forEach(p => onDeselectPrompt(p));
-      // Add new prompts
-      promptsArray.forEach(p => onSelectPrompt(p));
-    }
-  };
-
   return (
     <Card className="w-full">
       <CardHeader>
@@ -82,12 +68,20 @@ const EnhancementController: React.FC<EnhancementControllerProps> = ({
           <p>Uploaded Document: {uploadedDocumentName}</p>
         )}
         <PromptSelectionSection
-          {...promptSelectionProps}
+          onPromptSelected={(prompt: string) => {
+            // Parse the prompt and update selected prompts
+            const promptsArray = prompt.split(",").map(p => p.trim());
+            // Clear existing prompts
+            [...selectedPrompts].forEach(p => onDeselectPrompt(p));
+            // Add new prompts
+            promptsArray.forEach(p => onSelectPrompt(p));
+          }}
+          enhancementPrompt={selectedPrompts.join(", ")}
+          disabled={false}
         />
         <EnhanceButton
           isEnhancing={isEnhancing}
           onEnhance={() => onEnhance(selectedPrompts)}
-          text={isEnhancing ? "Enhancing..." : "Enhance Document"}
         />
         <EnhancementProgress 
           progress={enhancementProgress}
@@ -96,7 +90,13 @@ const EnhancementController: React.FC<EnhancementControllerProps> = ({
           totalBatches={totalBatches}
           statusMessage={statusMessage}
         />
-        <StatusIndicator status={status} errorMessage={errorMessage} />
+        <StatusIndicator 
+          status={status === 'loading' ? 'loading' : 
+                 status === 'enhancing' ? 'info' : 
+                 status === 'complete' ? 'success' : 
+                 status === 'error' ? 'error' : 'idle'}
+          message={errorMessage || statusMessage || "Ready"}
+        />
         <SystemMonitor />
       </CardContent>
       <CardFooter>

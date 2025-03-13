@@ -104,7 +104,8 @@ const SystemMonitor: React.FC = () => {
       tabs={tabs}
       lastUpdated={lastUpdated}
     >
-      {/* This empty children prop satisfies the required property */}
+      {/* This is the required children prop */}
+      <div></div>
     </SystemMonitorContainer>
   );
 };
