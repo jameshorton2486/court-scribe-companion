@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { DocumentUploader } from '../DocumentUploader';
+import DocumentUploader from '../DocumentUploader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,19 +9,22 @@ import StatusIndicator from './components/StatusIndicator';
 import PromptSelectionSection from './components/PromptSelectionSection';
 import EnhancementProgress from './components/EnhancementProgress';
 import SystemMonitor from './components/SystemMonitor';
-import { performance } from '../document/utils/loggingService';
+import { performance, logger, LogLevel } from '../utils/loggingService';
 
 interface EnhancementControllerProps {
   onDocumentUpload: (file: File) => void;
   onEnhance: (selectedPrompts: string[]) => Promise<void>;
   enhancementProgress: number;
   isEnhancing: boolean;
-  status: 'idle' | 'uploading' | 'enhancing' | 'complete' | 'error';
+  status: 'idle' | 'loading' | 'enhancing' | 'complete' | 'error';
   availablePrompts: string[];
   selectedPrompts: string[];
   onSelectPrompt: (prompt: string) => void;
   onDeselectPrompt: (prompt: string) => void;
   errorMessage?: string;
+  currentBatch?: number;
+  totalBatches?: number;
+  statusMessage?: string;
 }
 
 const EnhancementController: React.FC<EnhancementControllerProps> = ({
@@ -34,6 +38,9 @@ const EnhancementController: React.FC<EnhancementControllerProps> = ({
   onSelectPrompt,
   onDeselectPrompt,
   errorMessage,
+  currentBatch = 0,
+  totalBatches = 0,
+  statusMessage = "",
 }) => {
   const [uploadedDocumentName, setUploadedDocumentName] = useState<string | null>(null);
 
@@ -49,6 +56,20 @@ const EnhancementController: React.FC<EnhancementControllerProps> = ({
     onDocumentUpload(file);
   };
 
+  // Correctly typed props for PromptSelectionSection
+  const promptSelectionProps = {
+    bookTitle: uploadedDocumentName || "Document",
+    enhancementPrompt: selectedPrompts.join(", "),
+    onPromptChange: (prompt: string) => {
+      // Parse the prompt and update selected prompts
+      const promptsArray = prompt.split(",").map(p => p.trim());
+      // Clear existing prompts
+      [...selectedPrompts].forEach(p => onDeselectPrompt(p));
+      // Add new prompts
+      promptsArray.forEach(p => onSelectPrompt(p));
+    }
+  };
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -61,17 +82,20 @@ const EnhancementController: React.FC<EnhancementControllerProps> = ({
           <p>Uploaded Document: {uploadedDocumentName}</p>
         )}
         <PromptSelectionSection
-          availablePrompts={availablePrompts}
-          selectedPrompts={selectedPrompts}
-          onSelectPrompt={onSelectPrompt}
-          onDeselectPrompt={onDeselectPrompt}
+          {...promptSelectionProps}
         />
         <EnhanceButton
           isEnhancing={isEnhancing}
           onEnhance={() => onEnhance(selectedPrompts)}
-          disabled={!uploadedDocumentName || selectedPrompts.length === 0}
+          text={isEnhancing ? "Enhancing..." : "Enhance Document"}
         />
-        <EnhancementProgress progress={enhancementProgress} />
+        <EnhancementProgress 
+          progress={enhancementProgress}
+          isEnhancing={isEnhancing}
+          currentBatch={currentBatch}
+          totalBatches={totalBatches}
+          statusMessage={statusMessage}
+        />
         <StatusIndicator status={status} errorMessage={errorMessage} />
         <SystemMonitor />
       </CardContent>
