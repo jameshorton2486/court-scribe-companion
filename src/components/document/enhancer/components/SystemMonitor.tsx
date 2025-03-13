@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -6,14 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Cpu, HardDrive, AlertTriangle, Clock, DownloadCloud, Trash2 } from 'lucide-react';
-import { logger } from '../../utils/loggingService';
+import { logger, LogEntry, LogLevel } from '../../utils/loggingService';
 
-type LogRecord = {
-  timestamp: string;
-  level: string;
-  message: string;
-  context?: Record<string, any>;
-};
+type LogRecord = LogEntry;
 
 const SystemMonitor: React.FC = () => {
   const [activeTab, setActiveTab] = useState('logs');
@@ -26,11 +20,11 @@ const SystemMonitor: React.FC = () => {
   useEffect(() => {
     // In a real application, this would fetch from your logging service
     const fakeLogs = logger.getHistory();
-    setLogs(fakeLogs as LogRecord[]);
+    setLogs(fakeLogs);
 
     // Set up polling for logs
     const interval = setInterval(() => {
-      setLogs(logger.getHistory() as LogRecord[]);
+      setLogs(logger.getHistory());
       
       // Simulate performance metrics
       setMemoryUsage({
@@ -51,7 +45,7 @@ const SystemMonitor: React.FC = () => {
   const handleDownloadLogs = () => {
     // Create a blob with the logs
     const logsText = logs.map(log => 
-      `[${log.timestamp}] [${log.level}] ${log.message} ${log.context ? JSON.stringify(log.context) : ''}`
+      `[${log.timestamp}] [${log.level}] ${log.message} ${log.data ? JSON.stringify(log.data) : ''}`
     ).join('\n');
     
     const blob = new Blob([logsText], { type: 'text/plain' });
@@ -70,13 +64,12 @@ const SystemMonitor: React.FC = () => {
   };
 
   // Helper to get color for log level
-  const getLogLevelColor = (level: string): string => {
-    switch (level.toLowerCase()) {
-      case 'debug': return 'text-gray-500';
-      case 'info': return 'text-blue-500';
-      case 'warning': return 'text-amber-500';
-      case 'error': return 'text-red-500';
-      case 'critical': return 'text-red-700 font-semibold';
+  const getLogLevelColor = (level: LogLevel): string => {
+    switch (level) {
+      case LogLevel.DEBUG: return 'text-gray-500';
+      case LogLevel.INFO: return 'text-blue-500';
+      case LogLevel.WARNING: return 'text-amber-500';
+      case LogLevel.ERROR: return 'text-red-500';
       default: return 'text-gray-700';
     }
   };
@@ -151,9 +144,9 @@ const SystemMonitor: React.FC = () => {
                         </span>
                       </div>
                       <div>{log.message}</div>
-                      {log.context && Object.keys(log.context).length > 0 && (
+                      {log.data && Object.keys(log.data).length > 0 && (
                         <pre className="mt-1 text-xs bg-muted p-2 rounded overflow-x-auto">
-                          {JSON.stringify(log.context, null, 2)}
+                          {JSON.stringify(log.data, null, 2)}
                         </pre>
                       )}
                     </div>

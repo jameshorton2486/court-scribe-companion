@@ -1,13 +1,14 @@
+
 /**
  * Centralized logging service with performance monitoring
  */
 
 // Define log levels
 export enum LogLevel {
-  DEBUG = 0,
-  INFO = 1,
-  WARNING = 2,
-  ERROR = 3
+  DEBUG = 'debug',
+  INFO = 'info',
+  WARNING = 'warning',
+  ERROR = 'error'
 }
 
 // Configure logger
@@ -105,10 +106,10 @@ export const logger = {
    * @param message - Message to log
    * @param data - Optional data to include with the log
    */
-  debug: (message: string, data?: any) => logMessage('debug', message, data),
-  info: (message: string, data?: any) => logMessage('info', message, data),
-  warning: (message: string, data?: any) => logMessage('warning', message, data),
-  error: (message: string, data?: any) => logMessage('error', message, data),
+  debug: (message: string, data?: any) => logMessage(LogLevel.DEBUG, message, data),
+  info: (message: string, data?: any) => logMessage(LogLevel.INFO, message, data),
+  warning: (message: string, data?: any) => logMessage(LogLevel.WARNING, message, data),
+  error: (message: string, data?: any) => logMessage(LogLevel.ERROR, message, data),
   setLevel: (level: LogLevel) => setLogLevel(level),
   getHistory: () => getLogHistory(),
   clearHistory: () => clearLogHistory()
@@ -122,17 +123,26 @@ export const trackFunctionExecution = <T extends (...args: any[]) => any>(
   return performance.monitor(functionName, fn);
 };
 
+// Interface for log entries
+export interface LogEntry {
+  level: LogLevel;
+  message: string;
+  timestamp: string;
+  data?: any;
+}
+
 // Log history
-const logHistory: { level: LogLevel, message: string, data?: any }[] = [];
+const logHistory: LogEntry[] = [];
 
 // Log message
 const logMessage = (level: LogLevel, message: string, data?: any) => {
   if (loggerConfig.level <= level) {
+    const timestamp = new Date().toISOString();
     console[level](
-      `${loggerConfig.includeTimestamp ? new Date().toISOString() : ''} [${level.toUpperCase()}] ${message}`,
+      `${loggerConfig.includeTimestamp ? timestamp : ''} [${level}] ${message}`,
       data || ''
     );
-    logHistory.push({ level, message, data });
+    logHistory.push({ level, message, timestamp, data });
   }
 };
 
