@@ -2,8 +2,10 @@
 """
 Optimized Document Processors Module
 
-This module provides specialized processors optimized for large documents,
-with memory-efficient chunk processing and progress tracking.
+This module is deprecated and only exists for backward compatibility.
+Please use the modules.document.optimized_processors package instead.
+
+This module will be removed in a future version.
 """
 
 from .optimized_processors.chapter_extractor import extract_chapters_optimized, is_chapter_heading
