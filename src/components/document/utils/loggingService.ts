@@ -1,4 +1,3 @@
-
 /**
  * Centralized logging service with performance monitoring
  */
@@ -106,68 +105,13 @@ export const logger = {
    * @param message - Message to log
    * @param data - Optional data to include with the log
    */
-  debug: (message: string, data?: any) => {
-    if (loggerConfig.level <= LogLevel.DEBUG) {
-      console.debug(
-        `${loggerConfig.includeTimestamp ? new Date().toISOString() : ''} [DEBUG] ${message}`,
-        data || ''
-      );
-    }
-  },
-  
-  /**
-   * Log an info message
-   * 
-   * @param message - Message to log
-   * @param data - Optional data to include with the log
-   */
-  info: (message: string, data?: any) => {
-    if (loggerConfig.level <= LogLevel.INFO) {
-      console.info(
-        `${loggerConfig.includeTimestamp ? new Date().toISOString() : ''} [INFO] ${message}`,
-        data || ''
-      );
-    }
-  },
-  
-  /**
-   * Log a warning message
-   * 
-   * @param message - Message to log
-   * @param data - Optional data to include with the log
-   */
-  warning: (message: string, data?: any) => {
-    if (loggerConfig.level <= LogLevel.WARNING) {
-      console.warn(
-        `${loggerConfig.includeTimestamp ? new Date().toISOString() : ''} [WARNING] ${message}`,
-        data || ''
-      );
-    }
-  },
-  
-  /**
-   * Log an error message
-   * 
-   * @param message - Message to log
-   * @param data - Optional data to include with the log
-   */
-  error: (message: string, data?: any) => {
-    if (loggerConfig.level <= LogLevel.ERROR) {
-      console.error(
-        `${loggerConfig.includeTimestamp ? new Date().toISOString() : ''} [ERROR] ${message}`,
-        data || ''
-      );
-    }
-  },
-  
-  /**
-   * Set the current log level
-   * 
-   * @param level - New log level
-   */
-  setLevel: (level: LogLevel) => {
-    loggerConfig.level = level;
-  }
+  debug: (message: string, data?: any) => logMessage('debug', message, data),
+  info: (message: string, data?: any) => logMessage('info', message, data),
+  warning: (message: string, data?: any) => logMessage('warning', message, data),
+  error: (message: string, data?: any) => logMessage('error', message, data),
+  setLevel: (level: LogLevel) => setLogLevel(level),
+  getHistory: () => getLogHistory(),
+  clearHistory: () => clearLogHistory()
 };
 
 // Export utility for tracking function execution
@@ -176,4 +120,33 @@ export const trackFunctionExecution = <T extends (...args: any[]) => any>(
   fn: T
 ): ((...args: Parameters<T>) => ReturnType<T>) => {
   return performance.monitor(functionName, fn);
+};
+
+// Log history
+const logHistory: { level: LogLevel, message: string, data?: any }[] = [];
+
+// Log message
+const logMessage = (level: LogLevel, message: string, data?: any) => {
+  if (loggerConfig.level <= level) {
+    console[level](
+      `${loggerConfig.includeTimestamp ? new Date().toISOString() : ''} [${level.toUpperCase()}] ${message}`,
+      data || ''
+    );
+    logHistory.push({ level, message, data });
+  }
+};
+
+// Set log level
+const setLogLevel = (level: LogLevel) => {
+  loggerConfig.level = level;
+};
+
+// Get log history
+const getLogHistory = () => {
+  return [...logHistory];
+};
+
+// Clear log history
+const clearLogHistory = () => {
+  logHistory.length = 0;
 };

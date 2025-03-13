@@ -1,163 +1,197 @@
 
-import { toast } from 'sonner';
-import { Document, Chapter } from '../../DocumentUploader';
-import { getOpenAIApiKey } from '../EnhancementService';
-import { processChapterBatch } from '../BatchProcessor';
-import { logger } from '../../utils/loggingService';
-
-// Constants
-const BATCH_SIZE = 3;
-
 /**
- * Calculate total number of batches based on chapter count
+ * Enhancement Processor Service
+ * 
+ * Handles the enhancement of document content, processing chapters in batches
+ * and applying different enhancement techniques based on configuration.
  */
-export const calculateTotalBatches = (chapters: Chapter[]): number => {
-  return Math.ceil(chapters.length / BATCH_SIZE);
-};
+
+import { Document, Chapter } from '../../DocumentUploader';
+import { enhanceChapterContent } from './ContentEnhancementService';
+import { logger } from '../../utils/loggingService';
 
 /**
  * Process document enhancement in batches
+ * 
+ * @param document - The document to enhance
+ * @param customPrompt - Optional custom enhancement prompt
+ * @param updateProgress - Callback to update progress UI
+ * @param updateEnhancedChapters - Callback to update enhanced chapters
+ * @returns Enhanced chapters
  */
 export const processDocumentEnhancement = async (
   document: Document,
-  enhancementPrompt: string,
-  updateProgress: (batchIndex: number, progress: number, statusMessage: string) => void,
-  updateEnhancedChapters: (chapters: Chapter[]) => void
+  customPrompt?: string,
+  updateProgress?: (batchIndex: number, progress: number, message: string) => void,
+  updateEnhancedChapters?: (chapters: Chapter[]) => void
 ): Promise<Chapter[]> => {
-  const apiKey = getOpenAIApiKey();
-  if (!apiKey) {
-    const errorMessage = "Please set your OpenAI API key in the API Key tab before enhancing the document.";
-    logger.error('API Key Required', { error: errorMessage });
-    toast.error("API Key Required", {
-      description: errorMessage
-    });
-    return [];
-  }
-
   try {
+    // Create a copy of the document chapters that we can modify
     const chaptersToProcess = [...document.chapters];
-    const totalBatches = calculateTotalBatches(chaptersToProcess);
-    let allEnhancedChapters: Chapter[] = [];
+    const enhancedChapters: Chapter[] = [];
     
-    logger.info(`Starting document enhancement`, {
-      documentTitle: document.title,
-      chaptersCount: chaptersToProcess.length,
-      totalBatches,
-      promptPreview: enhancementPrompt.substring(0, 100) + (enhancementPrompt.length > 100 ? '...' : '')
+    // Skip chapters that should be excluded from enhancement
+    const eligibleChapters = chaptersToProcess.filter(chapter => !chapter.excludeFromEnhancement);
+    
+    // Process chapters in batches of 3 for better UI feedback
+    const batchSize = 3;
+    const totalBatches = Math.ceil(eligibleChapters.length / batchSize);
+    
+    // Add skipped chapters to results immediately - they won't be enhanced
+    const skippedChapters = chaptersToProcess.filter(chapter => chapter.excludeFromEnhancement);
+    enhancedChapters.push(...skippedChapters);
+    
+    logger.info('Starting document enhancement', {
+      totalChapters: chaptersToProcess.length,
+      eligibleChapters: eligibleChapters.length,
+      skippedChapters: skippedChapters.length,
+      batchSize,
+      totalBatches
     });
     
-    // Process chapters in batches
+    // Process eligible chapters in batches
     for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
-      updateProgress(
-        batchIndex + 1, 
-        Math.round(((batchIndex) / totalBatches) * 100),
-        `Processing batch ${batchIndex + 1} of ${totalBatches}...`
-      );
+      const start = batchIndex * batchSize;
+      const end = Math.min(start + batchSize, eligibleChapters.length);
+      const currentBatch = eligibleChapters.slice(start, end);
       
-      const startIdx = batchIndex * BATCH_SIZE;
-      const endIdx = Math.min(startIdx + BATCH_SIZE, chaptersToProcess.length);
-      const currentBatchChapters = chaptersToProcess.slice(startIdx, endIdx);
+      if (updateProgress) {
+        updateProgress(
+          batchIndex + 1, 
+          (batchIndex / totalBatches) * 100, 
+          `Processing batch ${batchIndex + 1} of ${totalBatches}...`
+        );
+      }
       
-      logger.info(`Processing batch ${batchIndex + 1}/${totalBatches}`, {
-        batchSize: currentBatchChapters.length,
-        chaptersFrom: startIdx + 1,
-        chaptersTo: endIdx
+      logger.info(`Processing batch ${batchIndex + 1} of ${totalBatches}`, {
+        chaptersInBatch: currentBatch.length
       });
       
-      try {
-        // Process the current batch with the custom prompt
-        const enhancedBatch = await processChapterBatch(
-          currentBatchChapters, 
-          apiKey,
-          enhancementPrompt
-        );
-        
-        // Update the enhanced chapters array
-        allEnhancedChapters = [...allEnhancedChapters, ...enhancedBatch];
-        updateEnhancedChapters(allEnhancedChapters);
-        
-        // Calculate progress
-        const completedChapters = (batchIndex + 1) * BATCH_SIZE;
-        const newProgress = Math.min(
-          Math.round((completedChapters / chaptersToProcess.length) * 100),
-          100
-        );
-        
-        const statusMessage = `Completed ${Math.min(completedChapters, chaptersToProcess.length)} of ${chaptersToProcess.length} chapters`;
-        updateProgress(
-          batchIndex + 1,
-          newProgress,
-          statusMessage
-        );
-        
-        logger.info(statusMessage, {
-          progress: newProgress,
-          batchIndex: batchIndex + 1,
-          totalBatches
-        });
-        
-        // Add a short delay between batches to prevent API rate limits
-        if (batchIndex < totalBatches - 1) {
-          updateProgress(
-            batchIndex + 1,
-            newProgress,
-            `Preparing next batch...`
+      // Process chapters in parallel for better performance
+      const batchPromises = currentBatch.map(async (chapter) => {
+        try {
+          const startTime = Date.now();
+          
+          // Choose enhancement type based on chapter title/content
+          const enhancementType = determineEnhancementType(chapter);
+          
+          logger.info(`Enhancing chapter "${chapter.title}"`, {
+            chapterId: chapter.id,
+            enhancementType,
+            contentLength: chapter.content.length
+          });
+          
+          // Enhance chapter content
+          const enhancedContent = await enhanceChapterContent(
+            chapter.content,
+            enhancementType,
+            customPrompt
           );
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          const enhancedChapter: Chapter = {
+            ...chapter,
+            content: enhancedContent
+          };
+          
+          const duration = Date.now() - startTime;
+          logger.info(`Enhanced chapter "${chapter.title}" (${duration}ms)`, {
+            chapterId: chapter.id
+          });
+          
+          return enhancedChapter;
+        } catch (error) {
+          logger.error(`Error enhancing chapter "${chapter.title}"`, {
+            error,
+            chapterId: chapter.id
+          });
+          
+          // Return the original chapter if enhancement fails
+          return chapter;
         }
-      } catch (error) {
-        logger.error(`Error processing batch ${batchIndex + 1}:`, { error });
-        toast.error(`Error in batch ${batchIndex + 1}`, {
-          description: "Some chapters couldn't be processed. Continuing with the next batch."
+      });
+      
+      // Wait for all chapters in this batch to be processed
+      const enhancedBatch = await Promise.all(batchPromises);
+      enhancedChapters.push(...enhancedBatch);
+      
+      // Update progress after each batch is complete
+      if (updateProgress) {
+        updateProgress(
+          batchIndex + 1, 
+          ((batchIndex + 1) / totalBatches) * 100, 
+          `Completed batch ${batchIndex + 1} of ${totalBatches}`
+        );
+      }
+      
+      // Update the enhanced chapters in the UI as they're processed
+      if (updateEnhancedChapters) {
+        // Sort the chapters to maintain the original order
+        const sortedChapters = [...enhancedChapters].sort((a, b) => {
+          const indexA = chaptersToProcess.findIndex(c => c.id === a.id);
+          const indexB = chaptersToProcess.findIndex(c => c.id === b.id);
+          return indexA - indexB;
         });
         
-        // Add the original chapters from this batch to maintain document structure
-        allEnhancedChapters = [...allEnhancedChapters, ...currentBatchChapters];
-        updateEnhancedChapters(allEnhancedChapters);
+        updateEnhancedChapters(sortedChapters);
       }
     }
     
-    const completionMessage = 'Document enhancement completed!';
-    updateProgress(
-      totalBatches,
-      100,
-      completionMessage
-    );
-    
-    logger.info(completionMessage, {
-      document: document.title,
-      totalChapters: allEnhancedChapters.length
+    // Make sure the chapters are in the original order
+    const finalEnhancedChapters = [...enhancedChapters].sort((a, b) => {
+      const indexA = chaptersToProcess.findIndex(c => c.id === a.id);
+      const indexB = chaptersToProcess.findIndex(c => c.id === b.id);
+      return indexA - indexB;
     });
     
-    return allEnhancedChapters;
+    logger.info('Document enhancement completed', {
+      chaptersProcessed: eligibleChapters.length,
+      totalEnhancedChapters: finalEnhancedChapters.length
+    });
+    
+    return finalEnhancedChapters;
   } catch (error) {
-    const errorMessage = "An error occurred during the enhancement process.";
-    logger.error("Document enhancement failed:", { error });
-    toast.error("Enhancement Failed", {
-      description: errorMessage
-    });
-    return [];
+    logger.error('Error in document enhancement process', { error });
+    throw error;
   }
 };
 
 /**
- * Helper to prepare document for Word export
+ * Determine the best enhancement type based on chapter content
+ * 
+ * @param chapter - The chapter to analyze
+ * @returns Enhancement type to apply
  */
-export const exportToWord = (enhancedDocument: Document): void => {
-  try {
-    logger.info('Preparing document for Word export', {
-      title: enhancedDocument.title,
-      author: enhancedDocument.author,
-      chapters: enhancedDocument.chapters.length
-    });
-    
-    toast.success("Word Export Ready", {
-      description: "Your document has been prepared for Word export."
-    });
-  } catch (error) {
-    logger.error("Word export failed:", { error });
-    toast.error("Export Failed", {
-      description: "Could not prepare the Word document for export."
-    });
+const determineEnhancementType = (chapter: Chapter): string => {
+  const title = chapter.title.toLowerCase();
+  const content = chapter.content.toLowerCase();
+  
+  // Apply content-specific enhancement strategies
+  if (
+    title.includes('introduction') || 
+    title.includes('overview') ||
+    title.includes('preface')
+  ) {
+    return 'style';
   }
+  
+  if (
+    content.includes('example') ||
+    content.includes('case study') ||
+    content.includes('for instance')
+  ) {
+    return 'clarity';
+  }
+  
+  if (
+    title.includes('conclusion') ||
+    title.includes('summary')
+  ) {
+    return 'expand';
+  }
+  
+  // Default enhancement type
+  return 'grammar';
 };
+
+// Export other utility functions as needed
+export { enhanceChapterContent };

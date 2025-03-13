@@ -4,7 +4,7 @@
  */
 import { Chapter } from '../DocumentUploader';
 import { fixEncodingIssues, detectEncodingIssues } from './encodingUtils';
-import { sectionPatterns, isHeading, getChapterTitle, getChapterContentHeader } from './chapterPatterns';
+import { sectionPatterns, isHeading, getChapterTitle, getChapterContentHeader, shouldExcludeFromEnhancement } from './chapterPatterns';
 
 /**
  * Extract chapters and subsections from document content
@@ -30,11 +30,15 @@ export const extractChapters = (content: string): Chapter[] => {
       const id = isInAppendices ? `appendix-${chapterCount}` : 
                 isInBackMatter ? `backmatter-${chapterCount}` : 
                 `ch-${chapterCount}`;
-                
+      
+      // Check if this chapter should be excluded from enhancement
+      const excludeFromEnhancement = shouldExcludeFromEnhancement(currentChapterTitle);
+      
       chapters.push({
         id,
         title: currentChapterTitle,
-        content: currentChapterContent.trim()
+        content: currentChapterContent.trim(),
+        excludeFromEnhancement: excludeFromEnhancement
       });
       chapterCount++;
     }

@@ -1,127 +1,144 @@
-import React, { useState, useEffect } from 'react';
-import { toast } from 'sonner';
-import { Document, Chapter } from '../DocumentUploader';
-import { getOpenAIApiKey, getCustomBookPrompt, getPromptTemplates as getTemplates } from './EnhancementService';
-import EnhancementProgress from './components/EnhancementProgress';
-import EnhanceButton from './components/EnhanceButton';
+import React, { useState, useCallback } from 'react';
+import { Document, Chapter } from '../../DocumentUploader';
+import { processDocumentEnhancement } from './services/EnhancementProcessorService';
+import { logger } from '../utils/loggingService';
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs"
+import { Slider } from "@/components/ui/slider"
+import { useToast } from "@/components/ui/use-toast"
+import { useForm } from "react-hook-form"
+import { Enhancements } from "@/components/document/enhancer/components/Enhancements"
 import PromptSelectionSection from './components/PromptSelectionSection';
-import { 
-  calculateTotalBatches, 
-  processDocumentEnhancement, 
-  exportToWord 
-} from './services/EnhancementProcessorService';
 
 interface EnhancementControllerProps {
   document: Document;
   onDocumentEnhanced: (enhancedDocument: Document) => void;
 }
 
-const EnhancementController: React.FC<EnhancementControllerProps> = ({ 
-  document, 
-  onDocumentEnhanced 
-}) => {
+const EnhancementController: React.FC<EnhancementControllerProps> = ({ document, onDocumentEnhanced }) => {
   const [isEnhancing, setIsEnhancing] = useState(false);
-  const [currentBatch, setCurrentBatch] = useState(0);
-  const [totalBatches, setTotalBatches] = useState(0);
-  const [progress, setProgress] = useState(0);
-  const [enhancedChapters, setEnhancedChapters] = useState<Chapter[]>([]);
-  const [statusMessage, setStatusMessage] = useState('');
-  const [enhancementPrompt, setEnhancementPrompt] = useState(getTemplates()[0].prompt);
-  
-  useEffect(() => {
-    const savedPrompt = getCustomBookPrompt(document.title);
-    if (savedPrompt) {
-      setEnhancementPrompt(savedPrompt);
-      toast.info("Book-specific prompt loaded", {
-        description: "A custom prompt for this book was found and loaded"
-      });
-    }
-  }, [document.title]);
-  
-  const updateProgress = (batchIndex: number, newProgress: number, message: string) => {
-    setCurrentBatch(batchIndex);
-    setProgress(newProgress);
-    setStatusMessage(message);
-  };
-  
-  const updateEnhancedChapters = (chapters: Chapter[]) => {
-    setEnhancedChapters(chapters);
-  };
-  
-  const enhanceDocument = async () => {
+  const [enhancementPrompt, setEnhancementPrompt] = useState('');
+  const [enhancedDocument, setEnhancedDocument] = useState<Document | null>(null);
+  const { toast } = useToast()
+
+  const form = useForm({
+    defaultValues: {
+      prompt: "",
+    },
+  })
+
+  const handlePromptChange = useCallback((newPrompt: string) => {
+    setEnhancementPrompt(newPrompt);
+  }, []);
+
+  const onSubmit = async (values: any) => {
+    setIsEnhancing(true);
+    logger.info('Starting document enhancement', { document: document.title });
+
     try {
-      setIsEnhancing(true);
-      setCurrentBatch(0);
-      setEnhancedChapters([]);
-      setProgress(0);
-      
-      const chaptersToProcess = [...document.chapters];
-      const totalBatches = calculateTotalBatches(chaptersToProcess);
-      setTotalBatches(totalBatches);
-      
-      const enhancedChapters = await processDocumentEnhancement(
-        document,
-        enhancementPrompt,
-        updateProgress,
-        updateEnhancedChapters
-      );
-      
-      if (enhancedChapters.length > 0) {
-        const enhancedDocument = {
-          ...document,
-          chapters: enhancedChapters
-        };
-        
-        exportToWord(enhancedDocument);
-        
-        onDocumentEnhanced(enhancedDocument);
-        
-        toast.success("Document Enhancement Complete", {
-          description: `All ${enhancedChapters.length} chapters have been enhanced and formatted.`
-        });
-      }
+      const enhancedChapters = await processDocumentEnhancement(document, enhancementPrompt);
+
+      const enhancedDocument: Document = {
+        ...document,
+        chapters: enhancedChapters,
+      };
+
+      setEnhancedDocument(enhancedDocument);
+      onDocumentEnhanced(enhancedDocument);
+
+      logger.info('Document enhancement completed', { document: document.title });
+      toast({
+        title: "You got it!",
+        description: "Document enhancement completed.",
+      })
     } catch (error) {
-      console.error("Document enhancement failed:", error);
-      toast.error("Enhancement Failed", {
-        description: "An error occurred during the enhancement process."
-      });
+      logger.error('Enhancement process failed with error', { error });
+      toast({
+        variant: "destructive",
+        title: "Uh oh! Something went wrong.",
+        description: "There was a problem with your request.",
+      })
     } finally {
       setIsEnhancing(false);
     }
   };
-  
-  const handlePromptChange = (prompt: string) => {
-    setEnhancementPrompt(prompt);
-  };
-  
+
   return (
-    <div className="space-y-6 p-4 border rounded-lg">
-      <div className="space-y-2">
-        <h3 className="text-lg font-medium">Document Enhancement</h3>
-        <p className="text-sm text-muted-foreground">
-          Professionally rewrite and format your document chapter by chapter. This process uses AI to improve clarity, 
-          fix formatting issues, and ensure professional style throughout the document.
-        </p>
-      </div>
-      
-      <PromptSelectionSection 
-        bookTitle={document.title}
-        enhancementPrompt={enhancementPrompt}
-        onPromptChange={handlePromptChange}
-      />
-      
-      <EnhancementProgress 
-        isEnhancing={isEnhancing}
-        currentBatch={currentBatch}
-        totalBatches={totalBatches}
-        progress={progress}
-        statusMessage={statusMessage}
-      />
-      
-      <EnhanceButton 
-        isEnhancing={isEnhancing}
-        onEnhance={enhanceDocument}
-      />
+    <div className="container max-w-4xl mx-auto mt-10">
+      <Card>
+        <CardHeader>
+          <CardTitle>Document Enhancement</CardTitle>
+          <CardDescription>Enhance your document with AI</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-6">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6">
+              <FormField
+                control={form.control}
+                name="prompt"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Enhancement Prompt</FormLabel>
+                    <FormControl>
+                      <PromptSelectionSection
+                        enhancementPrompt={enhancementPrompt}
+                        onPromptSelected={handlePromptChange}
+                        disabled={false}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Enter a prompt to guide the AI in enhancing your document.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button disabled={isEnhancing} type="submit">
+                {isEnhancing ? "Enhancing..." : "Enhance Document"}
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+      {enhancedDocument && (
+        <div className="mt-10">
+          <h2 className="text-2xl font-bold mb-4">Enhanced Document Preview</h2>
+          <Enhancements document={enhancedDocument} />
+        </div>
+      )}
     </div>
   );
 };

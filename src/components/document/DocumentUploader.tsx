@@ -18,7 +18,7 @@ export interface Chapter {
   id: string;
   title: string;
   content: string;
-  processingErrors?: ProcessingError[];
+  excludeFromEnhancement?: boolean;
 }
 
 export interface Document {

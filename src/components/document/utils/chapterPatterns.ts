@@ -46,6 +46,39 @@ export const isHeading = (line: string, patterns: RegExp[]): boolean => {
 };
 
 /**
+ * Determines if a section should be excluded from enhancement
+ * 
+ * @param title - The section title to check
+ * @returns True if the section should be excluded from enhancement
+ */
+export const shouldExcludeFromEnhancement = (title: string): boolean => {
+  const lowerTitle = title.toLowerCase();
+  
+  // Exclude appendices
+  if (
+    lowerTitle.includes('appendix') || 
+    lowerTitle.includes('appendices') ||
+    /^[a-z]\.\s/.test(lowerTitle)
+  ) {
+    return true;
+  }
+  
+  // Exclude back matter
+  if (
+    lowerTitle.includes('back matter') ||
+    lowerTitle.includes('index') ||
+    lowerTitle.includes('reader survey') ||
+    lowerTitle.includes('connect online') ||
+    lowerTitle.includes('glossary') ||
+    lowerTitle.includes('resources')
+  ) {
+    return true;
+  }
+  
+  return false;
+};
+
+/**
  * Get chapter title based on match and section type
  * 
  * Formats the chapter title according to its type (regular chapter,
