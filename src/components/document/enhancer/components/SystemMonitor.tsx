@@ -1,20 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Button } from '@/components/ui/button';
-import { Cpu, HardDrive, AlertTriangle, Clock, DownloadCloud, Trash2 } from 'lucide-react';
-import { logger, LogEntry, LogLevel } from '../../utils/loggingService';
 
-type LogRecord = LogEntry;
+import React, { useState, useEffect } from 'react';
+import { logger, LogEntry } from '../../utils/loggingService';
+import LogViewer from './LogViewer';
+import PerformanceMonitor from './PerformanceMonitor';
+import SystemMonitorContainer from './SystemMonitorContainer';
 
 const SystemMonitor: React.FC = () => {
   const [activeTab, setActiveTab] = useState('logs');
-  const [logs, setLogs] = useState<LogRecord[]>([]);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
   const [memoryUsage, setMemoryUsage] = useState({ used: 0, total: 0 });
   const [cpuUsage, setCpuUsage] = useState(0);
-  const [operationStatus, setOperationStatus] = useState('idle');
+  const [operationStatus, setOperationStatus] = useState<'idle' | 'active' | 'error'>('idle');
+  const [uptime, setUptime] = useState({ hours: 0, minutes: 0 });
+  const [lastUpdated, setLastUpdated] = useState(new Date().toLocaleTimeString());
 
   // Simulate fetching logs
   useEffect(() => {
@@ -32,6 +30,11 @@ const SystemMonitor: React.FC = () => {
         total: 1024
       });
       setCpuUsage(Math.floor(Math.random() * 80));
+      setUptime({
+        hours: Math.floor(Math.random() * 24),
+        minutes: Math.floor(Math.random() * 60)
+      });
+      setLastUpdated(new Date().toLocaleTimeString());
     }, 3000);
 
     return () => clearInterval(interval);
@@ -63,161 +66,46 @@ const SystemMonitor: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  // Helper to get color for log level
-  const getLogLevelColor = (level: LogLevel): string => {
-    switch (level) {
-      case LogLevel.DEBUG: return 'text-gray-500';
-      case LogLevel.INFO: return 'text-blue-500';
-      case LogLevel.WARNING: return 'text-amber-500';
-      case LogLevel.ERROR: return 'text-red-500';
-      default: return 'text-gray-700';
+  // Define tabs for the container
+  const tabs = [
+    {
+      id: 'logs',
+      label: 'Application Logs',
+      content: (
+        <LogViewer 
+          logs={logs} 
+          onClearLogs={handleClearLogs} 
+          onDownloadLogs={handleDownloadLogs} 
+        />
+      )
+    },
+    {
+      id: 'performance',
+      label: 'System Performance',
+      content: (
+        <PerformanceMonitor 
+          metrics={{
+            memoryUsage,
+            cpuUsage,
+            uptime
+          }}
+        />
+      )
     }
-  };
+  ];
 
   return (
-    <Card className="w-full">
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-lg">System Monitor</CardTitle>
-          <Badge 
-            variant={operationStatus === 'idle' ? 'outline' : operationStatus === 'error' ? 'destructive' : 'default'}
-            className="ml-2"
-          >
-            {operationStatus === 'idle' ? 'Idle' : operationStatus === 'error' ? 'Error' : 'Active'}
-          </Badge>
-        </div>
-        <CardDescription>
-          Application logs and system performance
-        </CardDescription>
-      </CardHeader>
-      
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="logs">Application Logs</TabsTrigger>
-          <TabsTrigger value="performance">System Performance</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="logs" className="border-none p-0">
-          <CardContent className="px-0 py-2">
-            <div className="flex justify-between items-center px-6 mb-2">
-              <div className="text-sm text-muted-foreground">
-                {logs.length} log entries
-              </div>
-              <div className="flex space-x-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleDownloadLogs}
-                  className="flex items-center"
-                >
-                  <DownloadCloud className="mr-1 h-4 w-4" />
-                  Export
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleClearLogs}
-                  className="flex items-center text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="mr-1 h-4 w-4" />
-                  Clear
-                </Button>
-              </div>
-            </div>
-            
-            <ScrollArea className="h-[300px] px-6">
-              {logs.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                  <AlertTriangle className="h-8 w-8 mb-2 opacity-30" />
-                  <p>No logs to display</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {logs.map((log, index) => (
-                    <div key={index} className="text-sm border-b border-muted pb-2 last:border-0">
-                      <div className="flex justify-between">
-                        <span className={`font-medium ${getLogLevelColor(log.level)}`}>
-                          [{log.level.toUpperCase()}]
-                        </span>
-                        <span className="text-muted-foreground text-xs">
-                          {new Date(log.timestamp).toLocaleTimeString()}
-                        </span>
-                      </div>
-                      <div>{log.message}</div>
-                      {log.data && Object.keys(log.data).length > 0 && (
-                        <pre className="mt-1 text-xs bg-muted p-2 rounded overflow-x-auto">
-                          {JSON.stringify(log.data, null, 2)}
-                        </pre>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-          </CardContent>
-        </TabsContent>
-        
-        <TabsContent value="performance" className="border-none p-0">
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4">
-                <div className="bg-muted rounded-full p-2">
-                  <HardDrive className="h-5 w-5 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm font-medium">Memory Usage</span>
-                    <span className="text-sm text-muted-foreground">{memoryUsage.used} MB / {memoryUsage.total} MB</span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-primary" 
-                      style={{ width: `${(memoryUsage.used / memoryUsage.total) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-4">
-                <div className="bg-muted rounded-full p-2">
-                  <Cpu className="h-5 w-5 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm font-medium">CPU Usage</span>
-                    <span className="text-sm text-muted-foreground">{cpuUsage}%</span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full ${cpuUsage > 80 ? 'bg-red-500' : cpuUsage > 60 ? 'bg-amber-500' : 'bg-primary'}`}
-                      style={{ width: `${cpuUsage}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-4">
-                <div className="bg-muted rounded-full p-2">
-                  <Clock className="h-5 w-5 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm font-medium">Uptime</span>
-                    <span className="text-sm text-muted-foreground">{Math.floor(Math.random() * 24)}h {Math.floor(Math.random() * 60)}m</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </TabsContent>
-      </Tabs>
-      
-      <CardFooter className="pt-0">
-        <p className="text-xs text-muted-foreground w-full text-center">
-          System monitoring active. Last updated: {new Date().toLocaleTimeString()}
-        </p>
-      </CardFooter>
-    </Card>
+    <SystemMonitorContainer
+      title="System Monitor"
+      description="Application logs and system performance"
+      operationStatus={operationStatus}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      tabs={tabs}
+      lastUpdated={lastUpdated}
+    >
+      {/* Any additional content can go here */}
+    </SystemMonitorContainer>
   );
 };
 

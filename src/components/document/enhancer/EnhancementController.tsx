@@ -1,145 +1,86 @@
-import React, { useState, useCallback } from 'react';
-import { Document, Chapter } from '../../DocumentUploader';
-import { processDocumentEnhancement } from './services/EnhancementProcessorService';
-import { logger } from '../utils/loggingService';
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
-import { Slider } from "@/components/ui/slider"
-import { useToast } from "@/components/ui/use-toast"
-import { useForm } from "react-hook-form"
-import { Enhancements } from "@/components/document/enhancer/components/Enhancements"
+import React, { useState, useEffect } from 'react';
+import { DocumentUploader } from '../DocumentUploader';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import EnhanceButton from './components/EnhanceButton';
+import StatusIndicator from './components/StatusIndicator';
 import PromptSelectionSection from './components/PromptSelectionSection';
+import EnhancementProgress from './components/EnhancementProgress';
+import SystemMonitor from './components/SystemMonitor';
+import { performance } from '../document/utils/loggingService';
 
 interface EnhancementControllerProps {
-  document: Document;
-  onDocumentEnhanced: (enhancedDocument: Document) => void;
+  onDocumentUpload: (file: File) => void;
+  onEnhance: (selectedPrompts: string[]) => Promise<void>;
+  enhancementProgress: number;
+  isEnhancing: boolean;
+  status: 'idle' | 'uploading' | 'enhancing' | 'complete' | 'error';
+  availablePrompts: string[];
+  selectedPrompts: string[];
+  onSelectPrompt: (prompt: string) => void;
+  onDeselectPrompt: (prompt: string) => void;
+  errorMessage?: string;
 }
 
-const EnhancementController: React.FC<EnhancementControllerProps> = ({ document, onDocumentEnhanced }) => {
-  const [isEnhancing, setIsEnhancing] = useState(false);
-  const [enhancementPrompt, setEnhancementPrompt] = useState('');
-  const [enhancedDocument, setEnhancedDocument] = useState<Document | null>(null);
-  const { toast } = useToast()
+const EnhancementController: React.FC<EnhancementControllerProps> = ({
+  onDocumentUpload,
+  onEnhance,
+  enhancementProgress,
+  isEnhancing,
+  status,
+  availablePrompts,
+  selectedPrompts,
+  onSelectPrompt,
+  onDeselectPrompt,
+  errorMessage,
+}) => {
+  const [uploadedDocumentName, setUploadedDocumentName] = useState<string | null>(null);
 
-  const form = useForm({
-    defaultValues: {
-      prompt: "",
-    },
-  })
-
-  const handlePromptChange = useCallback((newPrompt: string) => {
-    setEnhancementPrompt(newPrompt);
-  }, []);
-
-  const onSubmit = async (values: any) => {
-    setIsEnhancing(true);
-    logger.info('Starting document enhancement', { document: document.title });
-
-    try {
-      const enhancedChapters = await processDocumentEnhancement(document, enhancementPrompt);
-
-      const enhancedDocument: Document = {
-        ...document,
-        chapters: enhancedChapters,
-      };
-
-      setEnhancedDocument(enhancedDocument);
-      onDocumentEnhanced(enhancedDocument);
-
-      logger.info('Document enhancement completed', { document: document.title });
-      toast({
-        title: "You got it!",
-        description: "Document enhancement completed.",
-      })
-    } catch (error) {
-      logger.error('Enhancement process failed with error', { error });
-      toast({
-        variant: "destructive",
-        title: "Uh oh! Something went wrong.",
-        description: "There was a problem with your request.",
-      })
-    } finally {
-      setIsEnhancing(false);
+  useEffect(() => {
+    if (status === 'complete' || status === 'error') {
+      // Reset selected prompts when enhancement is complete or has an error
+      // This might not be the desired behavior, so consider removing if needed
     }
+  }, [status]);
+
+  const handleFileUpload = (file: File) => {
+    setUploadedDocumentName(file.name);
+    onDocumentUpload(file);
   };
 
   return (
-    <div className="container max-w-4xl mx-auto mt-10">
-      <Card>
-        <CardHeader>
-          <CardTitle>Document Enhancement</CardTitle>
-          <CardDescription>Enhance your document with AI</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-6">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6">
-              <FormField
-                control={form.control}
-                name="prompt"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Enhancement Prompt</FormLabel>
-                    <FormControl>
-                      <PromptSelectionSection
-                        enhancementPrompt={enhancementPrompt}
-                        onPromptSelected={handlePromptChange}
-                        disabled={false}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Enter a prompt to guide the AI in enhancing your document.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button disabled={isEnhancing} type="submit">
-                {isEnhancing ? "Enhancing..." : "Enhance Document"}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-      {enhancedDocument && (
-        <div className="mt-10">
-          <h2 className="text-2xl font-bold mb-4">Enhanced Document Preview</h2>
-          <Enhancements document={enhancedDocument} />
-        </div>
-      )}
-    </div>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Document Enhancement</CardTitle>
+        <CardDescription>Upload and enhance your document with AI prompts.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <DocumentUploader onFileUpload={handleFileUpload} />
+        {uploadedDocumentName && (
+          <p>Uploaded Document: {uploadedDocumentName}</p>
+        )}
+        <PromptSelectionSection
+          availablePrompts={availablePrompts}
+          selectedPrompts={selectedPrompts}
+          onSelectPrompt={onSelectPrompt}
+          onDeselectPrompt={onDeselectPrompt}
+        />
+        <EnhanceButton
+          isEnhancing={isEnhancing}
+          onEnhance={() => onEnhance(selectedPrompts)}
+          disabled={!uploadedDocumentName || selectedPrompts.length === 0}
+        />
+        <EnhancementProgress progress={enhancementProgress} />
+        <StatusIndicator status={status} errorMessage={errorMessage} />
+        <SystemMonitor />
+      </CardContent>
+      <CardFooter>
+        {errorMessage && (
+          <p className="text-red-500">Error: {errorMessage}</p>
+        )}
+      </CardFooter>
+    </Card>
   );
 };
 
