@@ -74,6 +74,9 @@ export const fixEncodingIssues = (content: string): string => {
     console.error('Error decoding HTML entities:', e);
   }
   
+  // Remove transcription artifacts
+  result = removeTranscriptionArtifacts(result);
+  
   return result;
 };
 
@@ -119,4 +122,83 @@ export const detectEncodingIssues = (content: string): boolean => {
   }
   
   return false;
+};
+
+/**
+ * Removes common AI transcription artifacts and directives from text
+ * 
+ * Identifies and removes lines that appear to be transcription guidelines,
+ * formatting directives, or other non-content artifacts often included
+ * by AI transcription systems.
+ * 
+ * @param content - The text content to clean
+ * @returns Text with transcription artifacts removed
+ */
+export const removeTranscriptionArtifacts = (content: string): string => {
+  if (!content) return '';
+  
+  let cleanedContent = content;
+  
+  // Common transcription artifact patterns
+  const artifactPatterns = [
+    // Paragraphs ending with ¶ or similar symbols
+    /^[ •]*[\w\s]+·+¶[\s]*$/gm,
+    /^[ •]*[\w\s].*[¶|]+[\s]*$/gm,
+    
+    // Directive lines with bullet points
+    /^[ •]*(Ensure|Do not|Use|Avoid|Correct|Incorrect)[\w\s\-\.]+[¶|]+[\s]*$/gm,
+    
+    // Section markers with special symbols
+    /^[\s]*[⚠️|🚫|⛔|🔴|🟠|🟡|🟢|🔵|🟣|⚪|⚫|✅|❌|⭕|❗|❓|❕|❔|🔺|🔻|🔸|🔹|🔶|🔷|🔘|🔲|🔳|🔈|🔉|🔊|🔇].*[¶|]+[\s]*$/gm,
+    
+    // Common AI instruction patterns
+    /^(Usage:|Example:|Note:|Important:|Warning:|Caution:|Remember:).*[¶|]+[\s]*$/gm,
+    
+    // Common metadata patterns often included in AI-generated text
+    /^\[(Timestamp|Time|Speaker|ID|Note)\].*$/gm,
+    
+    // Lines that appear to be formatting instructions
+    /^[\s]*(Correct vs\. Incorrect).*[¶|]+[\s]*$/gm,
+    /^[\s]*(Incorrect Usage:).*[¶|]+[\s]*$/gm
+  ];
+  
+  // Apply all removals
+  for (const pattern of artifactPatterns) {
+    cleanedContent = cleanedContent.replace(pattern, '');
+  }
+  
+  // Clean up any resulting empty lines
+  cleanedContent = cleanedContent.replace(/\n{3,}/g, '\n\n');
+  
+  return cleanedContent.trim();
+};
+
+/**
+ * Process text content to fix encoding issues and remove artifacts
+ * 
+ * Applies a full suite of text cleaning operations suitable for
+ * document processing:
+ * - Fixes encoding issues
+ * - Removes transcription artifacts
+ * - Normalizes whitespace
+ * 
+ * @param content - The text content to process
+ * @returns Cleaned text ready for further processing
+ */
+export const processTextContent = (content: string): string => {
+  if (!content) return '';
+  
+  // First fix encoding issues
+  let processedContent = fixEncodingIssues(content);
+  
+  // Then remove transcription artifacts
+  processedContent = removeTranscriptionArtifacts(processedContent);
+  
+  // Normalize whitespace
+  processedContent = processedContent
+    .replace(/[ \t]+/g, ' ')     // Replace multiple spaces/tabs with single space
+    .replace(/\n{3,}/g, '\n\n')  // Replace 3+ newlines with 2
+    .trim();                     // Remove leading/trailing whitespace
+    
+  return processedContent;
 };

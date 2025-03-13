@@ -9,7 +9,6 @@ import StatusIndicator from './components/StatusIndicator';
 import PromptSelectionSection from './components/PromptSelectionSection';
 import EnhancementProgress from './components/EnhancementProgress';
 import SystemMonitor from './components/SystemMonitor';
-import { performance, logger, LogLevel } from '../utils/loggingService';
 
 interface EnhancementControllerProps {
   onDocumentUpload: (file: File) => void;
@@ -78,6 +77,7 @@ const EnhancementController: React.FC<EnhancementControllerProps> = ({
           }}
           enhancementPrompt={selectedPrompts.join(", ")}
           disabled={false}
+          bookTitle={uploadedDocumentName || undefined}
         />
         <EnhanceButton
           isEnhancing={isEnhancing}

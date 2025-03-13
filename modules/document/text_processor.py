@@ -1,3 +1,4 @@
+
 import unicodedata
 import re
 from modules.document.text_processing.encoding import detect_encoding, normalize_whitespace
@@ -39,6 +40,9 @@ def fix_text_encoding(app):
         # Fix XML/HTML entities
         new_text = fix_html_entities(new_text)
         
+        # Remove AI transcription artifacts
+        new_text = remove_transcription_artifacts(new_text)
+        
         # If changes were made, update the paragraph text
         if new_text != original_text:
             # Count characters that were replaced
@@ -56,6 +60,7 @@ def fix_text_encoding(app):
                 run_text = unicodedata.normalize('NFKD', run_text)
                 run_text = fix_common_encoding_issues(run_text)
                 run_text = fix_html_entities(run_text)
+                run_text = remove_transcription_artifacts(run_text)
                 run.text = run_text
     
     # Log fix results
@@ -121,6 +126,44 @@ def fix_html_entities(text):
         pass
     
     return text
+
+def remove_transcription_artifacts(text):
+    """Removes common AI transcription artifacts like directive lines ending with ¶"""
+    if not text:
+        return text
+        
+    # Common transcription artifact patterns
+    artifact_patterns = [
+        # Paragraphs ending with ¶ or similar symbols
+        r'^[ •]*[\w\s]+·+¶[\s]*$',
+        r'^[ •]*[\w\s].*[¶|]+[\s]*$',
+        
+        # Directive lines with bullet points
+        r'^[ •]*(Ensure|Do not|Use|Avoid|Correct|Incorrect)[\w\s\-\.]+[¶|]+[\s]*$',
+        
+        # Section markers with special symbols
+        r'^[\s]*[⚠️|🚫|⛔|🔴|🟠|🟡|🟢|🔵|🟣|⚪|⚫|✅|❌|⭕|❗|❓|❕|❔|🔺|🔻|🔸|🔹|🔶|🔷|🔘|🔲|🔳|🔈|🔉|🔊|🔇].*[¶|]+[\s]*$',
+        
+        # Common AI instruction patterns
+        r'^(Usage:|Example:|Note:|Important:|Warning:|Caution:|Remember:).*[¶|]+[\s]*$',
+        
+        # Common metadata patterns often included in AI-generated text
+        r'^\[(Timestamp|Time|Speaker|ID|Note)\].*$',
+        
+        # Lines that appear to be formatting instructions
+        r'^[\s]*(Correct vs\. Incorrect).*[¶|]+[\s]*$',
+        r'^[\s]*(Incorrect Usage:).*[¶|]+[\s]*$'
+    ]
+    
+    # Apply all removals - multiline mode
+    result = text
+    for pattern in artifact_patterns:
+        result = re.sub(pattern, '', result, flags=re.MULTILINE)
+    
+    # Clean up any resulting empty lines
+    result = re.sub(r'\n{3,}', '\n\n', result)
+    
+    return result.strip()
 
 # Re-export these functions so they can be imported from text_processor
 def preprocess_text_file(file_content, file_encoding=None):
