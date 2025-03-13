@@ -9,6 +9,8 @@ from modules.utils.error_handler import ErrorHandler
 from modules.utils.encoding_utils import contains_encoding_issues, log_encoding_issues
 import os
 import logging
+import time
+import traceback
 
 class BaseOperationHandler:
     """
@@ -106,4 +108,117 @@ class BaseOperationHandler:
                 
         except Exception as e:
             self.app.log.error(f"Error logging document info: {str(e)}")
-
+    
+    def safe_execute_operation(self, operation_func, operation_name, show_message=True, *args, **kwargs):
+        """
+        Safely execute an operation with error handling
+        
+        Args:
+            operation_func: Function to execute
+            operation_name: Name of the operation for logs and error messages
+            show_message: Whether to show error/success message boxes
+            *args, **kwargs: Arguments to pass to the operation function
+        
+        Returns:
+            Tuple of (success_flag, result_or_error)
+        """
+        ErrorHandler.log_operation_start(operation_name)
+        start_time = time.time()
+        
+        try:
+            # Execute the operation
+            result = operation_func(*args, **kwargs)
+            
+            # Log success
+            duration = time.time() - start_time
+            ErrorHandler.log_operation_complete(
+                operation_name, 
+                success=True, 
+                duration=duration
+            )
+            
+            # Store the result
+            self.operation_results[operation_name] = result
+            
+            return True, result
+            
+        except Exception as e:
+            # Handle the error
+            duration = time.time() - start_time
+            error_details = traceback.format_exc()
+            
+            # Log the failure
+            ErrorHandler.log_operation_complete(
+                operation_name,
+                success=False,
+                duration=duration,
+                details=str(e)
+            )
+            
+            # Use the ErrorHandler to handle the exception
+            ErrorHandler.handle_processing_error(
+                self.app, 
+                e, 
+                operation_name, 
+                show_message=show_message
+            )
+            
+            return False, e
+    
+    def retry_operation(self, operation_func, operation_name, max_retries=3, show_message=True, *args, **kwargs):
+        """
+        Execute an operation with automatic retries
+        
+        Args:
+            operation_func: Function to execute
+            operation_name: Name of the operation for logs and error messages
+            max_retries: Maximum number of retry attempts
+            show_message: Whether to show error/success message boxes
+            *args, **kwargs: Arguments to pass to the operation function
+        
+        Returns:
+            Tuple of (success_flag, result_or_error)
+        """
+        retries = 0
+        last_error = None
+        
+        while retries <= max_retries:
+            if retries > 0:
+                self.app.log.info(f"Retry attempt {retries} for {operation_name}")
+                # Add exponential backoff delay
+                delay = (2 ** retries) * 0.5  # 1s, 2s, 4s, etc.
+                time.sleep(delay)
+            
+            success, result = self.safe_execute_operation(
+                operation_func, 
+                f"{operation_name} (attempt {retries+1})",
+                show_message=False,
+                *args, 
+                **kwargs
+            )
+            
+            if success:
+                # If we've had retries, log that we succeeded after retrying
+                if retries > 0:
+                    self.app.log.info(f"Operation {operation_name} succeeded after {retries} retries")
+                
+                # Store the final result
+                self.operation_results[operation_name] = result
+                return True, result
+                
+            last_error = result
+            retries += 1
+        
+        # If we're here, all retries failed
+        self.app.log.error(f"All {max_retries} retry attempts for {operation_name} failed")
+        
+        # Show message only at the end of all retries if requested
+        if show_message:
+            ErrorHandler.handle_processing_error(
+                self.app, 
+                last_error, 
+                f"{operation_name} (after {max_retries} retries)", 
+                show_message=True
+            )
+            
+        return False, last_error

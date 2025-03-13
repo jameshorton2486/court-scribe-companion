@@ -34,4 +34,21 @@ def create_error_handling_section(parent, app):
         variable=app.fallback_to_local
     ).grid(row=2, column=0, columnspan=2, sticky=tk.W, pady=2)
     
+    # Add batch error handling section
+    ttk.Separator(error_frame, orient="horizontal").grid(row=3, column=0, columnspan=2, sticky=tk.EW, pady=5)
+    
+    app.continue_batch_on_error = tk.BooleanVar(value=True)
+    ttk.Checkbutton(
+        error_frame, 
+        text="Continue batch processing if individual files fail", 
+        variable=app.continue_batch_on_error
+    ).grid(row=4, column=0, columnspan=2, sticky=tk.W, pady=2)
+    
+    app.log_batch_errors = tk.BooleanVar(value=True)
+    ttk.Checkbutton(
+        error_frame, 
+        text="Log detailed error reports for failed batch items", 
+        variable=app.log_batch_errors
+    ).grid(row=5, column=0, columnspan=2, sticky=tk.W, pady=2)
+    
     return error_frame
