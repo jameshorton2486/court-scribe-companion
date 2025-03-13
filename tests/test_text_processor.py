@@ -60,11 +60,9 @@ class TestTextProcessor(unittest.TestCase):
             self.assertEqual(result, expected_output)
     
     @patch('modules.document.text_processing.replacements.get_character_replacements')
-    @patch('modules.utils.encoding_utils.contains_encoding_issues')
-    def test_fix_text_encoding(self, mock_contains_issues, mock_get_replacements):
+    def test_fix_text_encoding(self, mock_get_replacements):
         """Test the complete text encoding fix process"""
         # Setup mocks
-        mock_contains_issues.side_effect = [True, False]  # First paragraph has issues, second doesn't
         mock_get_replacements.return_value = {'â€™': "'", 'Â': ''}
         
         # Call the function
@@ -78,12 +76,19 @@ class TestTextProcessor(unittest.TestCase):
         self.app.log.warning.assert_called_once()
         
         # Test when no encoding issues are found
-        mock_contains_issues.side_effect = [False, False]  # No paragraphs have issues
+        # Reset mocks
+        self.app.log.warning.reset_mock()
+        
+        # Mock no encoding issues by updating paragraph text
+        for paragraph in self.app.docx_content.paragraphs:
+            paragraph.text = "Normal text without issues"
+            for run in paragraph.runs:
+                run.text = "Normal text without issues"
+        
         result = fix_text_encoding(self.app)
         
         # Verify the function reported no encoding issues
         self.assertFalse(result)
-
 
 if __name__ == '__main__':
     unittest.main()
