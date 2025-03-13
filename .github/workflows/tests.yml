@@ -31,7 +31,7 @@ jobs:
         bandit -r modules/ -ll -ii -c bandit.yaml || exit 0
     - name: Check dependencies for security vulnerabilities
       run: |
-        safety check -i 42194 -i 44715 -i 44716 -i 51457 || exit 0
+        safety check || exit 0
     - name: Run static type checking
       run: |
         mypy modules/ || exit 0

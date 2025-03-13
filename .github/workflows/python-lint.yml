@@ -43,7 +43,7 @@ jobs:
         bandit -r . -ll -ii -c bandit.yaml || exit 0
     - name: Dependency security check with safety
       run: |
-        safety check -i 42194 -i 44715 -i 44716 -i 51457 || exit 0
+        safety check || exit 0
     - name: Pylint check
       run: |
         pylint modules --disable=C0111,C0103 --exit-zero
