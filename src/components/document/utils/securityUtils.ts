@@ -101,3 +101,21 @@ export const validateUserInput = (input: string, maxLength: number = 1000): stri
   
   return input;
 };
+
+/**
+ * Creates a RegExpMatchArray from a string array for compatibility
+ * This helps with type compatibility in test files
+ */
+export const createRegExpMatchArray = (matches: string[]): RegExpMatchArray => {
+  if (!matches || !Array.isArray(matches)) {
+    return [''] as RegExpMatchArray;
+  }
+  
+  const result = [...matches] as RegExpMatchArray;
+  // Ensure the array has the minimum properties expected of a RegExpMatchArray
+  result.index = 0;
+  result.input = '';
+  result.groups = undefined;
+  
+  return result;
+};
