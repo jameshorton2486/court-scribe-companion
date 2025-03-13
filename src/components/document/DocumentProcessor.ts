@@ -4,6 +4,8 @@
  * 
  * Processes document content into a structured document with chapters,
  * handling encoding issues and providing error reporting.
+ * 
+ * @module DocumentProcessor
  */
 
 import { Chapter, Document } from './DocumentUploader';
@@ -12,6 +14,12 @@ import { extractChapters } from './utils/chapterExtractor';
 
 /**
  * Process document content into a structured document with chapters
+ * 
+ * @param title - The title of the document
+ * @param author - The author of the document
+ * @param content - The raw text content of the document
+ * @returns A structured Document object with chapters
+ * @throws Error if the document content is empty
  */
 export const processDocument = (
   title: string,
@@ -84,7 +92,14 @@ export const processDocument = (
 /**
  * Validates document content before processing
  * 
- * @param content The document content to validate
+ * Performs various checks on the document content to ensure it's valid and
+ * can be processed correctly. This includes checking for:
+ * - Empty content
+ * - Content that's too short
+ * - Encoding issues
+ * - Binary/non-text data
+ * 
+ * @param content - The document content to validate
  * @returns Object containing validation result and any error messages
  */
 export const validateDocument = (content: string): { 
@@ -121,4 +136,5 @@ export const validateDocument = (content: string): {
   };
 };
 
+// Export utility functions for use elsewhere
 export { fixEncodingIssues, detectEncodingIssues };

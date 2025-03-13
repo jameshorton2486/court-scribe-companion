@@ -1,15 +1,27 @@
 
 /**
- * Service for enhancing document content using AI
+ * Content Enhancement Service
+ * 
+ * This service provides functions for enhancing document content using AI
+ * processing. It simulates AI-based enhancements for document content,
+ * with different enhancement types and support for custom prompts.
+ * 
+ * @module ContentEnhancementService
  */
 
 /**
  * Enhances chapter content using AI processing
  * 
- * @param content The original content to enhance
- * @param enhancementType The type of enhancement to apply
- * @param customPrompt Optional custom prompt to guide the enhancement
- * @returns Enhanced content
+ * Applies different types of enhancements to the provided content:
+ * - grammar: Fixes grammar and punctuation issues
+ * - expand: Adds additional explanatory content
+ * - clarity: Improves readability by removing unnecessary words
+ * - style: Applies professional terminology and formatting
+ * 
+ * @param content - The original content to enhance
+ * @param enhancementType - The type of enhancement to apply ('grammar', 'expand', 'clarity', 'style')
+ * @param customPrompt - Optional custom prompt to guide the enhancement
+ * @returns Enhanced content as an HTML string
  */
 export const enhanceChapterContent = async (
   content: string,
@@ -130,6 +142,12 @@ export const enhanceChapterContent = async (
 
 /**
  * Log processing errors to help with debugging
+ * 
+ * Creates a structured error log with timestamp, context, and error details
+ * to facilitate troubleshooting enhancement failures.
+ * 
+ * @param error - The error object or message
+ * @param context - Description of where the error occurred
  */
 export const logEnhancementError = (error: any, context: string): void => {
   console.error(`Enhancement error (${context}):`, error);

@@ -1,10 +1,25 @@
 
 /**
- * Utility functions for handling text encoding issues
+ * Encoding Utilities Module
+ * 
+ * Provides utility functions for detecting and fixing common encoding issues
+ * in text content. Handles various scenarios like UTF-8/Latin-1 mixups,
+ * control characters, and malformed HTML entities.
+ * 
+ * @module encodingUtils
  */
 
 /**
  * Fix common encoding issues in text content
+ * 
+ * Applies a series of transformations to fix encoding problems like:
+ * - UTF-8 characters interpreted as Latin-1
+ * - Control characters
+ * - HTML entities
+ * - Malformed punctuation patterns
+ * 
+ * @param content - The text content to fix
+ * @returns Cleaned text with encoding issues resolved
  */
 export const fixEncodingIssues = (content: string): string => {
   if (!content) return '';
@@ -64,6 +79,15 @@ export const fixEncodingIssues = (content: string): string => {
 
 /**
  * Detect if content likely has encoding issues
+ * 
+ * Uses pattern matching to identify common indicators of encoding problems:
+ * - Unicode replacement characters
+ * - Control characters
+ * - Suspicious character sequences
+ * - High percentage of non-printable characters
+ * 
+ * @param content - The text content to check
+ * @returns True if encoding issues are detected, false otherwise
  */
 export const detectEncodingIssues = (content: string): boolean => {
   if (!content) return false;

@@ -3,7 +3,15 @@
 Batch Processing Module
 
 This module provides batch processing functionality for the file tab,
-allowing users to process multiple files sequentially with progress tracking.
+allowing users to process multiple files sequentially with progress tracking
+and comprehensive error handling.
+
+Key Features:
+- Sequential processing of multiple input files
+- Progress tracking and status updates
+- Configurable error handling (continue on error, stop on error)
+- Detailed error logging and reporting
+- Recovery mechanisms for failed operations
 """
 
 import tkinter as tk
@@ -22,8 +30,21 @@ def batch_process_all(app):
     """
     Process all loaded files in batch mode
     
+    This function initiates the batch processing of all files that have been
+    loaded into the application. It performs validation checks, confirms with
+    the user, and then starts a background thread to handle the processing.
+    
     Args:
-        app: The application instance
+        app: The application instance containing UI elements and data
+             including input_files, output_dir, and UI controls
+    
+    Returns:
+        None
+    
+    Notes:
+        - Processing is done in a separate thread to keep the UI responsive
+        - Progress updates are sent to the UI during processing
+        - Errors are logged and optionally displayed to the user
     """
     if not app.input_files:
         messagebox.showerror("Error", "No files loaded. Please add files first.")
@@ -57,8 +78,18 @@ def _batch_process_thread(app):
     """
     Thread function to process all files in batch mode
     
+    This function handles the actual processing of files in a background thread.
+    It tracks progress, handles errors according to settings, and generates
+    detailed error reports when needed.
+    
     Args:
         app: The application instance
+    
+    Notes:
+        - Processes each file sequentially
+        - Tracks success and failure counts
+        - Creates error reports if enabled
+        - Updates UI with progress information
     """
     try:
         total_files = len(app.input_files)

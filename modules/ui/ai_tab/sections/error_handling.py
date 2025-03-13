@@ -1,15 +1,44 @@
 
 """
-Error Handling Section
+Error Handling Section Module
 
-Creates the error handling options UI section
+This module creates the error handling options UI section, providing controls
+for configuring how the application responds to various error conditions.
+
+Key Features:
+- Retry configuration for API rate limit errors
+- Maximum retry count control
+- Fallback options for API failures
+- Batch processing error handling options
+- Error logging configuration
 """
 
 import tkinter as tk
 from tkinter import ttk
 
 def create_error_handling_section(parent, app):
-    """Create the error handling options section"""
+    """
+    Create the error handling options section
+    
+    Creates a UI frame containing controls for configuring error handling
+    behavior throughout the application. Includes options for retries,
+    fallbacks, and logging.
+    
+    Args:
+        parent: The parent widget where this section will be placed
+        app: The application instance where variables will be stored
+    
+    Returns:
+        ttk.LabelFrame: The created error handling section frame
+    
+    Notes:
+        The following app variables are created or used:
+        - app.retry_on_error: Whether to retry on rate limit errors
+        - app.max_retries: Maximum number of retry attempts
+        - app.fallback_to_local: Whether to fall back to local processing on API failure
+        - app.continue_batch_on_error: Whether to continue batch processing after individual errors
+        - app.log_batch_errors: Whether to log detailed error reports for failed batch items
+    """
     
     # Error handling options
     error_frame = ttk.LabelFrame(parent, text="Error Handling Options", padding=10)
