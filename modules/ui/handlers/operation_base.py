@@ -6,6 +6,7 @@ This module provides the base class for all operation handlers with common funct
 """
 
 from modules.utils.error_handler import ErrorHandler
+from modules.utils.encoding_utils import contains_encoding_issues, log_encoding_issues
 import os
 import logging
 
@@ -69,38 +70,7 @@ class BaseOperationHandler:
         Returns:
             True if encoding issues are detected, False otherwise
         """
-        import re
-        
-        # Quick check for null bytes (binary data)
-        if '\x00' in text:
-            self.encoding_logger.warning("Binary data detected in text content")
-            return True
-        
-        # Pattern for suspicious sequences of symbols that might indicate encoding issues
-        suspicious_patterns = [
-            r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]{3,}',  # Control characters
-            r'[\xC0-\xFF]{3,}',                       # High ASCII chars in sequence
-            r'(\?{3,})',                              # Multiple question marks
-            r'(�{2,})',                               # Unicode replacement chars
-            r'(\]{3,}|\[{3,}|\){3,}|\({3,})',         # Multiple brackets in sequence
-            r'([\\/@#$%^&*+=]{4,})'                   # Repeated special chars
-        ]
-        
-        # Check for patterns
-        for pattern in suspicious_patterns:
-            if re.search(pattern, text):
-                self.encoding_logger.warning(f"Suspicious encoding pattern detected: {pattern}")
-                return True
-        
-        # Count non-printable characters
-        non_printable = sum(1 for c in text if not c.isprintable() and not c.isspace())
-        
-        # If more than 15% of the text is non-printable, suspect encoding issues
-        if len(text) > 20 and non_printable / len(text) > 0.15:
-            self.encoding_logger.warning(f"High percentage of non-printable characters: {non_printable/len(text)*100:.2f}%")
-            return True
-        
-        return False
+        return contains_encoding_issues(text)
     
     def log_document_info(self, document, file_path=None):
         """
@@ -124,11 +94,10 @@ class BaseOperationHandler:
             # Check samples for encoding issues
             has_issues = False
             for i, sample in enumerate(samples):
-                if self.check_for_encoding_issues(sample):
+                if contains_encoding_issues(sample):
                     has_issues = True
                     self.app.log.warning(f"Encoding issues detected in paragraph {i}")
-                    self.encoding_logger.warning(f"Encoding issues in document: {file_path or 'Unknown'}")
-                    self.encoding_logger.warning(f"Sample text with issues: {sample[:100]}")
+                    log_encoding_issues(sample, file_path, self.encoding_logger)
                     break
             
             if has_issues:
@@ -137,3 +106,4 @@ class BaseOperationHandler:
                 
         except Exception as e:
             self.app.log.error(f"Error logging document info: {str(e)}")
+

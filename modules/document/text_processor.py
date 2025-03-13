@@ -1,8 +1,8 @@
-
 import unicodedata
 import re
 from modules.document.text_processing.encoding import detect_encoding, normalize_whitespace
 from modules.document.text_processing.replacements import get_character_replacements
+from modules.utils.encoding_utils import contains_encoding_issues
 
 def fix_text_encoding(app):
     app.log.info("Fixing text encoding issues...")
@@ -65,32 +65,6 @@ def fix_text_encoding(app):
         app.log.info(f"Fixed {replacement_count} encoding issues")
     
     return has_encoding_issues
-
-def contains_encoding_issues(text):
-    """Detect if text likely contains encoding issues"""
-    # Pattern for suspicious sequences of symbols that might indicate encoding issues
-    suspicious_patterns = [
-        r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]{3,}',  # Control characters
-        r'[\xC0-\xFF]{3,}',                       # High ASCII chars in sequence
-        r'(\?{3,})',                              # Multiple question marks
-        r'(�{2,})',                               # Unicode replacement chars
-        r'(\]{3,}|\[{3,}|\){3,}|\({3,})',         # Multiple brackets in sequence
-        r'([\\/@#$%^&*+=]{4,})'                   # Repeated special chars
-    ]
-    
-    # Check for patterns
-    for pattern in suspicious_patterns:
-        if re.search(pattern, text):
-            return True
-    
-    # Count non-printable characters
-    non_printable = sum(1 for c in text if not c.isprintable() and not c.isspace())
-    
-    # If more than 15% of the text is non-printable, suspect encoding issues
-    if len(text) > 10 and non_printable / len(text) > 0.15:
-        return True
-    
-    return False
 
 def fix_common_encoding_issues(text):
     """Fix common encoding issues"""
