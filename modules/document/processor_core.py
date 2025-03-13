@@ -11,6 +11,7 @@ import tkinter as tk
 from tkinter import messagebox
 import time
 import gc
+import os
 from modules.utils.error_handler import ErrorHandler
 
 def process_document(app):
@@ -53,7 +54,6 @@ def _process_document_thread(app, show_message=True):
         app.update_progress(0, "Processing document...")
         
         # Check if output directory exists, create if not
-        import os
         os.makedirs(app.output_dir.get(), exist_ok=True)
         
         app.log.info(f"Processing document: {app.input_file.get()}")
@@ -68,37 +68,8 @@ def _process_document_thread(app, show_message=True):
         if is_large_document:
             app.log.info(f"Large document detected: {doc_size} paragraphs. Enabling optimizations.")
         
-        # Fix encoding if selected
-        if app.fix_encoding.get():
-            app.update_progress(20, "Fixing text encoding...")
-            from modules.document.text_processor import fix_text_encoding
-            fix_text_encoding(app)
-        
-        # Extract chapters with optimizations for large documents
-        app.update_progress(40, "Extracting chapters...")
-        if is_large_document:
-            # Process chapters in chunks
-            from modules.document.optimized_processors import extract_chapters_optimized
-            extract_chapters_optimized(app)
-        else:
-            from modules.document.chapter_extractor import extract_chapters
-            extract_chapters(app)
-        
-        # Generate table of contents if selected
-        if app.generate_toc.get():
-            app.update_progress(60, "Generating table of contents...")
-            from modules.document.toc_generator import generate_table_of_contents
-            generate_table_of_contents(app)
-        
-        # Enhance content if selected
-        if app.enhance_content.get():
-            app.update_progress(80, "Enhancing book content...")
-            if is_large_document:
-                # Process content enhancement in chunks
-                from modules.document.optimized_processors import enhance_book_content_chunked
-                enhance_book_content_chunked(app)
-            else:
-                enhance_book_content(app)
+        # Process document with appropriate methods based on size
+        _perform_document_processing(app, is_large_document)
         
         # Update the chapter listbox
         app.chapter_listbox.delete(0, tk.END)
@@ -118,3 +89,44 @@ def _process_document_thread(app, show_message=True):
         
     except Exception as e:
         ErrorHandler.handle_processing_error(app, e, "document processing", show_message)
+
+def _perform_document_processing(app, is_large_document):
+    """
+    Execute the actual document processing steps, using optimized methods for large documents.
+    
+    Args:
+        app: The application instance
+        is_large_document: Whether the document is considered large
+    """
+    # Fix encoding if selected
+    if app.fix_encoding.get():
+        app.update_progress(20, "Fixing text encoding...")
+        from modules.document.text_processor import fix_text_encoding
+        fix_text_encoding(app)
+    
+    # Extract chapters with optimizations for large documents
+    app.update_progress(40, "Extracting chapters...")
+    if is_large_document:
+        # Process chapters in chunks
+        from modules.document.optimized_processors import extract_chapters_optimized
+        extract_chapters_optimized(app)
+    else:
+        from modules.document.chapter_extractor import extract_chapters
+        extract_chapters(app)
+    
+    # Generate table of contents if selected
+    if app.generate_toc.get():
+        app.update_progress(60, "Generating table of contents...")
+        from modules.document.toc_generator import generate_table_of_contents
+        generate_table_of_contents(app)
+    
+    # Enhance content if selected
+    if app.enhance_content.get():
+        app.update_progress(80, "Enhancing book content...")
+        if is_large_document:
+            # Process content enhancement in chunks
+            from modules.document.optimized_processors import enhance_book_content_chunked
+            enhance_book_content_chunked(app)
+        else:
+            from modules.document.content_enhancer import enhance_book_content
+            enhance_book_content(app)

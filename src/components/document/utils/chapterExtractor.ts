@@ -4,6 +4,7 @@
  */
 import { Chapter } from '../DocumentUploader';
 import { fixEncodingIssues, detectEncodingIssues } from './encodingUtils';
+import { sectionPatterns, isHeading, getChapterTitle, getChapterContentHeader } from './chapterPatterns';
 
 /**
  * Extract chapters and subsections from document content
@@ -15,17 +16,6 @@ export const extractChapters = (content: string): Chapter[] => {
   // Split content into lines
   const lines = content.split('\n');
   const chapters: Chapter[] = [];
-  
-  // Chapter and subsection detection patterns
-  const sectionPatterns = [
-    /^chapter\s+(\d+)[\s:]+(.+)$/i,            // "Chapter X: Title"
-    /^(\d+)[\s\.]+(.+)$/,                       // "1. Title"
-    /^(\d+\.\d+)[\s]+(.+)$/,                   // "1.1 Title" (subsection)
-    /^appendix\s+([A-Z])[\s:\.]+(.+)$/i,       // "Appendix A: Title"
-    /^([A-Z])[\s:\.]+(.+)$/,                   // "A. Title" (appendix style)
-    /^back\s+matter:?\s*(.+)$/i,               // "Back Matter: Title"
-    /^index:?\s*(.+)$/i,                       // "Index: Title"
-  ];
   
   let currentChapterTitle = hasEncodingIssues ? 'Encoding Issues Detected' : 'Introduction';
   let currentChapterContent = '';
@@ -71,7 +61,7 @@ export const extractChapters = (content: string): Chapter[] => {
     }
 
     // Check if line is a heading
-    let isHeading = false;
+    let isLineHeading = false;
     
     for (const pattern of sectionPatterns) {
       const match = line.match(pattern);
@@ -79,21 +69,15 @@ export const extractChapters = (content: string): Chapter[] => {
         // Save previous chapter
         addChapter();
         
-        // Handle different section types
-        if (line.toLowerCase().startsWith('appendix') || (isInAppendices && match[1].length === 1)) {
-          currentChapterTitle = `Appendix ${match[1]}: ${match[2] || 'Untitled'}`;
-          currentChapterContent = `<h2>${currentChapterTitle}</h2>\n`;
-        } else if (isInBackMatter) {
-          currentChapterTitle = match[2] || match[1];
-          currentChapterContent = `<h2>${currentChapterTitle}</h2>\n`;
-        } else {
-          // This is a main chapter
-          currentChapterTitle = `Chapter ${match[1]}: ${match[2]}`;
-          currentChapterContent = `<h2>Chapter ${match[1]}: ${match[2]}</h2>\n`;
+        // Set chapter title and content based on section type
+        currentChapterTitle = getChapterTitle(match, isInAppendices, isInBackMatter);
+        currentChapterContent = getChapterContentHeader(match, isInAppendices, isInBackMatter);
+        
+        if (!isInAppendices && !isInBackMatter) {
           lastChapterNumber = match[1];
         }
         
-        isHeading = true;
+        isLineHeading = true;
         break;
       }
     }
@@ -101,7 +85,7 @@ export const extractChapters = (content: string): Chapter[] => {
     // Handle bullet points and lists
     if (line.startsWith('•')) {
       currentChapterContent += `<li>${line.substring(1).trim()}</li>\n`;
-    } else if (!isHeading) {
+    } else if (!isLineHeading) {
       if (currentChapterContent.endsWith('</li>\n')) {
         // Close list if we were in one
         currentChapterContent += '</ul>\n';

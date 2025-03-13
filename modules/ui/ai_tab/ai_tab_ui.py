@@ -2,43 +2,49 @@
 """
 AI Tab UI Module
 
-Creates the user interface for the AI functionality tab
+This module creates the AI tab interface, composing the various sections
 """
 
 import tkinter as tk
 from tkinter import ttk
-import os
-from .sections.api_config import create_api_config_section
-from .sections.review_options import create_review_options_section
-from .sections.enhancement_options import create_enhancement_options_section
-from .sections.error_handling import create_error_handling_section
+
+from .sections.api_config import create_api_config
+from .sections.enhancement_options import create_enhancement_options
+from .sections.review_options import create_review_options
 from .sections.action_buttons import create_action_buttons
+from .sections.error_handling import setup_error_handling
 
-def create_ai_tab(parent, app):
-    """Create the complete AI tab with all sections"""
+def create_ai_tab(tab, app):
+    """Create the AI enhancement tab"""
     
-    # Create each section of the AI tab
-    create_api_config_section(parent, app)
-    create_review_options_section(parent, app)
-    create_enhancement_options_section(parent, app)
-    create_error_handling_section(parent, app)
-    create_action_buttons(parent, app)
+    # Set up variables
+    app.openai_model = tk.StringVar(value="gpt-3.5-turbo")
+    app.enhancement_type = tk.StringVar(value="grammar")
+    app.style_type = tk.StringVar(value="professional")
+    app.enhancement_intensity = tk.DoubleVar(value=0.5)
     
-    # Add the enhancement function to app
-    app.apply_ai_enhancement = lambda enhancement_type: (
-        apply_ai_enhancement(app, enhancement_type)
-    )
-
-def apply_ai_enhancement(app, enhancement_type):
-    """Apply AI enhancement to current chapter"""
-    # Import here to avoid circular imports
-    from modules.document.content_enhancer import apply_ai_enhancements
+    # Review options
+    app.review_grammar = tk.BooleanVar(value=True)
+    app.review_coherence = tk.BooleanVar(value=True)
+    app.suggest_improvements = tk.BooleanVar(value=True)
     
-    # Get selected chapter
-    selected = app.chapter_listbox.curselection()
-    if not selected:
-        app.log("No chapter selected for enhancement")
-        return
+    # Create AI API configuration section
+    api_frame = create_api_config(tab, app)
+    api_frame.pack(fill=tk.X, pady=10)
     
-    chapter_idx = selected[0]
-    apply_ai_enhancements(app, chapter_idx, enhancement_type)
+    # Create review options section
+    review_frame = create_review_options(tab, app)
+    review_frame.pack(fill=tk.X, pady=10)
+    
+    # Create enhancement options section
+    enhance_frame = create_enhancement_options(tab, app)
+    enhance_frame.pack(fill=tk.X, pady=10)
+    
+    # Create action buttons section
+    button_frame = create_action_buttons(tab, app)
+    button_frame.pack(fill=tk.X, pady=10)
+    
+    # Setup error handling and validation
+    setup_error_handling(app)
+    
+    return tab
